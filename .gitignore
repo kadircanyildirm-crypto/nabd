@@ -1,0 +1,46 @@
+# Secrets — NaC credentials must never be committed
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# SITL / flight logs
+*.ulg
+*.tlog
+*.bin
+sitl/build/
+logs/
+
+# Demo captures
+*.mp4
+*.mkv
+!docs/**/*.mp4
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
