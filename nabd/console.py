@@ -23,6 +23,9 @@ from nabd.log import EVIDENCE_DIR
 from nabd.scene import BUILDERS, build, run
 
 OUT = Path(__file__).resolve().parent / "replay.html"
+# The same file is published as the live demo (GitHub Pages serves docs/), so it is
+# written twice; nothing else differs between the two copies.
+PAGES = Path(__file__).resolve().parent.parent / "docs" / "index.html"
 
 TITLES = {
     "quiet": ("Quiet morning", "the baseline — a monitored city on an ordinary day"),
@@ -65,7 +68,10 @@ def scene_payload(name: str) -> dict:
 def build_console(names: tuple[str, ...] = tuple(BUILDERS), out: Path = OUT) -> Path:
     payload = {"scenes": [scene_payload(n) for n in names]}
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
-    out.write_text(TEMPLATE.replace("__DATA__", data), encoding="utf-8")
+    html = TEMPLATE.replace("__DATA__", data)
+    out.write_text(html, encoding="utf-8")
+    if out == OUT and PAGES.parent.is_dir():
+        PAGES.write_text(html, encoding="utf-8")
     return out
 
 
