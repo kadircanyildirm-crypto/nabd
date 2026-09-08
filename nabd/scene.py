@@ -262,11 +262,14 @@ def _print_summary(log, gateway, scenario: Scenario, out) -> None:
         print(f"                — {reason}", file=out)
     print(f"  CAMARA calls  {s['api_calls']} over {s['passes']} passes ({gateway.backend})", file=out)
     aggregate = s["api_calls"] - s["personal_calls"]
-    print(
-        f"  privacy       {aggregate} aggregate (sentinel) calls, {s['personal_calls']} personal — "
-        f"all inside the footprint, on {s['passes_with_gate_open']}/{s['passes']} passes",
-        file=out,
-    )
+    if s["personal_calls"]:
+        tail = (
+            f"{s['personal_calls']} personal — every one of them a registry member inside the declared "
+            f"footprint, on the {s['passes_with_gate_open']} of {s['passes']} passes where it was active"
+        )
+    else:
+        tail = "0 personal — the opt-in registry was never queried on any pass"
+    print(f"  privacy       {aggregate} aggregate (sentinel) calls, {tail}", file=out)
 
 
 def main(argv: list[str] | None = None) -> int:
