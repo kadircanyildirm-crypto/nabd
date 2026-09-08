@@ -22,6 +22,14 @@ GRID_CROWD = noise[10]["grid"]
 GRID_MAINT = noise[6]["grid"]
 GRID_FAULT = noise[2]["grid"]
 
+degraded = [json.loads(l) for l in (ROOT / "nac/evidence/nabd-scene-degraded.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+HELD = degraded[11]
+assert HELD["kind"] == "ABSTAIN" and "local baseline" in HELD["reason"], HELD["kind"]
+BOTH = degraded[21]
+assert BOTH["kind"] == "DECLARE"
+GRID_HELD = HELD["grid"]
+GRID_BOTH = BOTH["grid"]
+
 ROWS = "ABCDEFGHIJ"
 
 # palette
@@ -255,8 +263,8 @@ slides.append("""
       <text x="478" y="276" class="side">gates triage</text>
     </svg>
     <div class="agent-text">
-      <p><b>Corroborate before you speak.</b> Silence is only the hypothesis. It must be backed by a synchronised onset or a hot ring, persist for a second pass, and survive the operator's maintenance calendar.</p>
-      <p><b>Grade the confidence.</b> Two corroborations → HIGH. One → MEDIUM. None → abstain, with the reason written into the log.</p>
+      <p><b>Two gates, then corroboration.</b> A footprint needs a contiguous silent block <i>and</i> silence that is abnormal <i>there</i>, measured against those cells' own history. A gate can veto a declaration; it can never cause one.</p>
+      <p><b>Grade the confidence.</b> Corroborations — synchronised onset, hot ring — are a list the arithmetic counts, not a hard-coded pair. Two → HIGH. One → MEDIUM. None → abstain, with the reason written into the log. A new network surface is an append to that list, not a redesign.</p>
       <p><b>Gate the personal layer.</b> The conditional edge means no registry device is ever queried outside a declared footprint — a fuzzed test invariant, not a promise.</p>
       <p><b>Keep the LLM off the control path.</b> Detection is deterministic and replayable; the language model only writes the command-centre sentence.</p>
     </div>
@@ -270,18 +278,18 @@ slides.append("""
   <h2>A working agent, offline and live through one surface.</h2>
   <div class="built">
     <table class="mods">
-      <tr><td class="mono">world · model</td><td>10×10 grid, 48-person opt-in registry, quake / cell-fault / peak events, maintenance calendar</td></tr>
-      <tr><td class="mono">gateway</td><td>one CAMARA surface, two backends — simulator (NaC vocabulary and shapes) and live via the Nokia SDK</td></tr>
-      <tr><td class="mono">detector</td><td>correlate → exclude → declare; pure functions, no framework import</td></tr>
+      <tr><td class="mono">world · model</td><td>10×10 grid, 48-person opt-in registry, quake / cell-fault / peak / chronic-flap events, maintenance calendar</td></tr>
+      <tr><td class="mono">gateway</td><td>one CAMARA surface, three backends — simulator, live via the Nokia SDK, and replay of a recorded transcript</td></tr>
+      <tr><td class="mono">detector</td><td>correlate → exclude → declare; gates and corroborations as named signals, pure functions, no framework import</td></tr>
       <tr><td class="mono">triage · brief</td><td>reachability and last-seen inside the footprint only; the command-centre sentence</td></tr>
       <tr><td class="mono">graph · loop</td><td>the LangGraph runner and the plain runner — same evidence, byte for byte</td></tr>
-      <tr><td class="mono">scene · console</td><td>three scenes; a self-contained command-centre console generated from the evidence</td></tr>
+      <tr><td class="mono">scene · console · parity</td><td>four scenes; a self-contained console generated from the evidence; the backend-parity harness</td></tr>
     </table>
     <div class="status">
       <div><b>Runs on bare Python</b><span>no account, no server, no CDN — the demo cannot fail in the room</span></div>
       <div><b>Same agent, live</b><span><code>--backend live</code> makes the identical three calls through the Nokia SDK and records the raw exchanges</span></div>
-      <div><b>Two runners, identical</b><span>plain loop and LangGraph diffed byte for byte — 4,405 CAMARA calls</span></div>
-      <div><b>65 / 65 tests, 8 suites</b><span>incl. fuzzed invariants: no footprint without a contiguous block; no personal-device call outside a footprint</span></div>
+      <div><b>One agent, proven</b><span><code>python -m nabd.parity</code> — the agent stack imports no SDK, one function picks the network, every scene replays through the live parsers identically</span></div>
+      <div><b>77 / 77 tests, 9 suites</b><span>incl. fuzzed invariants: no footprint without a contiguous block; no personal-device call outside a footprint</span></div>
     </div>
   </div>
 </section>""")
@@ -321,9 +329,29 @@ slides.append(f"""
   <p class="lead">Noise scene: 21 passes, three abstentions, <b>zero declarations</b> — each refusal with its reason in the log. The quiet scene stays quiet. Written reasons are what make a false alarm auditable and a true alarm trusted.</p>
 </section>""")
 
-# ---------- 11 CAMARA
-slides.append("""
+# ---------- 11 the hardest look-alike
+slides.append(f"""
 <section class="slide" id="slide-11">
+  <div class="kicker">Evidence — the hardest look-alike</div>
+  <h2>Where silence is normal, silence is not news.</h2>
+  <div class="two">
+    <div class="wolf"><div class="wgrid">{grid_svg(GRID_HELD, 165, labels=False)}</div>
+      <div class="lbl">09:05:30 · a block on a failing backhaul</div>
+      <p>Four contiguous cells, dark together, no maintenance ticket — <b>every signal an impact has.</b> The first three flaps are held for confirmation and come back before it is due. By the fourth, the agent has measured them:</p>
+      <p class="quote">“silence is the local baseline: these 4 cells were already unreachable in 3 of the last 11 passes (27% of the time) — no alert”</p>
+      <b>ABSTAIN</b></div>
+    <div class="wolf"><div class="wgrid">{grid_svg(GRID_BOTH, 165, labels=False, ring=True)}</div>
+      <div class="lbl">09:10:30 · same run, same grid</div>
+      <p>An earthquake hits the centre while the north-eastern block is <b>still dark</b>. Two silent blocks on one screen. One alert.</p>
+      <p class="quote">“impact footprint declared: 9 contiguous cells, ~4.0 km²” — HIGH, 30 s after onset, 13 registered people inside</p>
+      <b>DECLARE</b></div>
+  </div>
+  <p class="lead">The real question is not whether an outage can be seen — it is whether a <b>disaster footprint can be told apart from every other reason cells go quiet.</b> The refusal is measured, not assumed; the declaration in the same run is what shows it is not blindness.</p>
+</section>""")
+
+# ---------- 12 CAMARA
+slides.append("""
+<section class="slide" id="slide-12">
   <div class="kicker">CAMARA on Nokia Network-as-Code</div>
   <h2>Remove the network APIs and nothing works. The network is the sensor.</h2>
   <div class="two apis">
@@ -344,15 +372,15 @@ slides.append("""
   </div>
 </section>""")
 
-# ---------- 12 live vs simulated, privacy, consent
+# ---------- 13 live vs simulated, privacy, consent
 slides.append("""
-<section class="slide" id="slide-12">
+<section class="slide" id="slide-13">
   <div class="kicker">Honest boundaries</div>
   <h2>Live where it can be. Simulated where it must be. Private by design.</h2>
   <div class="three cols">
-    <div class="col"><div class="lbl">Live vs simulated</div>
-      <p>The sandbox cannot stage a disaster. So the split is explicit: the <b>live platform proves the contract</b> with real, recorded calls; the <b>simulator stages the disaster</b> through the same code path, shaped on the public record of the 2023 Kahramanmaraş outage.</p>
-      <p>One gateway surface, two backends, identical agent code and identical evidence format.</p></div>
+    <div class="col"><div class="lbl">Live vs simulated — and the seam between them</div>
+      <p>The sandbox cannot stage a disaster. So the two claims are separated: the <b>live platform proves the integration</b> with real recorded calls; the <b>simulator proves the scenario</b>, shaped on the public record of the 2023 Kahramanmaraş outage.</p>
+      <p>The risk is not the simulator — it is a suspected discontinuity between the paths. So <code>nabd.parity</code> measures it: the agent stack imports no SDK and names no backend; <b>one function</b> picks the network; and every scene is <b>recorded and replayed through the live response parsers</b>, evidence identical line for line.</p></div>
     <div class="col"><div class="lbl">Privacy</div>
       <p>Detection reads only <b>sentinel devices the city or operator owns</b> — never the public.</p>
       <p>Its output is <b>area-level</b>: cells and a footprint, not people. No cameras, no message content, no tracking.</p></div>
@@ -362,9 +390,9 @@ slides.append("""
   </div>
 </section>""")
 
-# ---------- 13 impact, scale, business
+# ---------- 14 impact, scale, business
 slides.append("""
-<section class="slide" id="slide-13">
+<section class="slide" id="slide-14">
   <div class="kicker">Impact · scale · business</div>
   <h2>One engine, many hazards. Minutes, not hours.</h2>
   <div class="three cols">
@@ -383,7 +411,7 @@ slides.append("""
 
 # ---------- 14 close
 slides.append(f"""
-<section class="slide cover close" id="slide-14">
+<section class="slide cover close" id="slide-15">
   <div class="kicker">Nabd · نبض &nbsp;·&nbsp; Theme 6 &nbsp;·&nbsp; Prototype Phase</div>
   <h2 class="huge2">The network already knows.<br>Nabd makes it say so — in the first minute.</h2>
   <div class="next">
@@ -495,6 +523,14 @@ CSS = f"""
   .wolf p{{font-size:18.5px;line-height:1.38;margin:0;flex:1;color:var(--ink)}}
   .wolf b{{font-family:var(--mono);color:var(--acc);font-size:16px;letter-spacing:.1em;margin-top:14px}}
   .wolf .lbl{{color:var(--muted)}}
+  .wolf p.quote{{font-family:var(--mono);font-size:15.5px;line-height:1.4;color:var(--acc);
+     border-left:3px solid var(--acc);padding-left:12px;margin:12px 0 0;flex:0}}
+  .two .wolf{{min-height:0;padding:14px 18px}}
+  .two .wolf .wgrid{{align-self:center}}
+  .two .wolf p{{font-size:17px;line-height:1.36}}
+  .two .wolf p.quote{{font-size:14px}}
+  .two .wolf b{{margin-top:10px}}
+  .two + .lead{{margin-top:16px;font-size:18.5px}}
   .three + .lead{{margin-top:22px;font-size:21px}}
   .apis{{grid-template-columns:1.15fr 1fr;gap:36px}}
   .apit th{{font-family:var(--sans);font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:2px solid var(--rule)}}
@@ -516,7 +552,7 @@ CSS = f"""
 SCRIPT = r"""<script>
 (function(){
   // #slide-N shows that slide alone on screen (used for screenshots and for stepping through in a browser);
-  // printing ignores the hash and lays out all fourteen.
+  // printing ignores the hash and lays out every slide.
   function apply(){
     var m=(location.hash||'').match(/^#slide-(\d+)$/);
     document.querySelectorAll('.slide').forEach(function(s){ s.style.display = (m && s.id!=='slide-'+m[1]) ? 'none' : ''; });
@@ -539,8 +575,8 @@ html = f"""<!doctype html>
 <style>{CSS}</style>
 </head>
 <body>
-{''.join(s.replace('<section class="slide', f'<section data-n="{i+1} / 14" class="slide', 1) for i, s in enumerate(slides))}
-{SCRIPT}
+{''.join(s.replace('<section class="slide', f'<section data-n="{i+1} / {len(slides)}" class="slide', 1) for i, s in enumerate(slides))}
+{SCRIPT.replace("Math.min(14,", f"Math.min({len(slides)},")}
 </body>
 </html>
 """

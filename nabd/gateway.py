@@ -18,6 +18,7 @@ The three calls are the entire network surface of the prototype:
 from __future__ import annotations
 
 import json
+from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -173,6 +174,58 @@ class OfflineGateway:
 
 
 # ----------------------------------------------------------------------------
+# Reading a CAMARA response
+# ----------------------------------------------------------------------------
+#
+# These three functions are the only place a platform response becomes a
+# reading, and every backend goes through them — live, offline replay, and the
+# parity harness alike. That is what makes "the same logic runs on both" a
+# property of the code rather than a claim on a slide: if the simulator's
+# responses were the wrong shape, the live parser would not read them, and
+# `nabd/parity.py` runs exactly that check.
+
+
+def parse_congestion(response: Any) -> tuple[Level, int | None]:
+    """Congestion Insights. An empty list is not an error — it is a silent cell."""
+    if not response:
+        return Level.UNKNOWN, None
+    first = response[0] if isinstance(response, list) else response
+    try:
+        return Level((first or {}).get("congestionLevel", "Unknown")), (first or {}).get("confidenceLevel")
+    except ValueError:
+        return Level.UNKNOWN, None
+
+
+def parse_reachability(response: Any) -> Reach:
+    """Device Status. Anything that is not a positive CONNECTED is unreachable."""
+    if not response:
+        return Reach.UNKNOWN
+    status = response.get("connectivityStatus", "")
+    return Reach.REACHABLE if "CONNECTED" in status and "NOT" not in status else Reach.UNREACHABLE
+
+
+def parse_location(response: Any, now: datetime) -> Location | None:
+    """Location Retrieval. `now` is passed in so a replay ages the fix the same
+    way the live call did, instead of against the wall clock of the replay."""
+    if not response:
+        return None
+    area = response.get("area", {})
+    centre = area.get("center", {})
+    age = 0.0
+    stamp = response.get("lastLocationTime")
+    if stamp:
+        try:
+            seen = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            age = max(0.0, (now - seen).total_seconds())
+        except ValueError:
+            pass
+    try:
+        return Location(float(centre["latitude"]), float(centre["longitude"]), int(area.get("radius", 0)), age)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+# ----------------------------------------------------------------------------
 # Live
 # ----------------------------------------------------------------------------
 
@@ -212,49 +265,121 @@ class LiveGateway:
     def congestion(self, device: str) -> tuple[Level, int | None]:
         fn = self.nac.resolve(self.client.congestion_insights, "query_v1", "query_v_1", "query")
         response = self._call("congestion.query", fn, device={"phoneNumber": device})
-        if not response:
-            return Level.UNKNOWN, None
-        first = response[0] if isinstance(response, list) else response
-        try:
-            return Level((first or {}).get("congestionLevel", "Unknown")), (first or {}).get("confidenceLevel")
-        except ValueError:
-            return Level.UNKNOWN, None
+        return parse_congestion(response)
 
     def reachability(self, device: str) -> Reach:
         fn = self.nac.resolve(
             self.client.device_status, "get_connectivity_v1", "get_connectivity_v_1", "get_connectivity"
         )
         response = self._call("device_status.connectivity", fn, device={"phoneNumber": device})
-        if not response:
-            return Reach.UNKNOWN
-        status = response.get("connectivityStatus", "")
-        return Reach.REACHABLE if "CONNECTED" in status and "NOT" not in status else Reach.UNREACHABLE
+        return parse_reachability(response)
 
     def location(self, device: str, max_age_s: int = 3600) -> Location | None:
         fn = self.nac.resolve(self.client.location_retrieval, "retrieve_v1", "retrieve_v_1", "retrieve")
         response = self._call("location.retrieve", fn, device={"phoneNumber": device}, max_age=max_age_s)
-        if not response:
-            return None
-        area = response.get("area", {})
-        centre = area.get("center", {})
-        age = 0.0
-        stamp = response.get("lastLocationTime")
-        if stamp:
-            try:
-                seen = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
-                age = max(0.0, (datetime.now(timezone.utc) - seen).total_seconds())
-            except ValueError:
-                pass
-        try:
-            return Location(float(centre["latitude"]), float(centre["longitude"]), int(area.get("radius", 0)), age)
-        except (KeyError, TypeError, ValueError):
-            return None
+        return parse_location(response, datetime.now(timezone.utc))
 
 
-def build(backend: str = "offline", world: World | None = None) -> Gateway:
-    """Pick a backend. The only line in the package that knows the difference."""
+# ----------------------------------------------------------------------------
+# Replay
+# ----------------------------------------------------------------------------
+
+
+class ReplayGateway:
+    """A recorded transcript, answered back through the live parsers.
+
+    This is the backend that makes the parity claim checkable by someone who has
+    no account. It takes a `.jsonl` of `Call` records — written either by a live
+    run or by an offline one, they are the same shape — and serves the recorded
+    responses in the order they were recorded, reading each one with
+    `parse_congestion` / `parse_reachability` / `parse_location`, the same three
+    functions `LiveGateway` uses.
+
+    Two things follow. Replaying an *offline* transcript proves the simulator's
+    responses are the shape the live code reads, and that the agent's decisions
+    depend on the responses rather than on the object that returned them.
+    Replaying a *live* transcript re-runs the agent on real platform bytes,
+    with no credentials and no network, which is what a judge can do.
+    """
+
+    backend = "replay"
+
+    def __init__(self, calls: list[Call], source: str = "") -> None:
+        self.source = source
+        self.calls: list[Call] = []
+        self.now = 0.0
+        self.missing = 0
+        self._queues: dict[tuple[str, str], deque[Call]] = {}
+        for call in calls:
+            self._queues.setdefault((call.name, _device_of(call.request)), deque()).append(call)
+
+    @classmethod
+    def from_file(cls, path: Path) -> "ReplayGateway":
+        calls = [
+            Call(**json.loads(line))
+            for line in Path(path).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        return cls(calls, source=Path(path).name)
+
+    def devices(self) -> tuple[str, ...]:
+        """Every device the transcript carries, in a stable order."""
+        return tuple(sorted({device for (_, device) in self._queues}))
+
+    def tick(self, t: float) -> None:
+        self.now = t
+
+    def _next(self, name: str, device: str) -> Call | None:
+        queue = self._queues.get((name, device))
+        if not queue:
+            self.missing += 1
+            return None
+        call = queue.popleft() if len(queue) > 1 else queue[0]
+        self.calls.append(Call(name=call.name, request=call.request, response=call.response, ok=call.ok, error=call.error, t=self.now))
+        return call
+
+    def congestion(self, device: str) -> tuple[Level, int | None]:
+        call = self._next("congestion.query", device)
+        return parse_congestion(None if call is None else call.response)
+
+    def reachability(self, device: str) -> Reach:
+        call = self._next("device_status.connectivity", device)
+        return parse_reachability(None if call is None else call.response)
+
+    def location(self, device: str, max_age_s: int = 3600) -> Location | None:
+        call = self._next("location.retrieve", device)
+        if call is None:
+            return None
+        return parse_location(call.response, EPOCH + timedelta(seconds=self.now))
+
+
+def _device_of(request: dict) -> str:
+    device = request.get("device") or {}
+    if isinstance(device, dict):
+        return str(device.get("phoneNumber", ""))
+    return str(device)
+
+
+def build(
+    backend: str = "offline",
+    world: World | None = None,
+    transcript: Path | None = None,
+    calls: list[Call] | None = None,
+) -> Gateway:
+    """Pick a backend. The only function in the package that knows the difference.
+
+    Everything else — every runner, every scene, the parity harness itself —
+    reaches the network through here, which is what `nabd.parity` check 2
+    enforces by refusing to pass if any other module names a backend class.
+    """
     if backend == "live":
         return LiveGateway()
+    if backend == "replay":
+        if calls is not None:
+            return ReplayGateway(calls, source="memory")
+        if transcript is None:
+            raise ValueError("replay backend needs a transcript or a list of calls")
+        return ReplayGateway.from_file(transcript)
     if world is None:
         raise ValueError("offline backend needs a world")
     return OfflineGateway(world)

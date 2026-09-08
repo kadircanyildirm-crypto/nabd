@@ -126,7 +126,25 @@ class Peak:
     cells: tuple[str, ...]
 
 
-Event = Quake | CellFault | Peak
+@dataclass(frozen=True)
+class Flaky:
+    """A block that drops out on its own schedule. Chronic degradation, not impact.
+
+    The hardest look-alike, because it reproduces every signal an impact has —
+    a contiguous block, going dark together, with nothing on the maintenance
+    calendar to explain it. A bad backhaul link, a rural edge, a site running on
+    a generator that cuts out. The only thing that separates it from a disaster
+    is history: here, silence is the local normal.
+    """
+
+    cells: tuple[str, ...]
+    windows: tuple[tuple[float, float], ...]
+
+    def dark_at(self, t: float) -> bool:
+        return any(a <= t < b for a, b in self.windows)
+
+
+Event = Quake | CellFault | Peak | Flaky
 
 
 class World:
@@ -159,6 +177,8 @@ class World:
             if isinstance(ev, Quake) and t >= ev.t0 and cell_id in ev.core:
                 return Reach.UNREACHABLE, Level.UNKNOWN
             if isinstance(ev, CellFault) and ev.t0 <= t < ev.t1 and cell_id == ev.cell:
+                return Reach.UNREACHABLE, Level.UNKNOWN
+            if isinstance(ev, Flaky) and cell_id in ev.cells and ev.dark_at(t):
                 return Reach.UNREACHABLE, Level.UNKNOWN
         for m in self.maintenance:
             if m.covers(cell_id, t):

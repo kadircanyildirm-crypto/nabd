@@ -31,6 +31,7 @@ TITLES = {
     "quiet": ("Quiet morning", "the baseline — a monitored city on an ordinary day"),
     "quake": ("Earthquake", "the reference case — nine cells fall silent at once, the ring goes hot"),
     "noise": ("Look-alikes", "the false-alarm defence — a cell fault, a maintenance window, a stadium crowd"),
+    "degraded": ("Chronic degradation", "the hardest look-alike — a block where silence is normal, and a real impact in the same run"),
 }
 
 
@@ -139,6 +140,12 @@ TEMPLATE = r"""<!doctype html>
   .stat span { font-size: 11px; color: var(--muted); }
   .signals { margin: 8px 0 0; padding-left: 16px; color: var(--muted); font-size: 12.5px; }
   .signals li { margin: 2px 0; }
+  /* The privacy boundary, stated on every pass rather than argued once. */
+  .privacy { margin-top: 8px; padding: 6px 9px; border-radius: 6px; font-size: 12px; line-height: 1.45;
+             border: 1px solid var(--line); display: flex; gap: 7px; align-items: baseline; }
+  .privacy b { font-family: var(--mono); font-size: 11px; letter-spacing: .03em; white-space: nowrap; }
+  .privacy.shut { background: #10231a; border-color: #1d3d2c; color: #8fe0b0; }
+  .privacy.open { background: #2a2413; border-color: #4a3f1c; color: #ffd98a; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding: 2px 6px 6px 0; }
   td { padding: 4px 6px 4px 0; border-top: 1px solid var(--line); vertical-align: top; }
@@ -315,6 +322,13 @@ TEMPLATE = r"""<!doctype html>
       <div class="stat"><b>${rec.triage ? rec.triage.unreachable : '–'}</b><span>unreachable of ${rec.triage ? rec.triage.inside : sc.registry} registered</span></div>
     </div>`;
     if (rec.signals.length && rec.kind !== 'SUSTAIN') html += `<ul class="signals">${rec.signals.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`;
+    if (rec.privacy) {
+      const open = !!rec.privacy.open;
+      html += `<div class="privacy ${open ? 'open' : 'shut'}">` +
+              `<b>${open ? '◉ PERSONAL DATA · OPEN' : '○ PERSONAL DATA · CLOSED'}</b>` +
+              `<span>${esc(rec.privacy.note || '')}` +
+              (open ? ` <b>${rec.privacy.personal}</b> calls this pass.` : '') + `</span></div>`;
+    }
     el.innerHTML = html;
   }
 

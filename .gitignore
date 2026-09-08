@@ -51,3 +51,6 @@ graphify-out/
 # demo video is hosted separately, never committed
 Nabd-Demo.mp4
 *.webm
+
+# Raw CAMARA call dumps — regenerable with `python -m nabd.scene --calls`, ~4 MB
+nac/evidence/nabd-calls-*.jsonl

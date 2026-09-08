@@ -25,10 +25,10 @@ import argparse
 import sys
 from dataclasses import dataclass, field
 
-from nabd.gateway import EPOCH, OfflineGateway, write_calls
+from nabd.gateway import EPOCH, build as build_gateway, write_calls
 from nabd.log import clock
 from nabd.model import Maintenance, Reach
-from nabd.world import KAHRAMANMARAS, CellFault, Peak, Quake, World, assign_sentinels, make_grid, make_registry
+from nabd.world import KAHRAMANMARAS, CellFault, Flaky, Peak, Quake, World, assign_sentinels, make_grid, make_registry
 
 STEP_S = 30.0
 
@@ -106,7 +106,43 @@ def _noise(seed: int) -> Scenario:
     return Scenario("noise", world, (maintenance,), beats, duration_s=600, extra={"stadium": stadium})
 
 
-BUILDERS = {"quiet": _quiet, "quake": _quake, "noise": _noise}
+def _degraded(seed: int) -> Scenario:
+    """The hardest look-alike, and the proof that suppressing it is not blindness.
+
+    Four cells on the north-east edge share a failing backhaul link. They drop
+    together, with no maintenance ticket, which is every signal an impact has
+    except one: it has happened all morning. The agent holds each early flap for
+    confirmation and none survives; once it has measured the block it stops
+    calling the silence news at all, and says what it measured.
+
+    Then, while those four cells are still dark, a real earthquake hits the city
+    centre — and is declared on the same pass logic, in the same run. One screen,
+    two silent blocks, one alert. That is the discrimination claim, demonstrated
+    rather than asserted.
+    """
+    grid = make_grid()
+    registry = make_registry(grid, seed=seed)
+    flaky_cells = ("A9", "A10", "B9", "B10")
+    flaps = ((60, 90), (150, 180), (240, 270), (330, 360))
+    flaky = Flaky(flaky_cells, flaps + ((450, 960),))
+    onset = 600.0
+    core = grid.block("F5", 1)
+    world = World(grid, registry, events=(flaky, Quake(onset, core, grid.ring(core))), seed=seed)
+    inside = [p for p in registry if p.home_cell in core]
+    beats = [
+        Beat(0, f"{clock(0)} — the same city, a different week. Four cells on the north-eastern edge ({', '.join(flaky_cells)}) sit behind a backhaul link that has been failing for months. Nothing on the operator's calendar explains them."),
+        Beat(60, f"{clock(60)} — the link drops for the first time. Four contiguous cells, silent together, no ticket: every signal an impact has. It is held for confirmation, and it comes back before the confirmation is due."),
+        Beat(330, f"{clock(330)} — the fourth drop. The agent has now watched these cells for eleven passes and measured how often they are dark; from here it stops calling their silence news, and writes down the number it measured."),
+        Beat(450, f"{clock(450)} — the link fails for good. Nothing changes on the command-centre screen: this block is already accounted for."),
+        Beat(onset, f"{clock(onset)} — earthquake in the city centre, while the north-eastern block is still dark. Two silent blocks on one grid; {len(inside)} registered people live inside the new one."),
+    ]
+    return Scenario(
+        "degraded", world, (), beats, duration_s=900,
+        core=core, onset_t=onset, extra={"flaky": flaky_cells},
+    )
+
+
+BUILDERS = {"quiet": _quiet, "quake": _quake, "noise": _noise, "degraded": _degraded}
 
 
 def build(name: str, seed: int = 7) -> Scenario:
@@ -132,7 +168,7 @@ def make_runner(runner: str, gateway, scenario: Scenario, name: str | None = Non
 
 def run(scenario: Scenario, runner: str = "graph", verbose: bool = False, out=None):
     """Run one scenario to the end. Returns (log, gateway)."""
-    gateway = OfflineGateway(scenario.world)
+    gateway = build_gateway("offline", world=scenario.world)
     agent = make_runner(runner, gateway, scenario)
     pending = sorted(scenario.beats, key=lambda b: b.t)
     t = 0.0
@@ -157,15 +193,13 @@ def run_live(passes: int = 3, out=None):
     shapes, response vocabulary, error behaviour — on the handful of devices the
     account allocates, and writes the raw exchanges next to the offline ones.
     """
-    from nabd.gateway import LiveGateway
-    from nabd.model import Grid
     from nac import client as nac_client
 
     numbers = nac_client.msisdns()
     if not numbers:
         raise SystemExit("NAC_MSISDNS is empty — nothing to monitor. See nac/.env.example.")
     grid = assign_sentinels(make_grid(), numbers)
-    gateway = LiveGateway()
+    gateway = build_gateway("live")
     from nabd.loop import NabdLoop
 
     agent = NabdLoop(gateway, grid, registry=(), calendar=(), name="nabd-live-log")
@@ -183,6 +217,37 @@ def run_live(passes: int = 3, out=None):
     return agent.log, gateway
 
 
+def run_replay(transcript=None, passes: int = 3, out=None):
+    """Re-run the agent over a recorded transcript — no credentials, no network.
+
+    This is how someone who does not have an account checks the live run: the
+    raw platform responses are on file, and the same agent reads them through
+    the same parsers. `python -m nabd.parity` runs the strict version of this.
+    """
+    from nabd.gateway import EVIDENCE_DIR
+    from nabd.loop import NabdLoop
+    from nac import client as nac_client
+
+    path = transcript or (EVIDENCE_DIR / "nabd-live-contract.jsonl")
+    if not path.exists():
+        raise SystemExit(
+            f"{path.name} does not exist. Record it once with `python -m nabd.scene --backend live`."
+        )
+    gateway = build_gateway("replay", transcript=path)
+    numbers = list(gateway.devices())
+    grid = assign_sentinels(make_grid(), numbers)
+    agent = NabdLoop(gateway, grid, registry=(), calendar=(), name="nabd-replay-log")
+    if out:
+        print(f"\n  replaying {path.name}: {len(numbers)} sentinel(s), {passes} passes, no network\n", file=out)
+    for i in range(passes):
+        record = agent.step(i * STEP_S)
+        if out:
+            print(agent.log.render(record, verbose=True), file=out)
+    if out:
+        print(f"\n  {len(gateway.calls)} recorded responses replayed, {gateway.missing} missing\n", file=out)
+    return agent.log, gateway
+
+
 def _print_summary(log, gateway, scenario: Scenario, out) -> None:
     s = log.summary()
     print("\n  " + "─" * 62, file=out)
@@ -196,6 +261,12 @@ def _print_summary(log, gateway, scenario: Scenario, out) -> None:
     for reason in s["abstains"]:
         print(f"                — {reason}", file=out)
     print(f"  CAMARA calls  {s['api_calls']} over {s['passes']} passes ({gateway.backend})", file=out)
+    aggregate = s["api_calls"] - s["personal_calls"]
+    print(
+        f"  privacy       {aggregate} aggregate (sentinel) calls, {s['personal_calls']} personal — "
+        f"all inside the footprint, on {s['passes_with_gate_open']}/{s['passes']} passes",
+        file=out,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -205,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--scene", choices=[*BUILDERS, "all"], default="all")
     parser.add_argument("--runner", choices=["graph", "loop"], default="graph")
-    parser.add_argument("--backend", choices=["offline", "live"], default="offline")
+    parser.add_argument("--backend", choices=["offline", "live", "replay"], default="offline")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--calls", action="store_true", help="also write every raw CAMARA call to nac/evidence/")
     parser.add_argument("--console", action="store_true", help="rebuild nabd/replay.html from the evidence afterwards")
@@ -214,6 +285,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.backend == "live":
         run_live(out=sys.stdout)
+        return 0
+    if args.backend == "replay":
+        run_replay(out=sys.stdout)
         return 0
 
     names = list(BUILDERS) if args.scene == "all" else [args.scene]

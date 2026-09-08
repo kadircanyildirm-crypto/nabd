@@ -168,6 +168,38 @@ class Maintenance:
         return cell in self.cells and self.start <= t < self.end
 
 
+@dataclass(frozen=True)
+class Evidence:
+    """One named observation the detector weighed, and what it measured.
+
+    Evidence is how the detection layer stays extensible. Each signal is a small
+    named function that turns the pass into one of these; the verdict is a count
+    over them, never a hard-coded pair. A new network surface becomes a new
+    entry in `detector.CORROBORATIONS` and nothing else moves — the reason a
+    future aggregate API can be added as extra evidence rather than a redesign.
+
+    `role` separates the two ways evidence acts. A *gate* is a necessary
+    condition: it can veto a declaration on its own but never causes one. A
+    *corroboration* is supporting evidence: one makes a MEDIUM footprint, two
+    make a HIGH one, none is an abstention.
+    """
+
+    name: str
+    role: str  # "gate" | "corroboration"
+    present: bool
+    detail: str
+    source: str  # the surface it was read from
+
+    def to_json(self) -> dict:
+        return {
+            "name": self.name,
+            "role": self.role,
+            "present": self.present,
+            "detail": self.detail,
+            "source": self.source,
+        }
+
+
 class Kind(str, Enum):
     QUIET = "QUIET"  # nothing anomalous, or an anomaly already explained
     CANDIDATE = "CANDIDATE"  # a footprint seen once; held for confirmation
@@ -191,6 +223,7 @@ class Verdict:
     confidence: Confidence | None = None
     reason: str = ""
     signals: tuple[str, ...] = ()
+    evidence: tuple[Evidence, ...] = ()
     # De-duplication key for an abstention: the same explained anomaly is
     # reported once, then held quietly rather than repeated every pass.
     key: str = ""

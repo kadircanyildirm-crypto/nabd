@@ -94,6 +94,76 @@ def test_staggered_onset_without_ring_is_held():
     assert not state.footprint
 
 
+def test_chronic_silence_is_suppressed_by_the_local_baseline():
+    """A block that is dark a fifth of the time is not news, and the number says why.
+
+    Two defences in sequence: while there is no history the flap is held for
+    confirmation and comes back before the confirmation is due; once there is
+    history the same silence is refused outright, with the measurement.
+    """
+    policy = Policy(baseline_min_passes=6, baseline_dark_rate=0.20)
+    state = State()
+    block = ("A9", "A10", "B9", "B10")
+    verdicts = []
+    t = 0.0
+    for _ in range(5):  # dark for one pass, back for two
+        for dark in (block, (), ()):
+            verdicts.append(assess(snap(dark=dark, t=t), state, GRID, (), policy, t))
+            t += 30
+    kinds = [v.kind for v in verdicts]
+    assert Kind.DECLARE not in kinds and Kind.UPDATE not in kinds, kinds
+    assert Kind.CANDIDATE in kinds, "the early flaps should be held for confirmation"
+
+    abstain = next(v for v in verdicts if v.kind is Kind.ABSTAIN)
+    assert "local baseline" in abstain.reason, abstain.reason
+    gate = next(e for e in abstain.evidence if e.name == "local-baseline")
+    assert gate.role == "gate" and not gate.present, gate
+    # Reported once, then held quietly for as long as the silence lasts.
+    after = verdicts[verdicts.index(abstain) + 1 :]
+    assert all(v.kind in (Kind.QUIET,) for v in after), [v.kind for v in after]
+    assert not state.footprint
+
+
+def test_the_baseline_gate_cannot_fire_without_history():
+    """A system that has just started never suppresses an impact for lack of history."""
+    state = State()
+    v = assess(snap(dark=CORE, hot=RING, t=0), state, GRID, (), POLICY, 0)
+    gate = next(e for e in v.evidence if e.name == "local-baseline")
+    assert gate.present and "no local baseline yet" in gate.detail, gate
+
+
+def test_a_chronic_block_does_not_mask_a_real_impact():
+    """Suppressing the flaky block is not blindness: a real footprint still declares."""
+    policy = Policy(baseline_min_passes=6, baseline_dark_rate=0.20)
+    state = State()
+    flaky = ("A9", "A10", "B9", "B10")
+    t = 0.0
+    for cycle in range(4):
+        for dark in (flaky, (), ()):
+            assess(snap(dark=dark, t=t), state, GRID, (), policy, t)
+            t += 30
+    for _ in range(2):
+        v = assess(snap(dark=flaky + CORE, hot=RING, t=t), state, GRID, (), policy, t)
+        t += 30
+    assert v.kind is Kind.DECLARE and v.confidence is Confidence.HIGH, v
+    assert set(v.cells) == set(CORE), v.cells  # the flaky block is not part of it
+    assert all(c not in v.cells for c in flaky)
+
+
+def test_evidence_carries_its_source_and_role():
+    """Every weighed signal names the surface it was read from — the extensibility contract."""
+    state = State()
+    assess(snap(dark=CORE, hot=RING, t=0), state, GRID, (), POLICY, 0)
+    v = assess(snap(dark=CORE, hot=RING, t=30), state, GRID, (), POLICY, 30)
+    names = {e.name for e in v.evidence}
+    assert {"contiguous-silence", "local-baseline", "synchronised-onset", "hot-ring"} <= names, names
+    assert all(e.role in ("gate", "corroboration") for e in v.evidence)
+    assert all(e.source for e in v.evidence)
+    # The corroborations are a list, not a hard-coded pair: the arithmetic reads it.
+    assert len(D.CORROBORATIONS) == sum(1 for e in v.evidence if e.role == "corroboration")
+    assert list(v.signals) == [e.detail for e in v.evidence]
+
+
 def test_maintenance_block_is_expected_silence():
     ticket = Maintenance("MNT-1", ("I2", "I3", "J2", "J3"), 0, 600)
     state = State()

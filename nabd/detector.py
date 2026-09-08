@@ -28,7 +28,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass, field
 
-from nabd.model import Confidence, Grid, Kind, Level, Maintenance, Reach, Snapshot, Verdict
+from nabd.model import Confidence, Evidence, Grid, Kind, Level, Maintenance, Reach, Snapshot, Verdict
 
 
 @dataclass(frozen=True)
@@ -39,6 +39,13 @@ class Policy:
     ring_hot_fraction: float = 0.4
     clear_after_s: float = 600.0
     pass_interval_s: float = 30.0
+    # The local-baseline gate. A block is suppressed only on positive evidence
+    # that silence is normal there: at least `baseline_min_passes` observations
+    # of those cells, of which at least `baseline_dark_rate` were already dark.
+    # Below that many observations the gate cannot fire, so a system that has
+    # just started never suppresses a real impact for lack of history.
+    baseline_min_passes: int = 10
+    baseline_dark_rate: float = 0.20
 
 
 DEFAULT_POLICY = Policy()
@@ -56,6 +63,17 @@ class State:
     confidence: Confidence | None = None
     clear_since: float | None = None
     explained: set[str] = field(default_factory=set)
+    # Rolling local baseline: how many passes have been observed at all, and how
+    # many of them each cell spent unreachable. Only accumulated while no
+    # footprint is active, so a long disaster never teaches the detector that
+    # its own footprint is normal.
+    passes_observed: int = 0
+    dark_passes: dict[str, int] = field(default_factory=dict)
+
+    def dark_rate(self, cell: str) -> float:
+        if self.passes_observed == 0:
+            return 0.0
+        return self.dark_passes.get(cell, 0) / self.passes_observed
 
 
 @dataclass(frozen=True)
@@ -183,29 +201,42 @@ def declare(
 
     # -- the hypothesis: a block of silent cells -------------------------------
     if len(lead) >= policy.min_cells:
-        signals, corroborations = _signals(lead, corr, state, grid, policy, t)
+        ctx = SignalContext(lead, corr, state, grid, policy, t)
+        evidence, corroborations, veto = weigh(ctx)
+        signals = rendered(evidence)
+
+        # A gate said no. The block is real; the claim that it means an impact
+        # is not, and the measurement that refuses it is written down.
+        if veto is not None:
+            key = f"{veto.name}|{','.join(lead)}"
+            reason = f"{len(lead)} contiguous cells silent, but {veto.detail} — no alert"
+            if key in state.explained:
+                return Verdict(Kind.QUIET, t, lead, reason=f"holding: {reason}", key=key)
+            return Verdict(Kind.ABSTAIN, t, lead, reason=reason, signals=signals, evidence=evidence, key=key)
+
         if corroborations == 0:
+            absent = ", ".join(e.detail for e in evidence if e.role == "corroboration" and not e.present)
             key = f"uncorroborated|{','.join(lead)}"
             reason = (
                 f"{len(lead)} contiguous cells silent but nothing corroborates an impact: "
-                "onset staggered and no hot ring — held, not declared"
+                f"{absent} — held, not declared"
             )
             if key in state.explained:
                 return Verdict(Kind.QUIET, t, lead, reason=f"holding: {reason}", key=key)
-            return Verdict(Kind.ABSTAIN, t, lead, reason=reason, signals=signals, key=key)
+            return Verdict(Kind.ABSTAIN, t, lead, reason=reason, signals=signals, evidence=evidence, key=key)
         confidence = Confidence.HIGH if corroborations >= 2 else Confidence.MEDIUM
         passes = _passes(lead, state)
         if passes < policy.confirm_passes:
             return Verdict(
                 Kind.CANDIDATE, t, lead, confidence,
                 reason=f"candidate footprint, {len(lead)} cells — holding {policy.confirm_passes - passes} more pass for confirmation",
-                signals=signals,
+                signals=signals, evidence=evidence,
             )
         if not state.footprint:
             return Verdict(
                 Kind.DECLARE, t, lead, confidence,
                 reason=f"impact footprint declared: {len(lead)} contiguous cells, ~{grid.area_km2(len(lead))} km²",
-                signals=signals,
+                signals=signals, evidence=evidence,
             )
         if set(lead) != set(state.footprint):
             grown = len(set(lead) - set(state.footprint))
@@ -213,9 +244,9 @@ def declare(
             return Verdict(
                 Kind.UPDATE, t, lead, confidence,
                 reason=f"footprint updated: +{grown} / -{shrunk} cells, now {len(lead)}",
-                signals=signals,
+                signals=signals, evidence=evidence,
             )
-        return Verdict(Kind.SUSTAIN, t, lead, confidence, reason="footprint held", signals=signals)
+        return Verdict(Kind.SUSTAIN, t, lead, confidence, reason="footprint held", signals=signals, evidence=evidence)
 
     # -- anomalies below the bar: each one explained once, none of them hidden --
     # Every explained anomaly is reported the first time it is seen and held
@@ -275,6 +306,14 @@ def apply(verdict: Verdict, corr: Correlation, state: State, policy: Policy, t: 
         if cell not in dark:
             del state.dark_since[cell]
 
+    # The local baseline learns only from ordinary time. While a footprint is
+    # published the grid is not ordinary, so the history pauses rather than
+    # teaching the detector that the disaster it is watching is normal.
+    if not state.footprint:
+        state.passes_observed += 1
+        for cell in dark:
+            state.dark_passes[cell] = state.dark_passes.get(cell, 0) + 1
+
     if verdict.kind in (Kind.CANDIDATE, Kind.DECLARE, Kind.UPDATE) or (
         verdict.kind is Kind.SUSTAIN and verdict.signals
     ):
@@ -330,33 +369,140 @@ def assess(
 # ----------------------------------------------------------------------------
 
 
-def _signals(
-    cluster: tuple[str, ...], corr: Correlation, state: State, grid: Grid, policy: Policy, t: float
-) -> tuple[tuple[str, ...], int]:
-    n = len(cluster)
-    signals = [f"Device Reachability: {n} contiguous cells unreachable (~{grid.area_km2(n)} km²)"]
-    unread = [c for c in cluster if c in corr.unread]
-    if unread:
-        signals.append(f"Congestion Insights: no reading from {len(unread)}/{n} of those cells")
-    corroborations = 0
+# ----------------------------------------------------------------------------
+# Evidence: the extensible part
+# ----------------------------------------------------------------------------
+#
+# The detector does not depend on any one disaster signature being right. What
+# it depends on is the *minimum observable pattern*: a block of adjacent cells
+# that stops answering together, in a place where that is not normal. Everything
+# beyond that — the hot ring, the synchronised onset — is corroboration that
+# raises confidence, and each one is a small named function below.
+#
+# Adding a network surface is therefore an append to `CORROBORATIONS`, not a
+# redesign: a future aggregate-traffic or cell-outage API becomes one more
+# `Evidence` in the same list, weighed the same way, and the verdict arithmetic
+# never changes.
 
-    firsts = [state.dark_since.get(c, t) for c in cluster]
+
+@dataclass(frozen=True)
+class SignalContext:
+    """Everything a signal function is allowed to look at."""
+
+    cluster: tuple[str, ...]
+    corr: Correlation
+    state: State
+    grid: Grid
+    policy: Policy
+    t: float
+
+
+def sig_synchronised_onset(ctx: SignalContext) -> Evidence:
+    """Did the block go dark together? Corroborates: impact is instantaneous."""
+    firsts = [ctx.state.dark_since.get(c, ctx.t) for c in ctx.cluster]
     spread = max(firsts) - min(firsts)
-    if spread <= policy.sync_window_s:
-        signals.append(f"onset synchronised: all {n} cells went dark within {spread:.0f}s")
-        corroborations += 1
-    else:
-        signals.append(f"onset staggered over {spread:.0f}s")
+    if spread <= ctx.policy.sync_window_s:
+        return Evidence(
+            "synchronised-onset", "corroboration", True,
+            f"onset synchronised: all {len(ctx.cluster)} cells went dark within {spread:.0f}s",
+            "Device Reachability Status",
+        )
+    return Evidence(
+        "synchronised-onset", "corroboration", False,
+        f"onset staggered over {spread:.0f}s",
+        "Device Reachability Status",
+    )
 
-    ring = grid.ring(cluster)
-    ring_live = [c for c in ring if c in corr.monitored and c not in corr.dark]
-    ring_hot = [c for c in ring_live if c in corr.hot]
-    if ring_live and len(ring_hot) / len(ring_live) >= policy.ring_hot_fraction:
-        signals.append(f"hot ring: {len(ring_hot)}/{len(ring_live)} neighbouring cells at High congestion")
-        corroborations += 1
-    elif ring_live:
-        signals.append(f"no hot ring: {len(ring_hot)}/{len(ring_live)} neighbouring cells at High")
-    return tuple(signals), corroborations
+
+def sig_hot_ring(ctx: SignalContext) -> Evidence:
+    """Is the surviving ring saturated? Corroborates: everyone calls at once."""
+    ring = ctx.grid.ring(ctx.cluster)
+    live = [c for c in ring if c in ctx.corr.monitored and c not in ctx.corr.dark]
+    hot = [c for c in live if c in ctx.corr.hot]
+    if live and len(hot) / len(live) >= ctx.policy.ring_hot_fraction:
+        return Evidence(
+            "hot-ring", "corroboration", True,
+            f"hot ring: {len(hot)}/{len(live)} neighbouring cells at High congestion",
+            "Congestion Insights",
+        )
+    return Evidence(
+        "hot-ring", "corroboration", False,
+        f"no hot ring: {len(hot)}/{len(live)} neighbouring cells at High" if live else "no live neighbouring cells to read",
+        "Congestion Insights",
+    )
+
+
+def gate_local_baseline(ctx: SignalContext) -> Evidence:
+    """Is this silence abnormal *here*? A gate: it can veto, never declare.
+
+    A block of cells that is unreachable a fifth of the time anyway is chronic
+    degradation — a bad backhaul, a rural edge, a site on generator power. It
+    reproduces every other signal of an impact, including a synchronised onset,
+    and it is the look-alike no calendar explains. The measurement is the
+    defence: silence is only news where silence is not the local normal.
+    """
+    state, policy = ctx.state, ctx.policy
+    if state.passes_observed < policy.baseline_min_passes:
+        return Evidence(
+            "local-baseline", "gate", True,
+            f"no local baseline yet ({state.passes_observed} passes observed) — not enough history to call this normal",
+            "Device Reachability Status",
+        )
+    rates = [state.dark_rate(c) for c in ctx.cluster]
+    typical = sorted(rates)[len(rates) // 2]
+    dark_counts = sum(state.dark_passes.get(c, 0) for c in ctx.cluster) / len(ctx.cluster)
+    if typical >= policy.baseline_dark_rate:
+        return Evidence(
+            "local-baseline", "gate", False,
+            f"silence is the local baseline: these {len(ctx.cluster)} cells were already unreachable in "
+            f"{dark_counts:.0f} of the last {state.passes_observed} passes ({typical:.0%} of the time)",
+            "Device Reachability Status",
+        )
+    return Evidence(
+        "local-baseline", "gate", True,
+        f"against local baseline: these cells were unreachable in {dark_counts:.1f} of the last "
+        f"{state.passes_observed} passes ({typical:.0%}) — this silence is abnormal here",
+        "Device Reachability Status",
+    )
+
+
+#: Necessary conditions. Any one of them absent vetoes the declaration.
+GATES: tuple = (gate_local_baseline,)
+
+#: Supporting evidence. One makes MEDIUM, two or more make HIGH, none abstains.
+#: A new network surface is appended here and nothing else changes.
+CORROBORATIONS: tuple = (sig_synchronised_onset, sig_hot_ring)
+
+
+def weigh(ctx: SignalContext) -> tuple[tuple[Evidence, ...], int, Evidence | None]:
+    """Run every signal over the pass. Returns (evidence, corroborations, veto)."""
+    n = len(ctx.cluster)
+    base = [
+        Evidence(
+            "contiguous-silence", "gate", True,
+            f"Device Reachability: {n} contiguous cells unreachable (~{ctx.grid.area_km2(n)} km²)",
+            "Device Reachability Status",
+        )
+    ]
+    unread = [c for c in ctx.cluster if c in ctx.corr.unread]
+    if unread:
+        base.append(
+            Evidence(
+                "no-congestion-reading", "gate", True,
+                f"Congestion Insights: no reading from {len(unread)}/{n} of those cells",
+                "Congestion Insights",
+            )
+        )
+    gates = [gate(ctx) for gate in GATES]
+    corroborations = [signal(ctx) for signal in CORROBORATIONS]
+    evidence = tuple(base + gates + corroborations)
+    veto = next((e for e in gates if not e.present), None)
+    return evidence, sum(1 for e in corroborations if e.present), veto
+
+
+def rendered(evidence: tuple[Evidence, ...]) -> tuple[str, ...]:
+    """The evidence as the lines a duty officer reads. Order is the weighing order."""
+    return tuple(e.detail for e in evidence)
 
 
 def _passes(cluster: tuple[str, ...], state: State) -> int:

@@ -82,6 +82,45 @@ def test_noise_scene_abstains_three_ways_and_never_declares():
     assert any("congestion without silence" in r for r in reasons), reasons
 
 
+def test_degraded_scene_suppresses_chronic_silence_and_still_declares():
+    """The hardest look-alike is refused by measurement, and the refusal is not blindness."""
+    scenario, log, _ = _records("degraded")
+    flaky = set(scenario.extra["flaky"])
+
+    suppressed = [r for r in log.records if r.kind == Kind.ABSTAIN.value and "local baseline" in r.reason]
+    assert suppressed, [r.reason for r in log.records if r.kind == Kind.ABSTAIN.value]
+    assert set(suppressed[0].cells) == flaky, suppressed[0].cells
+    assert "%" in suppressed[0].reason, "the refusal must carry the measurement it rests on"
+
+    declares = [r for r in log.records if r.kind == Kind.DECLARE.value]
+    assert len(declares) == 1, [r.t for r in declares]
+    declared = declares[0]
+    assert declared.t >= scenario.onset_t, "nothing was declared before the real impact"
+    assert set(declared.cells) == set(scenario.core), declared.cells
+    assert not set(declared.cells) & flaky, "the chronic block never joins the footprint"
+    lag = declared.t - scenario.onset_t
+    assert 0 < lag <= 60, f"declared {lag:.0f}s after onset"
+    print(f"        chronic block held from {suppressed[0].t:.0f}s, impact declared {lag:.0f}s after onset")
+
+
+def test_privacy_gate_is_stated_on_every_pass_and_matches_the_calls():
+    """Every record says what the personal-data path did, and the count is checkable."""
+    total_personal = 0
+    for name in ("quiet", "quake", "noise", "degraded"):
+        scenario, log, gateway = _records(name)
+        registry = {p.msisdn for p in scenario.world.registry}
+        for r in log.records:
+            assert r.privacy, f"{name}: a pass with no privacy state"
+            assert r.privacy["open"] == (r.kind in ("DECLARE", "UPDATE", "SUSTAIN")), (name, r.kind, r.privacy)
+            if not r.privacy["open"]:
+                assert r.privacy["personal"] == 0, (name, r)
+        counted = sum(r.privacy["personal"] for r in log.records)
+        actual = sum(1 for c in gateway.calls if c.request["device"]["phoneNumber"] in registry)
+        assert counted == actual, (name, counted, actual)
+        total_personal += actual
+    print(f"        {total_personal:,} personal-device calls across four scenes, every one of them declared in the record")
+
+
 def test_runners_agree_byte_for_byte():
     _, graph_log, graph_gw = _records("quake", runner="graph")
     _, loop_log, loop_gw = _records("quake", runner="loop")
@@ -106,7 +145,7 @@ def test_console_is_a_view_over_the_evidence():
 
     from nabd.console import build_console
 
-    for name in ("quiet", "quake", "noise"):
+    for name in ("quiet", "quake", "noise", "degraded"):
         scenario = build(name)
         log, _ = run(scenario)
         log.write()
@@ -117,7 +156,7 @@ def test_console_is_a_view_over_the_evidence():
     start = html.index('<script id="data" type="application/json">') + len('<script id="data" type="application/json">')
     data = json.loads(html[start : html.index("</script>", start)])  # "<\/" is plain JSON escaping
     names = [s["name"] for s in data["scenes"]]
-    assert names == ["quiet", "quake", "noise"], names
+    assert names == ["quiet", "quake", "noise", "degraded"], names
     quake = next(s for s in data["scenes"] if s["name"] == "quake")
     assert all(len(r["grid"]) == 100 for r in quake["records"]), "every pass carries the full grid"
     declared = next(r for r in quake["records"] if r["kind"] == "DECLARE")

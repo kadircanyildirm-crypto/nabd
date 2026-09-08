@@ -67,9 +67,40 @@ class Record:
     api_calls: list[str] = field(default_factory=list)
     brief: str = ""
     grid: str = ""
+    # The privacy boundary, stated on every single pass rather than argued once.
+    # `open` is true only where a footprint is active, and `personal` counts the
+    # calls that touched a registry member's device on this pass. On every other
+    # pass both are zero, in the evidence file, for anyone who wants to grep it.
+    privacy: dict[str, Any] = field(default_factory=dict)
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False)
+
+
+def privacy_state(verdict: Verdict, triage: TriageResult | None) -> dict[str, Any]:
+    """What the personal-data path did on this pass, in the record itself.
+
+    The topology in `graph.py` already makes it structurally impossible to query
+    a personal device without an active footprint, and a fuzz test proves it.
+    This is the same claim written into every line of the evidence, so a reader
+    who trusts neither can check it by counting.
+    """
+    if triage is None:
+        return {
+            "open": False,
+            "personal": 0,
+            "inside": 0,
+            "note": "no footprint — the opt-in registry was not queried on this pass",
+        }
+    return {
+        "open": True,
+        "personal": triage.calls,
+        "inside": triage.inside,
+        "note": (
+            f"footprint active — {triage.inside} opt-in registry members live inside it and were queried; "
+            "no device outside the footprint, and no device off the registry, was touched"
+        ),
+    }
 
 
 def record_from(
@@ -86,6 +117,7 @@ def record_from(
         api_calls=list(api_calls),
         brief=brief,
         grid=grid,
+        privacy=privacy_state(verdict, triage),
     )
 
 
@@ -126,6 +158,9 @@ class EvidenceLog:
                 seen = entry["last_seen"]
                 where = "" if seen is None else f", last seen {seen['age_s']}s ago ±{seen['radius_m']} m"
                 lines.append(f"              │    {entry['person']}  {entry['class']:<18} {entry['cell']}{where}")
+        if record.privacy and kind in (Kind.DECLARE, Kind.UPDATE, Kind.CLEAR, Kind.ABSTAIN):
+            gate = "OPEN" if record.privacy.get("open") else "CLOSED"
+            lines.append(f"              ├─ privacy gate {gate}: {record.privacy.get('note', '')}")
         if record.api_calls:
             counted: dict[str, int] = {}
             for name in record.api_calls:
@@ -172,6 +207,8 @@ class EvidenceLog:
             "abstains": [r.reason for r in abstains],
             "unreachable_peak": max(unreachable) if unreachable else 0,
             "api_calls": sum(len(r.api_calls) for r in self.records),
+            "personal_calls": sum(r.privacy.get("personal", 0) for r in self.records if r.privacy),
+            "passes_with_gate_open": sum(1 for r in self.records if r.privacy.get("open")),
         }
 
     def write(self, name: str | None = None) -> Path:
