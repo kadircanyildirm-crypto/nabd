@@ -608,5 +608,9 @@ html = f"""<!doctype html>
 </body>
 </html>
 """
-OUT.write_text(html, encoding="utf-8")
-print("wrote", OUT, len(html), "bytes", len(slides), "slides")
+# Importable: `docs/build_deck_tr.py` reuses CSS, SCRIPT and grid_svg from here,
+# and building the slide list above is cheap and side-effect free. Only the write
+# is guarded.
+if __name__ == "__main__":
+    OUT.write_text(html, encoding="utf-8")
+    print("wrote", OUT, len(html), "bytes", len(slides), "slides")

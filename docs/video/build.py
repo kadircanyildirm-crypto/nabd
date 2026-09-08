@@ -34,14 +34,46 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 HERE = Path(__file__).resolve().parent
 BUILD = HERE / "build"
-CARDS = HERE / "cards.html"
 CONSOLE = ROOT / "nabd" / "replay.html"
-OUT = ROOT / "Nabd-Demo.mp4"
 
 FPS = 30
-VOICE = "en-US-AndrewNeural"
-RATE = "+10%"
 TAIL_PAD = 0.45  # silence after each narration segment, so cuts never clip a word
+
+# Two cuts of the same film. The console frames are shared — the product's
+# interface is English, and dubbing a screenshot would be a lie — so a language
+# changes the narration and the cards, and nothing else.
+LANGS = {
+    "en": {
+        "voice": "en-US-AndrewNeural",
+        "rate": "+10%",
+        "cards": "cards.html",
+        "out": "Nabd-Demo.mp4",
+        "shots": "shot-list.md",
+        "title": "Nabd \u2014 demo video shot list",
+    },
+    "tr": {
+        "voice": "tr-TR-AhmetNeural",
+        "rate": "+8%",
+        "cards": "cards-tr.html",
+        "out": "Nabd-Demo-TR.mp4",
+        "shots": "shot-list-tr.md",
+        "title": "Nabd \u2014 demo videosu \u00e7ekim listesi (T\u00fcrk\u00e7e)",
+    },
+}
+
+LANG = "en"  # set by main()
+
+
+def cfg(key: str):
+    return LANGS[LANG][key]
+
+
+def outdir() -> Path:
+    return BUILD / LANG
+
+
+def narration(seg: "Segment") -> str:
+    return seg.text if LANG == "en" else TURKISH[seg.id]
 
 # The console is built for a browser window, not a 16:9 frame. This makes the
 # map big enough to read at 1080p and lays the side panels out in two columns
@@ -72,12 +104,15 @@ class Segment:
 
     @property
     def audio(self) -> Path:
-        return BUILD / f"{self.id}.mp3"
+        return outdir() / f"{self.id}.mp3"
 
     def stills(self) -> list[Path]:
+        # Card frames carry text, so they are rendered per language; console
+        # frames are the product's own interface and are shared between cuts.
+        home = outdir() if self.card else BUILD / "console"
         if self.card:
-            return [BUILD / f"{self.id}.png"]
-        return [BUILD / f"{self.id}-{i:02d}.png" for i in range(len(self.frames))]
+            return [home / f"{self.id}.png"]
+        return [home / f"{self.id}-{i:02d}.png" for i in range(len(self.frames))]
 
 
 SEGMENTS = [
@@ -183,13 +218,90 @@ SEGMENTS = [
 ]
 
 
+#: The Turkish cut. Not a translation of the English line by line — the same
+#: point, said the way it would be said in Turkish, at a length that fits the
+#: same frames.
+TURKISH = {
+    "01-title":
+        "Nabd. Ağın sustuğu yeri okuyun. Nokia Network-as-Code ve LangGraph üzerine kurulu, "
+        "afet etki haritalaması yapan bir yapay zekâ ajanı.",
+    "02-problem":
+        "Bir sismometre 'oldu' der, saniyeler içinde. Hayat pahasına olan soru — önce hangi mahalle, "
+        "kim dışarıda kaldı — saatler sonra gelir. 2023'te Kahramanmaraş'ta elli üç binden fazla insan "
+        "hayatını kaybetti. Nabd bir erken uyarı sistemi değildir. İlk dakikada etki haritası, ilk yetmiş "
+        "iki saatte önceliklendirme.",
+    "03-insight":
+        "Eşzamanlı ağ sessizliği bir sensördür. Tespit toplu düzeydedir: hücre başına bir nöbetçi cihaz — "
+        "belediyeye veya operatöre ait SIM'ler, asla halkın telefonu — otuz saniyede bir okunur. "
+        "Önceliklendirme rızaya dayalıdır: yalnızca ilan edilmiş bir etki alanının içinde, ve yalnızca "
+        "bulunmayı kendi seçmiş kişiler için.",
+    "04-quiet":
+        "Karşınızdaki komuta merkezi. Her kare, bir nöbetçi cihazı olan bir hücre. Sıradan bir sabahta "
+        "her nöbetçi cevap verir ve ajanın bildirecek bir şeyi yoktur.",
+    "05-onset":
+        "Dokuz sıfır iki: deprem. Hangi mahallelerin vurulduğunu henüz kimse bilmiyor. Dokuz hücre aynı "
+        "anda susuyor — ama ajan bunu aday olarak işaretleyip bir geçiş daha bekliyor, çünkü tek bir "
+        "sinyal asla tek başına ilan ettirmez.",
+    "06-declare":
+        "Sarsıntıdan elli beş saniye sonra ilan ediyor: dokuz hücre, yaklaşık dört kilometrekare, güven "
+        "düzeyi yüksek. İki kapı geçildi — blok bitişik, ve bu sessizlik burada anormal — ve iki "
+        "destekleyici kanıt: eşzamanlı başlangıç, ve sıcak halka. Komşu on altı hücrenin on altısı, "
+        "herkes aynı anda aradığı için doygun.",
+    "07-triage":
+        "Ajan kişisel bir cihaza ancak şimdi dokunuyor. Etki alanının içinde on üç kayıtlı kişi yaşıyor; "
+        "altısına ulaşılamıyor, ihtiyaca göre sıralanmış, her biri en son görüldüğü konumla birlikte. "
+        "Kanıt dosyasının her geçişi, kişisel veri yolunun açık olup olmadığını ve kaç çağrı yapıldığını "
+        "yazıyor. Sıradan bir sabahta bu sayı her satırda sıfırdır.",
+    "08-update":
+        "Tablo değişmeye devam ediyor. Dört dakika sonra iki kişi yeniden cevap veriyor ve liste altıdan "
+        "dörde iniyor — kimse hiçbir şeye dokunmadan.",
+    "09-lookalikes":
+        "Bir dedektör, ancak benzer vakalarda sessiz kalabildiği ölçüde işe yarar. Komşuları normalken tek "
+        "bir hücre susuyor: baz istasyonu arızası. Dört bitişik hücre susuyor, ama blok operatörün "
+        "takvimindeki bakım kaydıyla eşleşiyor: beklenen sessizlik. Dokuz hücre doyuyor ama her nöbetçi "
+        "cevap veriyor: stadyum kalabalığı. Üç çekimser karar, üç yazılı gerekçe, sıfır yanlış alarm.",
+    "10-degraded":
+        "Sonra en zoru. Arızalı bir aktarım hattındaki dört hücre, bir afetin sahip olduğu her sinyali "
+        "üretiyor, ve hiçbir takvim bunu açıklamıyor. Ajan onları açıklamak yerine ölçüyor: bu hücreler "
+        "son on bir geçişin üçünde zaten erişilemezdi. Buradaki sessizlik yerel normaldir, dolayısıyla "
+        "haber değildir. Ve aynı koşuda, şehir merkezindeki gerçek bir deprem yine ilan ediliyor. "
+        "Ret ölçülmüştür, ve körlük değildir.",
+    "11-real":
+        "Sonra afeti çizmeyi bıraktık. Buradaki coğrafya ve her hücredeki sarsıntı şiddeti, altı Şubat "
+        "iki bin yirmi üç tarihli, yedi virgül sekiz büyüklüğündeki Pazarcık depreminin USGS ShakeMap "
+        "verisinden geliyor — iki yüz altmış iki sismik istasyonla kısıtlanmış bir alan. Sarsıntıdan elli "
+        "beş saniye sonra: yirmi bir bitişik hücre, iki bin yüz kilometrekare. İsimlendirdiği her hücre, "
+        "ölçülmüş sarsıntının çökme eşiğinin üstüne koyduğu bir hücredir; hasar uydurmuyor. Boyut tabanının "
+        "altında kalan izole bir cebi, iki hücreyi, bilerek iddia etmiyor. Ardından etki alanı altı bin üç "
+        "yüz kilometrekareye büyüyor: ayakta kalan direkler elektriğini kaybedip akülerini tüketirken. "
+        "Saha raporlarının anlattığı tam olarak budur.",
+    "12-hood":
+        "Kaputun altında ajan bir LangGraph grafiğidir, ve koşullu kenar gizlilik iddiasının koda "
+        "dökülmüş halidir: kişisel cihaz sorgulayan düğüme, yalnızca aktif etki alanı olan bir karardan "
+        "ulaşılabilir. Tespit deterministik ve tekrar oynatılabilirdir; dil modeli nöbetçi subayın "
+        "brifingini yazar, başka hiçbir şey yapmaz. Düz döngü ile LangGraph koşucusu bayt bayt aynı "
+        "kanıtı üretir, seksen üç testin altında.",
+    "13-parity":
+        "Kum havuzu bir afeti sahneleyemez, bu yüzden iki iddia ayrıldı: canlı platform entegrasyonu "
+        "kanıtlar, simülatör senaryoyu kanıtlar. Risk hiçbir zaman simülatörün kendisi değildi — iki yol "
+        "arasında algılanan bir kopukluktu. Ölçülen de tam olarak o kopukluktur. Her sahne kaydedilip, "
+        "canlı ağ geçidinin kullandığı aynı üç ayrıştırma fonksiyonundan geri oynatılır, ve kanıtın satır "
+        "satır aynı çıkması zorunludur.",
+    "14-close":
+        "Nabd afetten bağımsızdır: deprem, sel, fırtına ya da kitlesel kesinti — ağ için hepsi kararan bir "
+        "alandır. Alıcılar sivil savunma kurumları ve belediyelerdir, operatörün Open Gateway'i üzerinden. "
+        "Ağ zaten biliyor. Nabd ona bunu söyletiyor, ilk dakikada. Kadir'in Ekibi tarafından, "
+        "MENA Ignite iki bin yirmi altı için.",
+}
+
+
 # ---------------------------------------------------------------- narration
 
 
 async def _tts(text: str, out: Path) -> None:
     import edge_tts
 
-    await edge_tts.Communicate(text, VOICE, rate=RATE).save(str(out))
+    await edge_tts.Communicate(text, cfg("voice"), rate=cfg("rate")).save(str(out))
 
 
 def narrate(segments: list[Segment], skip: bool) -> None:
@@ -197,7 +309,7 @@ def narrate(segments: list[Segment], skip: bool) -> None:
         if seg.audio.exists() and skip:
             continue
         print(f"  tts   {seg.id}")
-        asyncio.run(_tts(seg.text, seg.audio))
+        asyncio.run(_tts(narration(seg), seg.audio))
 
 
 def duration(path: Path) -> float:
@@ -222,14 +334,14 @@ def shoot(segments: list[Segment]) -> None:
         cards = [s for s in segments if s.card]
         if cards:
             page = browser.new_page(viewport={"width": 1920, "height": 1080}, device_scale_factor=1)
-            page.goto(CARDS.as_uri())
+            page.goto((HERE / cfg("cards")).as_uri())
             page.wait_for_timeout(400)
             for seg in cards:
                 print(f"  card  {seg.id}")
                 page.locator(f"#{seg.card}").screenshot(path=str(seg.stills()[0]))
             page.close()
 
-        shots = [s for s in segments if not s.card]
+        shots = [s for s in segments if not s.card and not all(p.exists() for p in s.stills())]
         if shots:
             page = browser.new_page(viewport={"width": 1600, "height": 900}, device_scale_factor=1.2)
             page.goto(CONSOLE.as_uri())
@@ -252,7 +364,8 @@ def quantise(seconds: float) -> float:
 
 
 def assemble(segments: list[Segment]) -> None:
-    concat = BUILD / "frames.txt"
+    concat = outdir() / "frames.txt"
+    out_file = ROOT / cfg("out")
     silence = BUILD / "pad.mp3"
     if not silence.exists():
         subprocess.run(
@@ -280,23 +393,23 @@ def assemble(segments: list[Segment]) -> None:
     lines.append(f"file '{segments[-1].stills()[-1].as_posix()}'")  # concat demuxer needs the last file twice
     concat.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    alist = BUILD / "audio.txt"
+    alist = outdir() / "audio.txt"
     alist.write_text("\n".join(f"file '{p.as_posix()}'" for p in audio_parts) + "\n", encoding="utf-8")
-    voice = BUILD / "voice.m4a"
+    voice = outdir() / "voice.m4a"
     subprocess.run(
         ["ffmpeg", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(alist),
          "-c:a", "aac", "-b:a", "160k", str(voice), "-y"], check=True,
     )
 
     write_timeline(timeline, total)
-    print(f"\n  muxing {total:.1f}s → {OUT.name}")
+    print(f"\n  muxing {total:.1f}s → {out_file.name}")
     subprocess.run(
         ["ffmpeg", "-v", "error",
          "-f", "concat", "-safe", "0", "-i", str(concat),
          "-i", str(voice),
          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", str(FPS), "-crf", "20",
          "-preset", "medium", "-movflags", "+faststart",
-         "-c:a", "copy", "-shortest", str(OUT), "-y"], check=True,
+         "-c:a", "copy", "-shortest", str(out_file), "-y"], check=True,
     )
 
 
@@ -304,11 +417,11 @@ def write_timeline(rows: list[tuple[str, float, float, list[str]]], total: float
     """The shot list, regenerated from the build so it cannot drift from the film."""
     by_id = {s.id: s for s in SEGMENTS}
     out = [
-        "# Nabd — demo video shot list",
+        f"# {cfg('title')}",
         "",
-        f"*Generated by `python docs/video/build.py`. {OUT.name} · 1920×1080 · "
-        f"{int(total // 60)}:{int(total % 60):02d} · English narration "
-        f"({VOICE} via edge-tts, rate {RATE}).*",
+        f"*Generated by `python docs/video/build.py --lang {LANG}`. {cfg('out')} · 1920×1080 · "
+        f"{int(total // 60)}:{int(total % 60):02d} · {LANG} narration "
+        f"({cfg('voice')} via edge-tts, rate {cfg('rate')}).*",
         "",
         "Every console frame below is `nabd/replay.html` — the real command-centre console —",
         "opened at the named pass. The console draws only from `nac/evidence/nabd-scene-*.jsonl`,",
@@ -319,7 +432,7 @@ def write_timeline(rows: list[tuple[str, float, float, list[str]]], total: float
         "|---|---|---|---|---|",
     ]
     for seg_id, start, span, shown in rows:
-        text = by_id[seg_id].text.replace("|", "/")
+        text = narration(by_id[seg_id]).replace("|", "/")
         out.append(
             f"| {int(start // 60)}:{start % 60:04.1f} | `{seg_id}` | {span:.1f}s | "
             f"{' → '.join(shown)} | {text} |"
@@ -340,8 +453,8 @@ def write_timeline(rows: list[tuple[str, float, float, list[str]]], total: float
         f"{TAIL_PAD}s of silence so a cut never clips a word.",
         "",
     ]
-    (HERE / "shot-list.md").write_text("\n".join(out), encoding="utf-8")
-    print("\n  shot list    docs/video/shot-list.md")
+    (HERE / cfg("shots")).write_text("\n".join(out), encoding="utf-8")
+    print(f"\n  shot list    docs/video/{cfg('shots')}")
 
 
 def main(argv: list[str]) -> int:
@@ -349,10 +462,14 @@ def main(argv: list[str]) -> int:
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--lang", choices=sorted(LANGS), default="en", help="which cut to build")
     parser.add_argument("--only", help="rebuild assets for one segment id")
     parser.add_argument("--no-tts", action="store_true", help="reuse the narration already rendered")
     parser.add_argument("--no-shoot", action="store_true", help="reuse the frames already rendered")
     args = parser.parse_args(argv[1:])
+
+    global LANG
+    LANG = args.lang
 
     for tool in ("ffmpeg", "ffprobe"):
         if not shutil.which(tool):
@@ -362,13 +479,15 @@ def main(argv: list[str]) -> int:
         print("nabd/replay.html is missing — run `python -m nabd.scene --console` first", file=sys.stderr)
         return 2
     BUILD.mkdir(parents=True, exist_ok=True)
+    outdir().mkdir(parents=True, exist_ok=True)
+    (BUILD / "console").mkdir(parents=True, exist_ok=True)
 
     todo = [s for s in SEGMENTS if not args.only or s.id == args.only]
     if not todo:
         print(f"no segment matches {args.only}", file=sys.stderr)
         return 2
 
-    print(f"\n  narration ({len(todo)} segment(s))")
+    print(f"\n  {LANG} cut \u2014 narration ({len(todo)} segment(s))")
     narrate(todo, skip=args.no_tts)
     if not args.no_shoot:
         print(f"\n  frames")
@@ -378,7 +497,8 @@ def main(argv: list[str]) -> int:
         return 0
     print(f"\n  timeline")
     assemble(SEGMENTS)
-    print(f"\n  {OUT.name}: {OUT.stat().st_size // 1024} KB\n")
+    out_file = ROOT / cfg("out")
+    print(f"\n  {out_file.name}: {out_file.stat().st_size // 1024} KB\n")
     return 0
 
 

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Nabd — demo videosu kartları (TR)</title>
+<style>
+  :root{
+    --bg:#0d1418; --panel:#141d22; --panel2:#111a1f; --line:#223037;
+    --text:#e8eef0; --muted:#8ba0a8; --dim:#5d7078; --amber:#e0913f; --amber-dim:#a86f33;
+    --ok:#5fbf8f; --alert:#ff5a4e;
+    --sans:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;font-family:var(--sans)}
+  /* Her kart tam olarak bir 1080p karedir. Build betiği her .card ögesinin
+     ekran görüntüsünü alır, dolayısıyla buradaki hiçbir şey koşular arasında
+     yeniden akmamalıdır. */
+  .card{width:1920px;height:1080px;background:var(--bg);color:var(--text);
+        padding:96px 132px;position:relative;overflow:hidden;display:flex;
+        flex-direction:column}
+  .kicker{font-family:var(--mono);font-size:21px;letter-spacing:.11em;text-transform:uppercase;
+          color:var(--amber);margin-bottom:34px;white-space:nowrap}
+  h1{font-size:118px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  h1 .ar{font-size:64px;color:var(--dim);font-weight:400;margin-left:14px}
+  h2{font-size:62px;font-weight:700;letter-spacing:-.015em;line-height:1.12;max-width:1560px}
+  h2.small{font-size:52px}
+  .tagline{font-size:44px;color:var(--text);margin-top:22px;font-weight:400}
+  .body{font-size:38px;color:var(--muted);line-height:1.42;max-width:1400px;margin-top:56px}
+  .chips{display:flex;gap:18px;margin-top:auto;margin-bottom:104px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:25px;color:var(--text);border:1.5px solid var(--amber-dim);
+        border-radius:9px;padding:14px 22px}
+  .foot{display:flex;justify-content:space-between;font-family:var(--mono);font-size:22px;
+        color:var(--dim);position:absolute;left:132px;right:132px;bottom:66px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:52px}
+  .cols.three{grid-template-columns:repeat(3,1fr);gap:32px}
+  .panel{background:var(--panel);border:1.5px solid transparent;border-radius:16px;padding:38px 42px}
+  .panel.accent{border-color:var(--amber-dim)}
+  .panel .lbl{font-family:var(--mono);font-size:23px;letter-spacing:.1em;text-transform:uppercase;
+              color:var(--muted);margin-bottom:16px}
+  .panel h3{font-size:40px;font-weight:700;margin-bottom:22px}
+  .panel h3.sm{font-size:33px}
+  .panel ul{list-style:none}
+  .panel li{font-size:29px;line-height:1.36;color:#cfdde2;margin-bottom:15px;padding-left:30px;position:relative}
+  .panel li::before{content:"·";position:absolute;left:8px;color:var(--amber);font-weight:700}
+  .panel p{font-size:29px;line-height:1.38;color:#cfdde2}
+  code{font-family:var(--mono);color:var(--amber);font-size:.95em}
+  .big{display:flex;gap:56px;margin-top:60px}
+  .stat{flex:1}
+  .stat b{display:block;font-family:var(--mono);font-size:78px;color:var(--text);line-height:1}
+  .stat span{display:block;font-size:26px;color:var(--muted);margin-top:14px;line-height:1.3}
+  .stat.amber b{color:var(--amber)}
+  .flow{display:flex;align-items:center;gap:14px;margin-top:54px;flex-wrap:wrap}
+  .node{font-family:var(--mono);font-size:26px;padding:18px 24px;border-radius:11px;
+        background:var(--panel);border:1.5px solid var(--line)}
+  .node.key{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:700}
+  .node.gate{border-color:var(--amber);color:var(--amber)}
+  .arr{color:var(--dim);font-size:28px}
+  .note{font-size:29px;color:var(--muted);margin-top:40px;line-height:1.4;max-width:1560px}
+  .checks{margin-top:46px}
+  .check{display:flex;gap:26px;align-items:baseline;margin-bottom:26px}
+  .check .n{font-family:var(--mono);font-size:27px;color:var(--amber);min-width:44px}
+  .check .t{font-size:30px;line-height:1.34;color:#cfdde2;max-width:1440px}
+  .check .t b{color:var(--text)}
+  .badge{font-family:var(--mono);font-size:23px;padding:7px 14px;border-radius:7px;margin-left:14px}
+  .badge.pass{background:#12301f;color:#7fd6a4}
+  .badge.pend{background:#2f2612;color:#e5bd72}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ 01 başlık -->
+<section class="card" id="c01-title">
+  <div class="kicker">GSMA MENA Ignite 2026 · Prototip Aşaması · Tema 6 — İklim Dayanıklılığı</div>
+  <h1>Nabd <span class="ar">نبض</span></h1>
+  <div class="tagline">Ağın sustuğu yeri okuyun.</div>
+  <div class="body">Eşzamanlı ağ sessizliğini komuta merkezleri için canlı bir afet etki haritasına çeviren yapay zekâ ajanı.</div>
+  <div class="chips">
+    <span class="chip">Nokia Network-as-Code</span>
+    <span class="chip">CAMARA · Congestion Insights · Device Reachability · Location Retrieval</span>
+    <span class="chip">LangGraph</span>
+  </div>
+  <div class="foot"><span>Kadir'in Ekibi · Türkiye</span><span>ilk dakikada etki haritası · ilk 72 saatte önceliklendirme</span></div>
+</section>
+
+<!-- =========================================================== 02 problem -->
+<section class="card" id="c02-problem">
+  <div class="kicker">Problem</div>
+  <h2>Olduğunu bilmek saniyeler.<br>Nerede olduğunu bilmek saatler.</h2>
+  <div class="big">
+    <div class="stat"><b>saniyeler</b><span>bir sismometrenin depremi doğrulaması için</span></div>
+    <div class="stat amber"><b>saatler</b><span>hangi mahallenin insanını kaybettiği bilinene kadar</span></div>
+    <div class="stat"><b>53.000+</b><span>2023 Kahramanmaraş depremlerinde hayatını kaybeden</span></div>
+  </div>
+  <div class="note">İlk saatlerde kurtarmayı geciktiren kaynak değil, bilgidir — ve tablo, tam da ağın çöktüğü ve
+  aramaların geçmediği anda, dağınık acil çağrılardan parça parça kurulur.</div>
+  <div class="foot"><span>Nabd bir erken uyarı sistemi değildir.</span><span>ilk dakikada etki haritası · ilk 72 saatte önceliklendirme</span></div>
+</section>
+
+<!-- ============================================================ 03 fikir -->
+<section class="card" id="c03-insight">
+  <div class="kicker">Fikir · iki katman</div>
+  <h2>Eşzamanlı sessizlik bir sensördür.</h2>
+  <div class="cols">
+    <div class="panel accent">
+      <div class="lbl">1. katman — tespit toplu düzeyde</div>
+      <h3 class="sm">Nöbetçi cihaz ağı</h3>
+      <ul>
+        <li>hücre başına bir SIM: belediyeye veya operatöre ait — <b>asla halkın telefonu</b></li>
+        <li>30 saniyede bir Congestion Insights ve Device Reachability üzerinden okunur</li>
+        <li>stabil CAMARA uçları cihaz-kapsamlıdır; alan seviyesi okuma ancak sabit bir SIM ile kurulur</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="lbl">2. katman — önceliklendirme rızaya dayalı</div>
+      <h3 class="sm">İsteğe bağlı kayıt defteri</h3>
+      <ul>
+        <li>yaşlılar, engelliler, hac grupları, yalnız çalışanlar — bulunmayı seçmiş kişiler</li>
+        <li><b>yalnızca ilan edilmiş bir etki alanı içinde</b> ve yalnızca kayıt olanlar için sorgulanır</li>
+        <li>kime ulaşılamıyor ve en son nerede görüldü</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>tespit katmanı halktan hiç kimseye dokunmaz</span><span>kayıt defterini kurum tutar; operatör buna uyar</span></div>
+</section>
+
+<!-- ============================================================ 10 kaput -->
+<section class="card" id="c10-hood">
+  <div class="kicker">Kaputun altında · ajan, LangGraph üzerinde</div>
+  <h2 class="small">Tek bir sinyal asla tek başına ilan ettirmez.</h2>
+  <div class="flow">
+    <span class="node">algıla</span><span class="arr">→</span>
+    <span class="node">ilişkilendir</span><span class="arr">→</span>
+    <span class="node">ayıkla</span><span class="arr">→</span>
+    <span class="node key">ilan et</span><span class="arr">⇢</span>
+    <span class="node gate">önceliklendir</span><span class="arr">|</span>
+    <span class="node">bekle</span><span class="arr">→</span>
+    <span class="node">brifing → kayıt</span>
+  </div>
+  <div class="cols" style="margin-top:44px">
+    <div class="panel">
+      <div class="lbl">İki kapı — veto eder, asla ilan ettirmez</div>
+      <ul>
+        <li><b>bitişik sessizlik</b> — boyut tabanının üstünde bağlı bir blok</li>
+        <li><b>yerel taban çizgisi</b> — sessizlik <i>burada</i> anormal olmalı, bu hücrelerin kendi geçmişine göre</li>
+      </ul>
+    </div>
+    <div class="panel accent">
+      <div class="lbl">Destekleyiciler — aritmetiğin saydığı bir liste</div>
+      <ul>
+        <li><b>eşzamanlı başlangıç</b> · <b>sıcak halka</b> — ikisi YÜKSEK, biri ORTA, hiçbiri çekimser</li>
+        <li>yeni bir ağ yüzeyi bu <b>listeye bir satır</b> eklemektir, yeniden tasarım değil</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>dil modeli yalnızca brifingi yazar — tespit deterministik ve tekrar oynatılabilir</span><span>83 / 83 test · 10 paket</span></div>
+</section>
+
+<!-- =========================================================== 11 parite -->
+<section class="card" id="c11-parity">
+  <div class="kicker">Dürüst sınırlar · tek ajan, her arka uç</div>
+  <h2 class="small">Kum havuzu bir afeti sahneleyemez.<br>O yüzden dikiş iddia edilmiyor, ölçülüyor.</h2>
+  <div class="checks">
+    <div class="check"><span class="n">01</span><span class="t">Ajan yığını <b>hiçbir SDK'yı import etmiyor, ağ geçidi kurmuyor, simüle dünya adı geçmiyor</b> — sözdizimi ağacından okunuyor<span class="badge pass">GEÇTİ</span></span></div>
+    <div class="check"><span class="n">02</span><span class="t">Ağı <b>tek bir fonksiyon</b> seçiyor; pakette başka hiçbir yer arka uç adı geçirmiyor<span class="badge pass">GEÇTİ</span></span></div>
+    <div class="check"><span class="n">03</span><span class="t">Her sahne kaydedilip <b>canlı ağ geçidinin kullandığı aynı üç ayrıştırma fonksiyonundan</b> geri oynatılıyor — kanıt satır satır aynı<span class="badge pass">GEÇTİ</span></span></div>
+    <div class="check"><span class="n">04</span><span class="t">Kaydedilmiş canlı döküm, aynı ajandan <b>kimlik bilgisi olmadan</b> geri oynatılıyor — herkesin tekrarlayabileceği kontrol<span class="badge pend">CANLI KOŞU BEKLİYOR</span></span></div>
+  </div>
+  <div class="note">Canlı platform entegrasyonu kanıtlar. Simülatör senaryoyu kanıtlar. Risk hiçbir zaman simülatör değildi —
+  iki yol arasında algılanan bir kopukluktu, ölçülen de tam olarak o kopukluk.</div>
+  <div class="foot"><span>python -m nabd.parity</span><span>BEKLEMEDE olan bir kontrol asla geçmiş sayılmaz</span></div>
+</section>
+
+<!-- ============================================================ 12 kapanış -->
+<section class="card" id="c12-close">
+  <div class="kicker">Tek motor · her tehlike</div>
+  <h2 class="small">Ağ zaten biliyor.<br>Nabd ona bunu söyletiyor — ilk dakikada.</h2>
+  <div class="cols three">
+    <div class="panel">
+      <div class="lbl">Etki</div>
+      <p>Deprem, sel, fırtına, kitlesel kesinti — ağ için hepsi kararan bir alandır. İlk sevk kararı saatlerden dakikalara iner.</p>
+    </div>
+    <div class="panel">
+      <div class="lbl">Kim satın alır</div>
+      <p>Sivil savunma kurumları, Kızılay teşkilatları, belediyeler, hastane ağları — operatör üzerinden, Open Gateway etki akışı olarak.</p>
+    </div>
+    <div class="panel accent">
+      <div class="lbl">Yol haritası</div>
+      <p>Sınır olayları için Geofencing · etki alanı içindeki ekiplere QoD önceliği · yayınlandığı gün toplu bir ağ yüzeyi.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Nabd · نبض · Kadir'in Ekibi · MENA Ignite 2026</span><span>Tema 6 — İklim Dayanıklılığı ve Çevresel İzleme</span></div>
+</section>
+
+</body>
+</html>
