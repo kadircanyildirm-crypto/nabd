@@ -89,9 +89,9 @@ CHATTERBOX = {
     "seed": 42,
     # Softer emotion, slower delivery, less variance between words. Lower cfg is
     # what slows Chatterbox down; lower exaggeration is what stops it acting.
-    "exaggeration": 0.25,
-    "temperature": 0.60,
-    "cfg_weight": 0.35,
+    "exaggeration": 0.3,
+    "temperature": 0.7,
+    "cfg_weight": 0.6,
     "timeout_s": 400,
 }
 
@@ -153,129 +153,113 @@ class Segment:
 SEGMENTS = [
     Segment(
         "01-title", card="c01-title",
-        text="Nabd. Read where the network goes silent. "
-             "An AI agent that maps where a disaster hit, "
-             "on Nokia Network-as-Code and LangGraph.",
+        text="Nabd. Read where the network goes silent. It's an AI agent that maps where a "
+             "disaster hit, built on Nokia Network-as-Code and LangGraph.",
     ),
     Segment(
         "02-problem", card="c02-problem",
-        text="A seismometer knows in seconds. It happened. "
-             "But the question that costs lives is a different one. "
-             "Which district first? Who is cut off? "
-             "That answer takes hours. "
-             "In Kahramanmaraş, in twenty twenty-three, more than fifty-three thousand people died. "
-             "Nabd is not early warning. "
-             "It's the impact map. In the first minute.",
+        text="A seismometer will tell you within seconds that an earthquake happened, but that "
+             "isn't the question that costs lives. The question is which district to reach first "
+             "and who has been cut off, and that answer takes hours to arrive. In Kahramanmaraş, "
+             "in twenty twenty-three, more than fifty-three thousand people died. Nabd is not "
+             "early warning; it is the impact map in the first minute.",
     ),
     Segment(
         "03-insight", card="c03-insight",
-        text="Coordinated silence is a sensor. So Nabd has two layers. "
-             "The first one is aggregate. A grid of sentinel devices, one per cell. "
-             "Municipal or operator SIMs. Never the public. Read every thirty seconds. "
-             "The second layer is consented. It only looks at people who asked to be found. "
-             "And only inside an area the agent has already declared.",
+        text="Coordinated silence is a sensor, and Nabd reads it in two layers. The first is "
+             "aggregate: a grid of sentinel devices, one per cell, municipal or operator SIMs "
+             "rather than anyone's phone, read every thirty seconds. The second is consented, "
+             "and it only ever looks at people who asked to be found, inside an area the agent "
+             "has already declared.",
     ),
     Segment(
         "04-quiet", frames=[("quiet", 2), ("quiet", 6), ("quiet", 9)],
-        text="This is the command centre. Every square is a cell, with one sentinel in it. "
-             "On an ordinary morning they all answer. "
-             "The agent has nothing to say, so it says nothing.",
+        text="This is the command centre, where every square is a cell with a single sentinel in "
+             "it. On an ordinary morning they all answer, so the agent has nothing to report and "
+             "doesn't pretend otherwise.",
     ),
     Segment(
         "05-onset", frames=[("quake", 4), ("quake", 5)],
-        text="Nine oh two. An earthquake. "
-             "Nobody knows yet which neighbourhoods were hit. "
-             "Nine cells go silent at once. "
-             "But watch what the agent does. It marks a candidate, and it waits one more pass. "
-             "One signal never declares alone.",
+        text="Nine oh two, and an earthquake. Nobody knows yet which neighbourhoods were hit, and "
+             "nine cells go silent at once, but instead of declaring, the agent marks a candidate "
+             "and waits one more pass, because one signal never declares alone.",
     ),
     Segment(
         "06-declare", frames=[("quake", 6)],
-        text="Fifty-five seconds after the shaking. It declares. "
-             "Nine cells. About four square kilometres. Confidence high. "
-             "Two gates passed: the block is contiguous, and this silence is abnormal here. "
-             "And two corroborations. The onset was synchronised. "
-             "And the ring is hot. Sixteen of sixteen neighbouring cells saturated, "
-             "because everyone is calling at the same moment.",
+        text="Fifty-five seconds after the shaking it declares: nine cells, about four square "
+             "kilometres, at high confidence. Two gates have passed, since the block is contiguous "
+             "and this silence is abnormal here, and two corroborations back it up, because the "
+             "onset was synchronised and the ring around it is hot, with sixteen of sixteen "
+             "neighbouring cells saturated as everyone calls at the same moment.",
     ),
     Segment(
         "07-triage", frames=[("quake", 6), ("quake", 7)],
-        text="Only now does the agent touch a personal device. "
-             "Thirteen registered people live inside the footprint. Six are unreachable. "
-             "Ranked by need. Each with a last-seen position. "
-             "And every pass of the evidence says whether that personal path was open, "
-             "and how many calls it made. "
-             "On an ordinary morning, that number is zero. On every line.",
+        text="Only now does the agent touch a personal device. Thirteen registered people live "
+             "inside the footprint and six of them are unreachable, ranked by need, each with a "
+             "last-seen position. And every pass of the evidence records whether that personal "
+             "path was open and how many calls it made, which on an ordinary morning is zero, on "
+             "every single line.",
     ),
     Segment(
         "08-update", frames=[("quake", 14), ("quake", 16)],
-        text="The picture keeps moving. Four minutes later, two people answer again. "
-             "The list goes from six to four. Nobody touched it.",
+        text="The picture keeps moving. Four minutes later two people answer again, and the list "
+             "drops from six to four without anyone touching it.",
     ),
     Segment(
         "09-lookalikes", frames=[("noise", 2), ("noise", 6), ("noise", 10)],
-        text="A detector is only useful if it stays quiet on the things that look like disasters. "
-             "One cell goes silent, neighbours normal. That's a base station fault. "
-             "Four cells go silent together, but they match a maintenance ticket "
-             "on the operator's calendar. That's expected. "
-             "Nine cells saturate, and every sentinel still answers. That's a stadium. "
-             "Three abstentions. Three written reasons. No false alarm.",
+        text="A detector is only useful if it stays quiet on the things that merely look like "
+             "disasters. When one cell goes silent while its neighbours stay normal, that is a "
+             "base station fault. When four go silent together but match a maintenance ticket on "
+             "the operator's calendar, that is expected. And when nine saturate while every "
+             "sentinel still answers, that is a stadium. Three abstentions, three written reasons, "
+             "and no false alarm.",
     ),
     Segment(
         "10-degraded", frames=[("degraded", 11), ("degraded", 21)],
-        text="Then the hard one. Four cells on a failing backhaul. "
-             "They produce every signal a disaster has. "
-             "And nothing on the calendar explains them. "
-             "So the agent measures them instead. "
-             "These cells were already unreachable in three of the last eleven passes. "
-             "Silence here is normal. And normal isn't news. "
-             "Then, in the same run, a real earthquake in the city centre is still declared. "
-             "The refusal is measured. It isn't blindness.",
+        text="Then the hard one. Four cells on a failing backhaul produce every signal a disaster "
+             "has, and nothing on the calendar explains them, so the agent measures them instead: "
+             "these cells were already unreachable in three of the last eleven passes, which means "
+             "silence here is normal, and normal isn't news. And in the same run, a real earthquake "
+             "in the city centre is still declared, so the refusal is measured rather than blind.",
     ),
     Segment(
         "11-real", frames=[("maras", 6), ("maras", 15), ("maras", 23)],
-        text="Then we stopped drawing the disaster. "
-             "The geometry here, and the shaking in every cell, come from the USGS ShakeMap "
-             "for the Pazarcık earthquake. Magnitude seven point eight. "
-             "Sixth of February, twenty twenty-three. Two hundred and sixty-two seismic stations. "
-             "Fifty-five seconds after onset: twenty-one contiguous cells. "
-             "Twenty-one hundred square kilometres. "
-             "And every cell it names is one the measured shaking puts above the collapse threshold. "
-             "It invents no damage. "
-             "Two more cells, an isolated pocket below the size floor, it deliberately does not claim. "
-             "Then the footprint grows. Six thousand three hundred square kilometres, "
-             "as the surviving masts lose power and drain their batteries. "
-             "Which is exactly what the field reports describe.",
+        text="Then we stopped drawing the disaster altogether. The geometry here, and the shaking "
+             "in every cell, come from the USGS ShakeMap for the magnitude seven point eight "
+             "Pazarcık earthquake of the sixth of February, twenty twenty-three, constrained by "
+             "two hundred and sixty-two seismic stations. Fifty-five seconds after onset it "
+             "declares twenty-one contiguous cells, twenty-one hundred square kilometres, and "
+             "every cell it names is one the measured shaking puts above the collapse threshold, "
+             "so it invents no damage. Two more, an isolated pocket below the size floor, it "
+             "deliberately leaves unclaimed. Then the footprint grows to six thousand three "
+             "hundred square kilometres as the surviving masts lose power and drain their "
+             "batteries, which is exactly what the field reports describe.",
     ),
     Segment(
         "12-hood", card="c10-hood",
-        text="Under the hood, the agent is a LangGraph graph. "
-             "And the conditional edge is the privacy claim, written in code: "
-             "the node that queries a personal device can only be reached "
-             "from a verdict with an active footprint. "
-             "Detection is deterministic and replayable. "
-             "The language model writes the duty officer's brief, and nothing else. "
-             "The plain loop and the LangGraph runner produce byte-identical evidence, "
-             "under eighty-three tests.",
+        text="Under the hood the agent is a LangGraph graph, and the conditional edge is the "
+             "privacy claim written into code, because the node that queries a personal device can "
+             "only be reached from a verdict with an active footprint. Detection stays "
+             "deterministic and replayable, while the language model writes the duty officer's "
+             "brief and nothing else. The plain loop and the LangGraph runner produce "
+             "byte-identical evidence, under eighty-three tests.",
     ),
     Segment(
         "13-parity", card="c11-parity",
-        text="The sandbox can't stage a disaster. So we separated the two claims. "
-             "The live platform proves the integration. The simulator proves the scenario. "
-             "The risk was never the simulator. It was a suspected gap between the two paths. "
-             "So that gap is what we measure. "
-             "Every scene is recorded, and replayed through the same three parsing functions "
-             "the live gateway uses. "
-             "The evidence has to come out identical. Line for line.",
+        text="The sandbox can't stage a disaster, so we separated the two claims: the live "
+             "platform proves the integration, and the simulator proves the scenario. The risk was "
+             "never the simulator itself, it was a suspected gap between the two paths, so that "
+             "gap is what we measure. Every scene is recorded and replayed through the same three "
+             "parsing functions the live gateway uses, and the evidence has to come out identical, "
+             "line for line.",
     ),
     Segment(
         "14-close", card="c12-close",
-        text="Nabd doesn't care which disaster. "
-             "Earthquake, flood, storm, mass outage. An area goes dark. "
-             "The buyers are civil-defence agencies and municipalities, "
-             "through the operator's Open Gateway. "
-             "The network already knows. Nabd makes it say so. In the first minute. "
-             "By Kadir's Team, for MENA Ignite twenty twenty-six.",
+        text="Nabd doesn't care which disaster it is, because to the network an earthquake, a "
+             "flood, a storm and a mass outage are all the same thing: an area going dark. The "
+             "buyers are civil-defence agencies and municipalities, reached through the operator's "
+             "Open Gateway. The network already knows, and Nabd just makes it say so, in the first "
+             "minute. By Kadir's Team, for MENA Ignite twenty twenty-six.",
     ),
 ]
 
@@ -285,101 +269,83 @@ SEGMENTS = [
 #: same frames.
 TURKISH = {
     "01-title":
-        "Nabd. Ağın sustuğu yeri okuyun. "
-        "Afetin nereye vurduğunu haritalayan bir yapay zekâ ajanı. "
-        "Nokia Network-as-Code ve LangGraph üzerinde.",
+        "Nabd. Ağın sustuğu yeri okuyun. Afetin nereye vurduğunu haritalayan bir yapay zekâ "
+        "ajanı; Nokia Network-as-Code ve LangGraph üzerine kurulu.",
     "02-problem":
-        "Bir sismometre saniyeler içinde biliyor. Oldu. "
-        "Ama hayat pahasına olan soru başka. "
-        "Önce hangi mahalle? Kim dışarıda kaldı? "
-        "O cevap saatler sürüyor. "
-        "Kahramanmaraş'ta, iki bin yirmi üçte, elli üç binden fazla insan öldü. "
-        "Nabd erken uyarı değil. "
-        "İlk dakikadaki etki haritası.",
+        "Bir sismometre depremin olduğunu saniyeler içinde söyler, ama hayat pahasına olan soru "
+        "bu değildir: önce hangi mahalleye gidilecek ve kim dışarıda kaldı. O cevap saatler sonra "
+        "gelir. Kahramanmaraş'ta, iki bin yirmi üçte, elli üç binden fazla insan hayatını "
+        "kaybetti. Nabd bir erken uyarı sistemi değil; ilk dakikada çıkan etki haritası.",
     "03-insight":
-        "Eşzamanlı sessizlik bir sensördür. Nabd'nin iki katmanı var. "
-        "Birincisi toplu düzeyde. Hücre başına bir nöbetçi cihaz. "
-        "Belediye ya da operatör SIM'i. Asla halkın telefonu. Otuz saniyede bir okunuyor. "
-        "İkinci katman rızaya dayalı. Sadece bulunmak isteyen insanlara bakıyor. "
-        "Ve sadece ajanın önceden ilan ettiği bir alanın içinde.",
+        "Eşzamanlı sessizlik bir sensördür ve Nabd bunu iki katmanda okur. Birincisi toplu "
+        "düzeydedir: hücre başına bir nöbetçi cihaz, yani halkın telefonu değil belediyenin ya da "
+        "operatörün SIM'i, otuz saniyede bir okunur. İkincisi rızaya dayalıdır ve yalnızca "
+        "bulunmak isteyen insanlara, üstelik yalnızca ajanın önceden ilan ettiği bir alanın "
+        "içinde bakar.",
     "04-quiet":
-        "Karşınızdaki komuta merkezi. Her kare bir hücre, içinde bir nöbetçi. "
-        "Sıradan bir sabahta hepsi cevap veriyor. "
-        "Ajanın söyleyecek bir şeyi yok, o yüzden bir şey söylemiyor.",
+        "Karşınızdaki komuta merkezi; her kare, içinde tek bir nöbetçi bulunan bir hücre. Sıradan "
+        "bir sabahta hepsi cevap verir, dolayısıyla ajanın bildirecek bir şeyi olmaz ve varmış "
+        "gibi de yapmaz.",
     "05-onset":
-        "Dokuz sıfır iki. Deprem. "
-        "Hangi mahallelerin vurulduğunu henüz kimse bilmiyor. "
-        "Dokuz hücre aynı anda susuyor. "
-        "Ama ajanın ne yaptığına bakın. Aday olarak işaretliyor, ve bir geçiş daha bekliyor. "
-        "Tek sinyal asla tek başına ilan ettirmez.",
+        "Saat dokuz sıfır iki ve bir deprem. Hangi mahallelerin vurulduğunu henüz kimse bilmiyor, "
+        "dokuz hücre aynı anda susuyor, ama ajan hemen ilan etmek yerine bunu aday olarak "
+        "işaretliyor ve bir geçiş daha bekliyor, çünkü tek bir sinyal asla tek başına ilan "
+        "ettirmez.",
     "06-declare":
-        "Sarsıntıdan elli beş saniye sonra. İlan ediyor. "
-        "Dokuz hücre. Yaklaşık dört kilometrekare. Güven yüksek. "
-        "İki kapı geçildi: blok bitişik, ve bu sessizlik burada anormal. "
-        "Ve iki destekleyici kanıt. Başlangıç eşzamanlıydı. "
-        "Ve halka sıcak. Komşu on altı hücrenin on altısı doygun, "
-        "çünkü herkes aynı anda arıyor.",
+        "Sarsıntıdan elli beş saniye sonra ilan ediyor: dokuz hücre, yaklaşık dört kilometrekare, "
+        "yüksek güvenle. İki kapı geçilmiş durumda, çünkü blok bitişik ve bu sessizlik burada "
+        "anormal; ayrıca iki destekleyici kanıt var, zira başlangıç eşzamanlıydı ve etrafındaki "
+        "halka sıcak, yani komşu on altı hücrenin on altısı doygun, çünkü herkes aynı anda "
+        "arıyor.",
     "07-triage":
-        "Ajan kişisel bir cihaza ancak şimdi dokunuyor. "
-        "Etki alanının içinde on üç kayıtlı kişi yaşıyor. Altısına ulaşılamıyor. "
-        "İhtiyaca göre sıralı. Her biri son görüldüğü konumla. "
-        "Ve kanıt dosyasının her geçişi, o kişisel yolun açık olup olmadığını "
-        "ve kaç çağrı yapıldığını yazıyor. "
-        "Sıradan bir sabahta bu sayı sıfır. Her satırda.",
+        "Ajan kişisel bir cihaza ancak şimdi dokunuyor. Etki alanının içinde on üç kayıtlı kişi "
+        "yaşıyor ve bunların altısına ulaşılamıyor; ihtiyaca göre sıralanmış, her biri son "
+        "görüldüğü konumla birlikte. Kanıt dosyasının her geçişi de o kişisel yolun açık olup "
+        "olmadığını ve kaç çağrı yapıldığını kaydediyor, ki sıradan bir sabahta bu sayı her "
+        "satırda sıfırdır.",
     "08-update":
-        "Tablo değişmeye devam ediyor. Dört dakika sonra iki kişi yeniden cevap veriyor. "
-        "Liste altıdan dörde iniyor. Kimse dokunmadı.",
+        "Tablo değişmeye devam ediyor. Dört dakika sonra iki kişi yeniden cevap veriyor ve liste, "
+        "kimse hiçbir şeye dokunmadan altıdan dörde iniyor.",
     "09-lookalikes":
-        "Bir dedektör, ancak afete benzeyen şeylerde sessiz kalabildiği ölçüde işe yarar. "
-        "Bir hücre susuyor, komşuları normal. Bu bir baz istasyonu arızası. "
-        "Dört hücre birlikte susuyor, ama operatörün takvimindeki bir bakım kaydıyla eşleşiyor. "
-        "Bu beklenen. "
-        "Dokuz hücre doyuyor, ve her nöbetçi hâlâ cevap veriyor. Bu bir stadyum. "
-        "Üç çekimser karar. Üç yazılı gerekçe. Sıfır yanlış alarm.",
+        "Bir dedektör, ancak afete yalnızca benzeyen şeylerde sessiz kalabildiği ölçüde işe yarar. "
+        "Bir hücre susup komşuları normal kalıyorsa bu bir baz istasyonu arızasıdır; dört hücre "
+        "birlikte susuyor ama operatörün takvimindeki bir bakım kaydıyla eşleşiyorsa bu beklenen "
+        "bir şeydir; dokuz hücre doyuyor ama her nöbetçi hâlâ cevap veriyorsa bu bir stadyumdur. "
+        "Üç çekimser karar, üç yazılı gerekçe ve sıfır yanlış alarm.",
     "10-degraded":
-        "Sonra zor olanı. Arızalı bir aktarım hattındaki dört hücre. "
-        "Bir afetin sahip olduğu her sinyali üretiyorlar. "
-        "Ve hiçbir takvim bunu açıklamıyor. "
-        "Ajan da onları açıklamak yerine ölçüyor. "
-        "Bu hücreler son on bir geçişin üçünde zaten erişilemezdi. "
-        "Buradaki sessizlik normal. Ve normal, haber değildir. "
-        "Sonra, aynı koşuda, şehir merkezindeki gerçek bir deprem yine ilan ediliyor. "
-        "Ret ölçülmüştür. Körlük değildir.",
+        "Sonra zor olanı geliyor. Arızalı bir aktarım hattındaki dört hücre, bir afetin sahip "
+        "olduğu her sinyali üretiyor ve hiçbir takvim bunu açıklamıyor; ajan da açıklamak yerine "
+        "onları ölçüyor: bu hücreler son on bir geçişin üçünde zaten erişilemezdi, yani buradaki "
+        "sessizlik normaldir ve normal olan haber değildir. Üstelik aynı koşuda, şehir "
+        "merkezindeki gerçek bir deprem yine ilan ediliyor, dolayısıyla ret ölçülmüş bir karardır, "
+        "körlük değil.",
     "11-real":
-        "Sonra afeti çizmeyi bıraktık. "
-        "Buradaki coğrafya ve her hücredeki sarsıntı, Pazarcık depreminin "
-        "USGS ShakeMap verisinden geliyor. Büyüklük yedi virgül sekiz. "
-        "Altı Şubat, iki bin yirmi üç. İki yüz altmış iki sismik istasyon. "
-        "Sarsıntıdan elli beş saniye sonra: yirmi bir bitişik hücre. "
-        "İki bin yüz kilometrekare. "
-        "Ve isimlendirdiği her hücre, ölçülen sarsıntının çökme eşiğinin üstüne koyduğu bir hücre. "
-        "Hasar uydurmuyor. "
-        "İki hücreyi daha, boyut tabanının altında kalan izole bir cebi, bilerek iddia etmiyor. "
-        "Sonra etki alanı büyüyor. Altı bin üç yüz kilometrekare. "
-        "Ayakta kalan direkler elektriğini kaybedip akülerini tüketirken. "
-        "Ki saha raporlarının anlattığı tam olarak bu.",
+        "Sonra afeti çizmeyi tamamen bıraktık. Buradaki coğrafya ve her hücredeki sarsıntı, altı "
+        "Şubat iki bin yirmi üç tarihli, yedi virgül sekiz büyüklüğündeki Pazarcık depreminin "
+        "USGS ShakeMap verisinden geliyor; iki yüz altmış iki sismik istasyonla kısıtlanmış bir "
+        "alan. Sarsıntıdan elli beş saniye sonra yirmi bir bitişik hücre, iki bin yüz "
+        "kilometrekare ilan ediliyor ve isimlendirdiği her hücre, ölçülen sarsıntının çökme "
+        "eşiğinin üstüne koyduğu bir hücre; yani hasar uydurmuyor. Boyut tabanının altında kalan "
+        "izole bir cebi, iki hücreyi, bilerek iddia etmiyor. Sonra ayakta kalan direkler "
+        "elektriğini kaybedip akülerini tüketirken etki alanı altı bin üç yüz kilometrekareye "
+        "büyüyor, ki saha raporlarının anlattığı da tam olarak budur.",
     "12-hood":
-        "Kaputun altında ajan bir LangGraph grafiği. "
-        "Ve koşullu kenar, gizlilik iddiasının koda yazılmış hali: "
-        "kişisel cihaz sorgulayan düğüme, sadece aktif etki alanı olan bir karardan ulaşılabiliyor. "
-        "Tespit deterministik ve tekrar oynatılabilir. "
-        "Dil modeli nöbetçi subayın brifingini yazıyor, başka bir şey yapmıyor. "
-        "Düz döngü ve LangGraph koşucusu bayt bayt aynı kanıtı üretiyor. "
-        "Seksen üç testin altında.",
+        "Kaputun altında ajan bir LangGraph grafiği ve koşullu kenar, gizlilik iddiasının koda "
+        "yazılmış hali; çünkü kişisel cihaz sorgulayan düğüme yalnızca aktif etki alanı olan bir "
+        "karardan ulaşılabiliyor. Tespit deterministik ve tekrar oynatılabilir kalırken, dil "
+        "modeli nöbetçi subayın brifingini yazıyor ve başka hiçbir şey yapmıyor. Düz döngü ile "
+        "LangGraph koşucusu ise seksen üç testin altında bayt bayt aynı kanıtı üretiyor.",
     "13-parity":
-        "Kum havuzu bir afeti sahneleyemez. Biz de iki iddiayı ayırdık. "
-        "Canlı platform entegrasyonu kanıtlıyor. Simülatör senaryoyu kanıtlıyor. "
-        "Risk hiçbir zaman simülatör değildi. İki yol arasında sezilen bir boşluktu. "
-        "Ölçtüğümüz de o boşluk. "
-        "Her sahne kaydediliyor, ve canlı ağ geçidinin kullandığı aynı üç ayrıştırma "
-        "fonksiyonundan geri oynatılıyor. "
-        "Kanıtın birebir aynı çıkması gerekiyor. Satır satır.",
+        "Kum havuzu bir afeti sahneleyemez, o yüzden iki iddiayı ayırdık: canlı platform "
+        "entegrasyonu kanıtlıyor, simülatör ise senaryoyu. Risk hiçbir zaman simülatörün kendisi "
+        "değildi, iki yol arasında sezilen bir boşluktu; ölçtüğümüz de tam olarak o boşluk. Her "
+        "sahne kaydediliyor ve canlı ağ geçidinin kullandığı aynı üç ayrıştırma fonksiyonundan "
+        "geri oynatılıyor, kanıtın da satır satır aynı çıkması gerekiyor.",
     "14-close":
-        "Nabd hangi afet olduğuna bakmıyor. "
-        "Deprem, sel, fırtına, kitlesel kesinti. Bir alan kararıyor. "
-        "Alıcılar sivil savunma kurumları ve belediyeler, operatörün Open Gateway'i üzerinden. "
-        "Ağ zaten biliyor. Nabd ona bunu söyletiyor. İlk dakikada. "
-        "Kadir'in Ekibi'nden, MENA Ignite iki bin yirmi altı için.",
+        "Nabd hangi afet olduğuna bakmıyor, çünkü ağ açısından deprem de sel de fırtına da "
+        "kitlesel kesinti de aynı şeydir: kararan bir alan. Alıcılar sivil savunma kurumları ve "
+        "belediyeler, operatörün Open Gateway'i üzerinden. Ağ zaten biliyor; Nabd sadece ona bunu "
+        "söyletiyor, ilk dakikada. Kadir'in Ekibi'nden, MENA Ignite iki bin yirmi altı için.",
 }
 
 
