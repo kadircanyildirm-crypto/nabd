@@ -6,8 +6,8 @@ The claim is that Nabd's agent is one piece of code that runs unchanged against 
 
 | # | Check | Status | Measurement |
 |---|---|---|---|
-| 1 | agent is backend-blind | **PASS** | 1410 lines across 7 modules import no SDK, construct no gateway and never name a world — the agent cannot tell which network answered it |
-| 2 | one selection point | **PASS** | gateway.build() names all three backends; the other 12 modules in the package name none of them — every runner, scene and harness reaches the network through one function |
+| 1 | agent is backend-blind | **PASS** | 1419 lines across 7 modules import no SDK, construct no gateway and never name a world — the agent cannot tell which network answered it |
+| 2 | one selection point | **PASS** | gateway.build() names all three backends; the other 13 modules in the package name none of them — every runner, scene and harness reaches the network through one function |
 | 3 | replay reproduces the scene | **PASS** | scene 'quake': 21 passes and 4405 calls replayed through the live response parsers — evidence identical byte for byte |
 | 4 | live transcript replays | **PENDING** | nabd-live-contract.jsonl not recorded yet — run `python -m nabd.scene --backend live` once with credentials in nac/.env, then re-run this check |
 

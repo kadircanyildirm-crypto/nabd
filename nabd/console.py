@@ -32,6 +32,7 @@ TITLES = {
     "quake": ("Earthquake", "the reference case — nine cells fall silent at once, the ring goes hot"),
     "noise": ("Look-alikes", "the false-alarm defence — a cell fault, a maintenance window, a stadium crowd"),
     "degraded": ("Chronic degradation", "the hardest look-alike — a block where silence is normal, and a real impact in the same run"),
+    "maras": ("6 February 2023", "the real event — measured ground motion decides which cells go silent"),
 }
 
 

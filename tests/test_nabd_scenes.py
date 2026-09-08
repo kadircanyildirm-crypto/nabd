@@ -106,7 +106,7 @@ def test_degraded_scene_suppresses_chronic_silence_and_still_declares():
 def test_privacy_gate_is_stated_on_every_pass_and_matches_the_calls():
     """Every record says what the personal-data path did, and the count is checkable."""
     total_personal = 0
-    for name in ("quiet", "quake", "noise", "degraded"):
+    for name in ("quiet", "quake", "noise", "degraded", "maras"):
         scenario, log, gateway = _records(name)
         registry = {p.msisdn for p in scenario.world.registry}
         for r in log.records:
@@ -145,7 +145,7 @@ def test_console_is_a_view_over_the_evidence():
 
     from nabd.console import build_console
 
-    for name in ("quiet", "quake", "noise", "degraded"):
+    for name in ("quiet", "quake", "noise", "degraded", "maras"):
         scenario = build(name)
         log, _ = run(scenario)
         log.write()
@@ -156,7 +156,7 @@ def test_console_is_a_view_over_the_evidence():
     start = html.index('<script id="data" type="application/json">') + len('<script id="data" type="application/json">')
     data = json.loads(html[start : html.index("</script>", start)])  # "<\/" is plain JSON escaping
     names = [s["name"] for s in data["scenes"]]
-    assert names == ["quiet", "quake", "noise", "degraded"], names
+    assert names == ["quiet", "quake", "noise", "degraded", "maras"], names
     quake = next(s for s in data["scenes"] if s["name"] == "quake")
     assert all(len(r["grid"]) == 100 for r in quake["records"]), "every pass carries the full grid"
     declared = next(r for r in quake["records"] if r["kind"] == "DECLARE")

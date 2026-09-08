@@ -144,7 +144,47 @@ class Flaky:
         return any(a <= t < b for a, b in self.windows)
 
 
-Event = Quake | CellFault | Peak | Flaky
+@dataclass(frozen=True)
+class Rupture:
+    """Outage driven by a measured intensity field instead of a drawn shape.
+
+    `mmi` is the estimated macroseismic intensity per cell, read from a real
+    ShakeMap; see `nabd/shakemap.py` for the provenance and for why the two
+    thresholds below are an assumption rather than a finding.
+
+    Two mechanisms, both reported from the 2023 event. Above `collapse_mmi` the
+    mast goes with the building it is mounted on, and the cell is dark from the
+    first second. Between `power_mmi` and `collapse_mmi` the site survives the
+    shaking and then loses mains power: it runs on battery and goes dark later,
+    sooner where the shaking was worse. Below `power_mmi` it stays up and
+    saturates, because everyone in reach is calling at once.
+    """
+
+    t0: float
+    mmi: dict[str, float]
+    collapse_mmi: float = 8.0
+    power_mmi: float = 7.0
+    battery_s: float = 180.0
+    surge_s: float | None = None
+    # Not everyone inside a dark cell is unreachable: some are picked up by a
+    # neighbouring mast that survived. The rest are the people triage is for.
+    covered_rate: float = 0.3
+
+    def dark_from(self, cell_id: str) -> float | None:
+        """When this cell stops answering, or None if it survives the scene."""
+        v = self.mmi.get(cell_id)
+        if v is None:
+            return None
+        if v >= self.collapse_mmi:
+            return self.t0
+        if v >= self.power_mmi:
+            span = self.collapse_mmi - self.power_mmi
+            drained = (self.collapse_mmi - v) / span  # 0 at the collapse edge, 1 at the power edge
+            return self.t0 + self.battery_s * (1.0 + 2.0 * drained)
+        return None
+
+
+Event = Quake | CellFault | Peak | Flaky | Rupture
 
 
 class World:
@@ -180,6 +220,10 @@ class World:
                 return Reach.UNREACHABLE, Level.UNKNOWN
             if isinstance(ev, Flaky) and cell_id in ev.cells and ev.dark_at(t):
                 return Reach.UNREACHABLE, Level.UNKNOWN
+            if isinstance(ev, Rupture):
+                dark_at = ev.dark_from(cell_id)
+                if dark_at is not None and t >= dark_at:
+                    return Reach.UNREACHABLE, Level.UNKNOWN
         for m in self.maintenance:
             if m.covers(cell_id, t):
                 return Reach.UNREACHABLE, Level.UNKNOWN
@@ -189,6 +233,11 @@ class World:
                     return Reach.REACHABLE, Level.HIGH
             if isinstance(ev, Peak) and ev.t0 <= t < ev.t1 and cell_id in ev.cells:
                 return Reach.REACHABLE, Level.HIGH
+            if isinstance(ev, Rupture) and t >= ev.t0 and cell_id in ev.mmi:
+                # Still answering, inside the felt area: saturated, because
+                # everyone who can call is calling at the same moment.
+                if ev.surge_s is None or t < ev.t0 + ev.surge_s:
+                    return Reach.REACHABLE, Level.HIGH
         # Routine background: an occasional Medium, stable over five-minute windows
         # so it reads as real traffic rather than flicker.
         if self._unit("bg", cell_id, int(t // 300)) < self.medium_rate:
@@ -201,6 +250,14 @@ class World:
         jitter_lon = (self._unit("jlon", person.id) - 0.5) * 0.005
         lat, lon = round(home.lat + jitter_lat, 5), round(home.lon + jitter_lon, 5)
         for ev in self.events:
+            if isinstance(ev, Rupture):
+                dark_at = ev.dark_from(person.home_cell)
+                if dark_at is not None and t >= dark_at:
+                    if self._unit("cover", person.id) < ev.covered_rate:
+                        # A neighbouring mast still reaches them.
+                        return Reach.REACHABLE, Location(lat, lon, 900, age_s=25.0)
+                    radius = 900 + int(self._unit("rad", person.id) * 900)
+                    return Reach.UNREACHABLE, Location(lat, lon, radius, age_s=t - dark_at + 45.0)
             if isinstance(ev, Quake) and t >= ev.t0 and person.home_cell in ev.core:
                 hit = self._unit("hit", person.id) < ev.casualty_rate
                 back = ev.recoveries.get(person.id)

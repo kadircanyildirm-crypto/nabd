@@ -205,6 +205,25 @@ def declare(
         evidence, corroborations, veto = weigh(ctx)
         signals = rendered(evidence)
 
+        # An established footprint is maintained on geometry alone. The gates and
+        # corroborations are the evidence for *declaring* an impact, and they are
+        # not re-litigated every pass afterwards: a real event that spreads over
+        # an hour has a staggered onset and a ring that cools as it is
+        # overtaken, and neither of those makes the disaster less real. A
+        # published footprint ends when its cells answer again, not when the
+        # evidence that opened it fades.
+        if state.footprint:
+            confidence = state.confidence
+            if set(lead) != set(state.footprint):
+                grown = len(set(lead) - set(state.footprint))
+                shrunk = len(set(state.footprint) - set(lead))
+                return Verdict(
+                    Kind.UPDATE, t, lead, confidence,
+                    reason=f"footprint updated: +{grown} / -{shrunk} cells, now {len(lead)}",
+                    signals=signals, evidence=evidence,
+                )
+            return Verdict(Kind.SUSTAIN, t, lead, confidence, reason="footprint held", signals=signals, evidence=evidence)
+
         # A gate said no. The block is real; the claim that it means an impact
         # is not, and the measurement that refuses it is written down.
         if veto is not None:
@@ -232,21 +251,11 @@ def declare(
                 reason=f"candidate footprint, {len(lead)} cells — holding {policy.confirm_passes - passes} more pass for confirmation",
                 signals=signals, evidence=evidence,
             )
-        if not state.footprint:
-            return Verdict(
-                Kind.DECLARE, t, lead, confidence,
-                reason=f"impact footprint declared: {len(lead)} contiguous cells, ~{grid.area_km2(len(lead))} km²",
-                signals=signals, evidence=evidence,
-            )
-        if set(lead) != set(state.footprint):
-            grown = len(set(lead) - set(state.footprint))
-            shrunk = len(set(state.footprint) - set(lead))
-            return Verdict(
-                Kind.UPDATE, t, lead, confidence,
-                reason=f"footprint updated: +{grown} / -{shrunk} cells, now {len(lead)}",
-                signals=signals, evidence=evidence,
-            )
-        return Verdict(Kind.SUSTAIN, t, lead, confidence, reason="footprint held", signals=signals, evidence=evidence)
+        return Verdict(
+            Kind.DECLARE, t, lead, confidence,
+            reason=f"impact footprint declared: {len(lead)} contiguous cells, ~{grid.area_km2(len(lead))} km²",
+            signals=signals, evidence=evidence,
+        )
 
     # -- anomalies below the bar: each one explained once, none of them hidden --
     # Every explained anomaly is reported the first time it is seen and held

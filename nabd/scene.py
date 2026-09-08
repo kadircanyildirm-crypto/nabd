@@ -28,7 +28,18 @@ from dataclasses import dataclass, field
 from nabd.gateway import EPOCH, build as build_gateway, write_calls
 from nabd.log import clock
 from nabd.model import Maintenance, Reach
-from nabd.world import KAHRAMANMARAS, CellFault, Flaky, Peak, Quake, World, assign_sentinels, make_grid, make_registry
+from nabd.world import (
+    KAHRAMANMARAS,
+    CellFault,
+    Flaky,
+    Peak,
+    Quake,
+    Rupture,
+    World,
+    assign_sentinels,
+    make_grid,
+    make_registry,
+)
 
 STEP_S = 30.0
 
@@ -142,7 +153,47 @@ def _degraded(seed: int) -> Scenario:
     )
 
 
-BUILDERS = {"quiet": _quiet, "quake": _quake, "noise": _noise, "degraded": _degraded}
+def _maras(seed: int) -> Scenario:
+    """The real one: 6 February 2023, run over the measured ground motion.
+
+    Every other scene is a world we drew. Here the geometry and the intensity
+    of shaking in each cell come from the USGS ShakeMap for the M7.8 Pazarcık
+    earthquake; only the rule that turns shaking into silence is ours, and
+    `nabd/shakemap.py` sets out what that rule assumes and why.
+
+    The picture it produces is not a tidy square. The cells that collapse
+    outright form one large block along the rupture and one small pocket to the
+    south-west that is below the size floor at first — so the first map Nabd
+    publishes is the confident core, and the pocket joins it as the surviving
+    sites around it run their batteries flat. That is the shape of the real
+    event, and the reason the footprint has to be allowed to grow.
+    """
+    from nabd import shakemap
+
+    sm = shakemap.load()
+    grid = sm.grid()
+    registry = make_registry(grid, seed=seed)
+    onset = 125.0
+    rupture = Rupture(onset, sm.mmi)
+    world = World(grid, registry, events=(rupture,), seed=seed)
+
+    collapse = sm.band(rupture.collapse_mmi)
+    battery = sm.band(rupture.power_mmi, rupture.collapse_mmi)
+    eventual = (len(collapse) + len(battery)) / len(sm.mmi)
+    beats = [
+        Beat(0, f"{clock(0)} — {len(grid.monitored())} cells of {sm.window['spacing_km']:.0f} km monitored across Kahramanmaraş and the northern half of the rupture. {len(registry)} people on the opt-in registry. Intensity per cell: {sm.citation}."),
+        Beat(onset, f"{clock(onset)} — the earthquake. In the real event this is 06 Feb 2023, 01:17:34 UTC. {len(collapse)} cells sit above intensity {rupture.collapse_mmi:.0f}, where masts come down with the buildings they are mounted on; another {len(battery)} are shaken hard enough to lose mains power and are now running on battery."),
+        Beat(onset + 180, f"{clock(onset + 180)} — the batteries begin to fail, worst-shaken first. The footprint is not a fixed shape; it grows as the network dies, which is what the field reports describe and what the map has to be allowed to do."),
+        Beat(onset + 600, f"{clock(onset + 600)} — {eventual:.0%} of the monitored window is dark. Turkcell reported that more than half of local base stations were inoperative and sent ~250 portable ones; that is the figure these thresholds are calibrated against."),
+    ]
+    return Scenario(
+        "maras", world, (), beats, duration_s=900,
+        core=collapse, onset_t=onset,
+        extra={"shakemap": sm.citation, "collapse": collapse, "battery": battery, "eventual": eventual},
+    )
+
+
+BUILDERS = {"quiet": _quiet, "quake": _quake, "noise": _noise, "degraded": _degraded, "maras": _maras}
 
 
 def build(name: str, seed: int = 7) -> Scenario:

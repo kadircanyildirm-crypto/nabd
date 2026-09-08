@@ -22,6 +22,14 @@ GRID_CROWD = noise[10]["grid"]
 GRID_MAINT = noise[6]["grid"]
 GRID_FAULT = noise[2]["grid"]
 
+maras = [json.loads(l) for l in (ROOT / "nac/evidence/nabd-scene-maras.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+MARAS_DECL = maras[6]
+assert MARAS_DECL["kind"] == "DECLARE", MARAS_DECL["kind"]
+MARAS_LATE = maras[23]
+assert MARAS_LATE["kind"] == "UPDATE", MARAS_LATE["kind"]
+GRID_MARAS_1 = MARAS_DECL["grid"]
+GRID_MARAS_2 = MARAS_LATE["grid"]
+
 degraded = [json.loads(l) for l in (ROOT / "nac/evidence/nabd-scene-degraded.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 HELD = degraded[11]
 assert HELD["kind"] == "ABSTAIN" and "local baseline" in HELD["reason"], HELD["kind"]
@@ -283,13 +291,15 @@ slides.append("""
       <tr><td class="mono">detector</td><td>correlate → exclude → declare; gates and corroborations as named signals, pure functions, no framework import</td></tr>
       <tr><td class="mono">triage · brief</td><td>reachability and last-seen inside the footprint only; the command-centre sentence</td></tr>
       <tr><td class="mono">graph · loop</td><td>the LangGraph runner and the plain runner — same evidence, byte for byte</td></tr>
-      <tr><td class="mono">scene · console · parity</td><td>four scenes; a self-contained console generated from the evidence; the backend-parity harness</td></tr>
+      <tr><td class="mono">shakemap · data</td><td>the USGS intensity field for 6 Feb 2023, reduced and committed with its provenance</td></tr>
+      <tr><td class="mono">scene · console · parity</td><td>five scenes; a self-contained console generated from the evidence; the backend-parity harness</td></tr>
     </table>
     <div class="status">
       <div><b>Runs on bare Python</b><span>no account, no server, no CDN — the demo cannot fail in the room</span></div>
       <div><b>Same agent, live</b><span><code>--backend live</code> makes the identical three calls through the Nokia SDK and records the raw exchanges</span></div>
       <div><b>One agent, proven</b><span><code>python -m nabd.parity</code> — the agent stack imports no SDK, one function picks the network, every scene replays through the live parsers identically</span></div>
-      <div><b>77 / 77 tests, 9 suites</b><span>incl. fuzzed invariants: no footprint without a contiguous block; no personal-device call outside a footprint</span></div>
+      <div><b>Checked against the real event</b><span>the 6 Feb 2023 ShakeMap drives one scene; the declared footprint must stay inside the collapse band the measured shaking defines</span></div>
+      <div><b>83 / 83 tests, 10 suites</b><span>incl. fuzzed invariants: no footprint without a contiguous block; no personal-device call outside a footprint</span></div>
     </div>
   </div>
 </section>""")
@@ -349,9 +359,27 @@ slides.append(f"""
   <p class="lead">The real question is not whether an outage can be seen — it is whether a <b>disaster footprint can be told apart from every other reason cells go quiet.</b> The refusal is measured, not assumed; the declaration in the same run is what shows it is not blindness.</p>
 </section>""")
 
-# ---------- 12 CAMARA
-slides.append("""
+# ---------- 12 the real event
+slides.append(f"""
 <section class="slide" id="slide-12">
+  <div class="kicker">Evidence — the event itself</div>
+  <h2>Then we stopped drawing the disaster.</h2>
+  <div class="two">
+    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_1, 165, labels=False)}</div>
+      <div class="lbl">+55 s · the first map</div>
+      <p><b>21 contiguous cells, ~2,100 km², HIGH.</b> Every cell it names is one the measured shaking places above the collapse threshold — no invented damage. Two more, an isolated pocket below the three-cell floor, are <b>deliberately not claimed</b>.</p>
+      <b>DECLARE</b></div>
+    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_2, 165, labels=False)}</div>
+      <div class="lbl">+9 min · the network keeps dying</div>
+      <p><b>63 cells, ~6,300 km², still HIGH.</b> Masts that survived the shaking lost mains power and drained their batteries, worst-shaken first. The pocket has joined. 22 registered people unreachable, medical-dependent first.</p>
+      <b>UPDATE ×12</b></div>
+  </div>
+  <p class="lead">The geometry and the intensity in every cell are the <b>USGS ShakeMap for the M7.8 Pazarcık earthquake</b>, 6 Feb 2023 — 262 seismic stations, 1,459 intensity observations. Ours is only the rule turning shaking into silence, and both mechanisms are from the field reports; the thresholds are calibrated to Turkcell's <b>“more than half of local base stations inoperative”</b> — our window ends 63% dark.</p>
+</section>""")
+
+# ---------- 13 CAMARA
+slides.append("""
+<section class="slide" id="slide-13">
   <div class="kicker">CAMARA on Nokia Network-as-Code</div>
   <h2>Remove the network APIs and nothing works. The network is the sensor.</h2>
   <div class="two apis">
@@ -372,9 +400,9 @@ slides.append("""
   </div>
 </section>""")
 
-# ---------- 13 live vs simulated, privacy, consent
+# ---------- 14 live vs simulated, privacy, consent
 slides.append("""
-<section class="slide" id="slide-13">
+<section class="slide" id="slide-14">
   <div class="kicker">Honest boundaries</div>
   <h2>Live where it can be. Simulated where it must be. Private by design.</h2>
   <div class="three cols">
@@ -390,9 +418,9 @@ slides.append("""
   </div>
 </section>""")
 
-# ---------- 14 impact, scale, business
+# ---------- 15 impact, scale, business
 slides.append("""
-<section class="slide" id="slide-14">
+<section class="slide" id="slide-15">
   <div class="kicker">Impact · scale · business</div>
   <h2>One engine, many hazards. Minutes, not hours.</h2>
   <div class="three cols">
@@ -411,7 +439,7 @@ slides.append("""
 
 # ---------- 14 close
 slides.append(f"""
-<section class="slide cover close" id="slide-15">
+<section class="slide cover close" id="slide-16">
   <div class="kicker">Nabd · نبض &nbsp;·&nbsp; Theme 6 &nbsp;·&nbsp; Prototype Phase</div>
   <h2 class="huge2">The network already knows.<br>Nabd makes it say so — in the first minute.</h2>
   <div class="next">

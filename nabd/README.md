@@ -12,7 +12,8 @@ Environmental Monitoring · on the **Nokia Network-as-Code** platform · agent l
 **LangGraph**.
 
 ```bash
-python -m nabd.scene                     # the four scenes, offline, no account needed
+python -m nabd.scene                     # the five scenes, offline, no account needed
+python -m nabd.scene --scene maras       # the real one: measured ground motion, 6 Feb 2023
 python -m nabd.scene --scene quake -v    # every pass, including routine ones
 python -m nabd.scene --runner loop       # the same scenes without LangGraph
 python -m nabd.scene --backend live      # the contract run against real NaC (needs nac/.env)
@@ -86,6 +87,47 @@ block stays held. The refusal is not blindness, and that is checked by a test.
 
 The quake scene declares a nine-cell footprint 55 seconds after onset and lists 6
 of the 13 registered people inside it as unreachable, with last-seen positions.
+
+## The scene that is not ours: 6 February 2023
+
+Four of the five scenes are worlds we drew. The `maras` scene is not. The
+geometry and the intensity of shaking in every cell come from the **USGS
+ShakeMap for us6000jllz** — the M7.8 Pazarcık earthquake, 01:17:34 UTC on
+6 February 2023, an intensity field constrained by 262 seismic stations and
+1,459 intensity observations. `nabd/data/extract_shakemap.py` reduces the
+published 28 MB grid to the hundred numbers `nabd/shakemap.py` reads, and
+records the product URL, version and retrieval date beside them.
+
+What is ours, and labelled as an assumption, is only the rule that turns
+shaking into a silent cell — and both of its mechanisms are reported from the
+event rather than invented. Base stations in Türkiye are largely mounted on
+buildings, and the buildings came down, so above intensity VIII a cell is dark
+from the first second. Below that, sites survived the shaking and then lost
+mains power; they ran on battery and went dark later, sooner where the shaking
+was worse. The thresholds are calibrated so the share of the window that
+eventually goes dark lands on Turkcell's reported *more than half of local base
+stations inoperative*, and a test holds them there.
+
+What the agent does with it, from `tests/test_nabd_real.py`:
+
+```
+63% of the window eventually dark: 23 on impact, 40 as batteries fail
+declared 55s after onset: 21 of 23 collapse-band cells, 2 held back as a
+                          separate pocket below the size floor
+footprint 21 → 63 cells over 12 updates, confidence held at HIGH
+22 registered people unreachable at peak, every query inside the footprint
+```
+
+Three things in that are worth more than the headline. **Every cell named in
+the first minute is one the measured shaking condemns** — the map does not
+invent damage, and the test asserts the declared set is a subset of the
+collapse band. **What it misses is known and small**: a two-cell pocket to the
+south-west is below the three-cell floor at declaration and is deliberately not
+claimed, joining the footprint minutes later when the cells between it and the
+main block lose power. And **the footprint grows** from 2,100 km² to 6,300 km²
+as the network dies, which is what the field reports describe; a published
+footprint is maintained on geometry and ends when its cells answer again, not
+when the synchronised onset that opened it fades.
 
 ## The command centre
 
@@ -173,7 +215,9 @@ emergency legal powers was deliberately avoided.
 | `log.py` | the evidence record, JSONL and terminal |
 | `loop.py` | the plain runner |
 | `graph.py` | the LangGraph runner; `python -m nabd.graph` prints the topology |
-| `scene.py` | the four scenes |
+| `shakemap.py` | the real intensity field, and what the outage model assumes |
+| `data/` | the committed ShakeMap extract and the script that produced it |
+| `scene.py` | the five scenes |
 | `parity.py` | the backend-parity harness: one agent, three backends, four checks |
 | `console.py` | the command-centre console, generated from the evidence into `replay.html` |
 
@@ -182,7 +226,10 @@ footprint without a contiguous block; no personal-device call outside a
 footprint), `tests/test_nabd_scenes.py` (the four scenes end to end; both runners
 diffed byte for byte; the privacy count reconciled against the raw calls) and
 `tests/test_nabd_parity.py` (the parity checks as assertions, so a second code
-path fails the build rather than degrading a paragraph in a report).
+path fails the build rather than degrading a paragraph in a report) and
+`tests/test_nabd_real.py` (the agent against the measured ground motion of
+6 February 2023, plus provenance assertions so the data cannot drift from the
+claims made about it).
 
 ## CAMARA APIs
 
