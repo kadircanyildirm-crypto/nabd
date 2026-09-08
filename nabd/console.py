@@ -44,11 +44,29 @@ def load(name: str) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def geometry_for(name: str) -> dict | None:
+    """The measured event's own geometry, for the one scene that has one.
+
+    Four scenes are worlds we drew, and there is nothing real to lay under them.
+    The fifth is 6 February 2023, and for that one the published isoseismals and
+    the finite-fault rupture go on the map — so the footprint Nabd declares can
+    be checked against the shaking that caused it, by eye, in a second.
+    """
+    if name != "maras":
+        return None
+    path = Path(__file__).resolve().parent / "data" / "shakemap-us6000jllz-geo.json"
+    if not path.exists():
+        return None
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return {"contours": raw["contours"], "rupture": raw["rupture"], "source": raw["source"]}
+
+
 def scene_payload(name: str) -> dict:
     scenario = build(name)
     grid = scenario.world.grid
     title, subtitle = TITLES[name]
     return {
+        "geo": geometry_for(name),
         "name": name,
         "title": title,
         "subtitle": subtitle,
@@ -110,6 +128,12 @@ TEMPLATE = r"""<!doctype html>
   .beat { min-height: 44px; padding: 10px 12px; border-left: 3px solid var(--high); background: var(--panel-2); border-radius: 6px; color: var(--text); }
   .beat.empty { border-left-color: var(--line); color: var(--dim); }
   svg { width: 100%; height: auto; display: block; }
+  /* The measured event, drawn over the cells rather than under them: the cells
+     are opaque, and the point is to see both at once. */
+  .iso { fill: none; stroke-width: 1.7; opacity: .8; stroke-linejoin: round; stroke-linecap: round; }
+  .iso.major { stroke-width: 2.6; opacity: .95; }
+  .rupture { fill: none; stroke: #ffffff; stroke-width: 2.4; stroke-dasharray: 6 4; opacity: .9; }
+  .isokey { font-family: var(--mono); font-size: 9.5px; fill: #0b1017; font-weight: 700; }
   .cell { stroke: #0b1017; stroke-width: 1.5; }
   .c-low { fill: var(--low); } .c-medium { fill: var(--medium); } .c-high { fill: var(--high); } .c-unmon { fill: var(--unmon); }
   .c-dark { fill: var(--dark); stroke: #3a1a1a; }
@@ -264,6 +288,29 @@ TEMPLATE = r"""<!doctype html>
       const ch = (rec.grid || '')[k] || 'x';
       out.push(`<rect class="cell ${CLASS[ch]}" x="${M + cell.col * S}" y="${M + cell.row * S}" width="${S}" height="${S}" rx="3"><title>${cell.id} · ${cell.lat.toFixed(4)}N ${cell.lon.toFixed(4)}E</title></rect>`);
     });
+    // The real event, when there is one: isoseismals at their published colours,
+    // then the rupture that produced them.
+    const geo = cur().geo;
+    if (geo) {
+      const path = pts => pts.map(([lon, lat], i) => {
+        const [x, y] = project(lat, lon, g);
+        return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+      }).join('');
+      geo.contours.forEach(lv => {
+        const major = Math.abs(lv.mmi - Math.round(lv.mmi)) < 0.01;
+        lv.lines.forEach(line => out.push(
+          `<path class="iso${major ? ' major' : ''}" d="${path(line)}" stroke="${lv.color}"><title>Measured intensity MMI ${lv.mmi}</title></path>`));
+        if (major) {
+          const line = lv.lines.reduce((a, b) => b.length > a.length ? b : a);
+          const mid = line[Math.floor(line.length / 2)];
+          const [lx, ly] = project(mid[1], mid[0], g);
+          out.push(`<rect x="${lx - 9}" y="${ly - 7}" width="18" height="13" rx="3" fill="${lv.color}" opacity=".95"/>`);
+          out.push(`<text class="isokey" x="${lx}" y="${ly + 3}" text-anchor="middle">${Math.round(lv.mmi)}</text>`);
+        }
+      });
+      geo.rupture.forEach(ring => out.push(
+        `<path class="rupture" d="${path(ring)}Z"><title>Finite-fault rupture, USGS ShakeMap</title></path>`));
+    }
     (cur().maintenance || []).forEach(m => {
       if (rec.t >= m.start && rec.t < m.end) m.cells.forEach(id => {
         const cell = g.cells.find(c => c.id === id);

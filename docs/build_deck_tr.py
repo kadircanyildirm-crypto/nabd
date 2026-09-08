@@ -306,17 +306,17 @@ slides.append(f"""
   <div class="kicker">Kanıt — olayın kendisi</div>
   <h2>Sonra afeti çizmeyi bıraktık.</h2>
   <div class="two">
-    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_1, 165, labels=False)}</div>
+    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_1, 165, labels=False, geo=True)}</div>
       <div class="lbl">+55 sn · ilk harita</div>
       <p><b>21 bitişik hücre, ~2.100 km², YÜKSEK.</b> İsimlendirdiği her hücre, ölçülen sarsıntının çökme eşiğinin üstüne koyduğu bir hücre — uydurulmuş hasar yok. İki tanesi daha, üç hücre tabanının altındaki izole bir cep, <b>bilerek iddia edilmiyor</b>.</p>
       <b>İLAN</b></div>
-    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_2, 165, labels=False)}</div>
+    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_2, 165, labels=False, geo=True)}</div>
       <div class="lbl">+9 dk · ağ ölmeye devam ediyor</div>
       <p><b>63 hücre, ~6.300 km², hâlâ YÜKSEK.</b> Sarsıntıdan kurtulan direkler şebeke elektriğini kaybedip akülerini tüketti, en sert sarsılan önce. Cep de katıldı. 22 kayıtlı kişiye ulaşılamıyor, önce tıbbi bağımlılar.</p>
       <b>GÜNCELLEME ×12</b></div>
   </div>
-  <p class="lead">Coğrafya ve her hücredeki şiddet, 6 Şubat 2023 tarihli <b>M7.8 Pazarcık depreminin USGS ShakeMap
-  verisidir</b> — 262 sismik istasyon, 1.459 şiddet gözlemi. Bize ait olan yalnızca sarsıntıyı sessizliğe çeviren kural; iki mekanizma da saha raporlarından. Eşikler Turkcell'in <b>“yerel baz istasyonlarının yarısından fazlası devre dışı”</b> beyanına kalibre edildi — pencerimiz %63 karanlıkta bitiyor.</p>
+  <p class="lead">Renkli çizgiler ölçülmüş eş-şiddet eğrileri, kesikli olan fay yırtılması; yani etki alanı, ona sebep olan sarsıntıyla gözle karşılaştırılabiliyor. Coğrafya ve şiddet, 6 Şubat 2023 tarihli <b>M7.8 Pazarcık depreminin USGS ShakeMap
+  verisidir</b> — 262 sismik istasyon, 1.459 şiddet gözlemi. Bize ait olan yalnızca sarsıntıyı sessizliğe çeviren kural; eşikler de Turkcell'in <b>“yerel baz istasyonlarının yarısından fazlası devre dışı”</b> beyanına kalibre edildi — pencerimiz %63 karanlıkta bitiyor.</p>
 </section>""")
 
 # ---------- 13 CAMARA

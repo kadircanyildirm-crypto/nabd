@@ -45,7 +45,8 @@ INK = "#17211D"; SOFT = "#41504a"; MUTED = "#6d7a74"; ACC = "#0E6E52"; RULE = "#
 ALERT = "#d1463a"; HIGH = "#e08a2e"; MED = "#f3d9a4"; LOW = "#e3ebe6"
 
 
-def grid_svg(grid: str, size: int, *, labels: bool = True, dark: bool = False, ring: bool = False) -> str:
+def grid_svg(grid: str, size: int, *, labels: bool = True, dark: bool = False, ring: bool = False,
+             geo: bool = False) -> str:
     """A 10x10 cell grid. '.' low, 'm' medium, 'H' high congestion, 'D' dark (silent)."""
     pad = 26 if labels else 0
     cell = (size - pad) / 10
@@ -73,7 +74,55 @@ def grid_svg(grid: str, size: int, *, labels: bool = True, dark: bool = False, r
         # outline of the declared footprint E4..G6 → rows 4..6, cols 3..5
         x0 = pad + 3 * cell; y0 = pad + 4 * cell
         out.append(f'<rect x="{x0:.1f}" y="{y0:.1f}" width="{3*cell:.1f}" height="{3*cell:.1f}" fill="none" stroke="{"#ffb4ad" if dark else "#7a1f17"}" stroke-width="{max(2, cell*0.09):.1f}" stroke-dasharray="{cell*0.35:.0f} {cell*0.2:.0f}" rx="{cell*0.15:.0f}"/>')
+    if geo:
+        out.append(geo_overlay(size, labels))
     out.append("</svg>")
+    return "\n".join(out)
+
+
+GEO = json.loads((ROOT / "nabd/data/shakemap-us6000jllz-geo.json").read_text(encoding="utf-8"))
+CENTRES = json.loads((ROOT / "nabd/data/shakemap-us6000jllz.json").read_text(encoding="utf-8"))["centres"]
+
+
+def geo_overlay(size: int, labels: bool = True) -> str:
+    """The published isoseismals and the rupture, on the same grid the cells use.
+
+    Drawn over the cells rather than under them, because the cells are opaque and
+    the whole point is to see the declared footprint and the measured shaking in
+    one glance. The colours are the USGS ones; the dashed line is the finite-fault
+    surface projection, and it is why the footprint is a diagonal band.
+    """
+    pad = 26 if labels else 0
+    cell = (size - pad) / 10
+    a1 = CENTRES["A1"]
+    b1 = CENTRES["A2"]
+    a2 = CENTRES["B1"]
+    dlon = b1[1] - a1[1]
+    dlat = a2[0] - a1[0]  # negative: rows run south
+
+    def xy(lon, lat):
+        return (pad + ((lon - a1[1]) / dlon + 0.5) * cell,
+                pad + ((lat - a1[0]) / dlat + 0.5) * cell)
+
+    def path(points):
+        return "".join(("L" if i else "M") + "%.1f %.1f" % xy(p[0], p[1]) for i, p in enumerate(points))
+
+    out = [f'<clipPath id="gclip{size}"><rect x="{pad}" y="{pad}" width="{cell*10:.1f}" height="{cell*10:.1f}"/></clipPath>',
+           f'<g clip-path="url(#gclip{size})">']
+    for level in GEO["contours"]:
+        major = abs(level["mmi"] - round(level["mmi"])) < 0.01
+        # Half-steps are noise on a thumbnail; at slide size only the whole
+        # intensities carry, and those are the ones the argument rests on.
+        if size < 200 and not major:
+            continue
+        width = 2.0 if major else 1.2
+        for line in level["lines"]:
+            out.append(f'<path d="{path(line)}" fill="none" stroke="{level["color"]}" '
+                       f'stroke-width="{width}" stroke-linejoin="round" opacity="{0.95 if major else 0.7}"/>')
+    for ring in GEO["rupture"]:
+        out.append(f'<path d="{path(ring)}Z" fill="none" stroke="#ffffff" stroke-width="2.2" '
+                   f'stroke-dasharray="6 4" opacity="0.9"/>')
+    out.append("</g>")
     return "\n".join(out)
 
 
@@ -365,16 +414,16 @@ slides.append(f"""
   <div class="kicker">Evidence — the event itself</div>
   <h2>Then we stopped drawing the disaster.</h2>
   <div class="two">
-    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_1, 165, labels=False)}</div>
+    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_1, 165, labels=False, geo=True)}</div>
       <div class="lbl">+55 s · the first map</div>
       <p><b>21 contiguous cells, ~2,100 km², HIGH.</b> Every cell it names is one the measured shaking places above the collapse threshold — no invented damage. Two more, an isolated pocket below the three-cell floor, are <b>deliberately not claimed</b>.</p>
       <b>DECLARE</b></div>
-    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_2, 165, labels=False)}</div>
+    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_2, 165, labels=False, geo=True)}</div>
       <div class="lbl">+9 min · the network keeps dying</div>
       <p><b>63 cells, ~6,300 km², still HIGH.</b> Masts that survived the shaking lost mains power and drained their batteries, worst-shaken first. The pocket has joined. 22 registered people unreachable, medical-dependent first.</p>
       <b>UPDATE ×12</b></div>
   </div>
-  <p class="lead">The geometry and the intensity in every cell are the <b>USGS ShakeMap for the M7.8 Pazarcık earthquake</b>, 6 Feb 2023 — 262 seismic stations, 1,459 intensity observations. Ours is only the rule turning shaking into silence, and both mechanisms are from the field reports; the thresholds are calibrated to Turkcell's <b>“more than half of local base stations inoperative”</b> — our window ends 63% dark.</p>
+  <p class="lead">The coloured lines are the measured isoseismals and the dashed one is the fault rupture, so the footprint can be checked against the shaking that caused it by eye. Geometry and intensity are the <b>USGS ShakeMap for the M7.8 Pazarcık earthquake</b>, 6 Feb 2023 — 262 seismic stations, 1,459 intensity observations. Ours is only the rule turning shaking into silence, calibrated to Turkcell's <b>“more than half of local base stations inoperative”</b> — our window ends 63% dark.</p>
 </section>""")
 
 # ---------- 13 CAMARA
