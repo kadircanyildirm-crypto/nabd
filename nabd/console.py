@@ -57,6 +57,19 @@ def basemap() -> dict | None:
     return {k: raw[k] for k in ("towns", "lakes", "rivers", "borders", "roads", "source")}
 
 
+def city_basemap() -> dict | None:
+    """The street network, for the scenes that watch a single city.
+
+    The regional extract carries two roads and one dot across a 6.7 km square,
+    which is not a map. This is OpenStreetMap, delta-encoded, and it is what makes
+    the four city-scale scenes legible as a place.
+    """
+    path = Path(__file__).resolve().parent / "data" / "basemap-city.json"
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def geometry_for(name: str) -> dict | None:
     """The measured event's own geometry, for the one scene that has one.
 
@@ -80,7 +93,7 @@ def scene_payload(name: str) -> dict:
     title, subtitle = TITLES[name]
     return {
         "geo": geometry_for(name),
-        "base": basemap(),
+        "city": grid.spacing_m <= 2000,
         "name": name,
         "title": title,
         "subtitle": subtitle,
@@ -100,7 +113,14 @@ def scene_payload(name: str) -> dict:
 
 
 def build_console(names: tuple[str, ...] = tuple(BUILDERS), out: Path = OUT) -> Path:
-    payload = {"scenes": [scene_payload(n) for n in names]}
+    # The base maps are the same for every scene, and the city one is the largest
+    # thing in the file. Inlining it per scene made the console five times heavier
+    # than it needed to be, so it is carried once and referenced by a flag.
+    payload = {
+        "scenes": [scene_payload(n) for n in names],
+        "base": basemap(),
+        "cityBase": city_basemap(),
+    }
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.replace("__DATA__", data)
     out.write_text(html, encoding="utf-8")
@@ -157,6 +177,16 @@ TEMPLATE = r"""<!doctype html>
   .river  { fill: none; stroke: #1d4a63; stroke-width: 1.4; stroke-linecap: round; }
   .lake   { fill: #14384b; stroke: #1d4a63; stroke-width: 1; }
   .road   { fill: none; stroke: #2f3b48; stroke-width: 1.2; stroke-linecap: round; }
+  /* A city reads by its street hierarchy: the trunk roads first, then the grid
+     of everything else underneath them. */
+  .rd-local { fill: none; stroke: #1c2836; stroke-width: .7; stroke-linecap: round; }
+  .rd-minor { fill: none; stroke: #2b3a4a; stroke-width: 1.1; stroke-linecap: round; }
+  .rd-major { fill: none; stroke: #46586c; stroke-width: 1.9; stroke-linecap: round; }
+  .rail     { fill: none; stroke: #3a4452; stroke-width: 1.1; stroke-dasharray: 5 4; }
+  .water    { fill: #14384b; stroke: #1d4a63; stroke-width: .8; }
+  .placelbl { font-family: var(--mono); font-size: 9px; fill: #7f93a6; paint-order: stroke;
+              stroke: #0a1119; stroke-width: 2.5px; stroke-linejoin: round; }
+  .placelbl.big { font-size: 12.5px; fill: #eaf2f9; font-weight: 600; }
   .town   { fill: #cfe0ee; }
   .town.major { fill: #ffffff; }
   .townlbl { font-family: var(--mono); font-size: 10px; fill: #9fb3c6; paint-order: stroke;
@@ -198,14 +228,13 @@ TEMPLATE = r"""<!doctype html>
   /* The column is exactly as tall as the screen. The verdict and the brief are
      always visible; everything else lives behind a tab, so a reader is told what
      is there rather than left to guess that scrolling would reveal it. */
-  aside { display: grid; grid-template-rows: minmax(0, auto) minmax(0, auto) minmax(0, 1fr);
-          gap: 10px; min-height: 0; }
-  /* Each region gets a ceiling so the three of them always fit together: the
-     verdict may scroll its own signal list, the brief its own paragraph, and the
-     tabs keep the floor they need to be worth having. */
-  .card.status { max-height: 34vh; overflow: auto; }
-  .brief-card { max-height: 14vh; overflow: auto; }
-  .tabbed { min-height: 210px; }
+  /* Two things, not four. The verdict is what the room is looking at; everything
+     else — the zones, the registry, the brief, the log — is one tab away. The
+     brief used to sit in its own panel repeating the signals word for word,
+     which is most of why this column looked busy. */
+  aside { display: grid; grid-template-rows: minmax(0, auto) minmax(0, 1fr); gap: 10px; min-height: 0; }
+  .card.status { max-height: 46vh; overflow: auto; }
+  .tabbed { min-height: 220px; }
   .tabbed { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; padding: 0; overflow: hidden; }
   .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); padding: 8px 10px 0; }
   .tabs button { background: transparent; border: 1px solid transparent; border-bottom: none;
@@ -226,20 +255,31 @@ TEMPLATE = r"""<!doctype html>
   .status.k-CANDIDATE { border-left-color: var(--cand); }
   .status.k-ABSTAIN { border-left-color: var(--held); }
   .status.k-CLEAR { border-left-color: var(--ok); }
-  .headline { font-size: 17px; font-weight: 600; margin: 0 0 6px; }
+  /* A verdict reads top down: what it is, then how big, then why. */
+  .vrow { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; flex-wrap: wrap; }
+  .headline { font-size: 16px; font-weight: 600; margin: 0 0 10px; line-height: 1.32; }
   .headline .kind { font-family: var(--mono); font-size: 12px; padding: 2px 7px; border-radius: 4px; background: #1a2330; color: var(--muted); margin-right: 8px; vertical-align: 2px; }
   .chip { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 4px; margin-right: 6px; background: #1a2330; color: var(--text); }
   .chip.HIGH { background: #3a1613; color: #ffb4ad; } .chip.MEDIUM { background: #3a2f10; color: #ffd98a; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
   .stat { background: var(--panel-2); border-radius: 6px; padding: 8px 10px; }
-  .stat b { display: block; font-family: var(--mono); font-size: 20px; font-variant-numeric: tabular-nums; }
-  .stat span { font-size: 11px; color: var(--muted); }
-  .signals { margin: 8px 0 0; padding-left: 16px; color: var(--muted); font-size: 12.5px; }
-  .signals li { margin: 2px 0; }
+  .stat b { display: block; font-family: var(--mono); font-size: 21px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .stat span { font-size: 10.5px; color: var(--muted); line-height: 1.25; display: block; margin-top: 3px; }
+  .signals { margin: 10px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+  .signals li { margin: 0; padding: 5px 0 5px 15px; color: var(--muted); font-size: 12px;
+                line-height: 1.4; border-bottom: 1px solid #16202b; position: relative; }
+  .signals li:last-child { border-bottom: 0; }
+  .signals li::before { content: ""; position: absolute; left: 3px; top: 11px; width: 4px; height: 4px;
+                        border-radius: 50%; background: var(--dim); }
+  .signals li.yes::before { background: var(--ok); }
+  .signals li.no::before { background: var(--dim); }
+  .signals b { color: var(--text); font-weight: 600; }
   /* The privacy boundary, stated on every pass rather than argued once. */
-  .privacy { margin-top: 8px; padding: 6px 9px; border-radius: 6px; font-size: 12px; line-height: 1.45;
-             border: 1px solid var(--line); display: flex; gap: 7px; align-items: baseline; }
-  .privacy b { font-family: var(--mono); font-size: 11px; letter-spacing: .03em; white-space: nowrap; }
+  /* One line, not a paragraph: the number is the claim. */
+  .privacy { margin-top: 10px; padding: 6px 9px; border-radius: 6px; font-size: 11.5px; line-height: 1.35;
+             border: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+  .privacy b { font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; white-space: nowrap; }
+  .privacy span { color: var(--muted); }
   .privacy.shut { background: #10231a; border-color: #1d3d2c; color: #8fe0b0; }
   .privacy.open { background: #2a2413; border-color: #4a3f1c; color: #ffd98a; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -255,10 +295,12 @@ TEMPLATE = r"""<!doctype html>
   .entry .g { font-family: var(--mono); margin-right: 6px; }
   .entry.k-DECLARE .g, .entry.k-UPDATE .g { color: var(--alert); } .entry.k-CANDIDATE .g { color: var(--cand); } .entry.k-ABSTAIN .g { color: var(--held); } .entry.k-CLEAR .g { color: var(--ok); }
   .entry ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
-  .brief { font-size: 13.5px; line-height: 1.5; }
+  .brief { font-size: 13px; line-height: 1.55; color: #c2d1de; }
   .brief.empty { color: var(--dim); }
   footer { display: flex; flex-wrap: wrap; gap: 18px; padding: 10px 20px 18px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
   footer b { color: var(--text); font-weight: 600; }
+  /* ODbL asks for credit, and a map that shows its sources is a better map. */
+  footer .credit { color: var(--dim); margin-left: auto; }
   kbd { font-family: var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--muted); }
 </style>
 </head>
@@ -291,16 +333,17 @@ TEMPLATE = r"""<!doctype html>
   </section>
   <aside>
     <div class="card status" id="status"></div>
-    <div class="card brief-card"><h3>Command-centre brief</h3><div id="brief" class="brief empty"></div></div>
     <div class="card tabbed">
       <div class="tabs" id="tabs">
         <button data-pane="zones" class="on">Priority zones</button>
         <button data-pane="registry">Registry</button>
-        <button data-pane="log">Agent log</button>
+        <button data-pane="brief">Brief</button>
+        <button data-pane="log">Log</button>
       </div>
       <div class="panes">
         <div id="zones" class="pane on"></div>
         <div id="registry" class="pane"></div>
+        <div id="brief" class="pane brief empty"></div>
         <div id="log" class="pane log"></div>
       </div>
     </div>
@@ -311,7 +354,8 @@ TEMPLATE = r"""<!doctype html>
   <span>to date <b id="calls-total">0</b></span>
   <span>backend <b>offline simulator</b></span>
   <span>evidence <b id="evidence"></b></span>
-  <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> scene</span>
+  <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd>–<kbd>5</kbd> scene</span>
+  <span class="credit">map © OpenStreetMap contributors (ODbL) · Natural Earth · GeoNames (CC BY) · intensity USGS ShakeMap us6000jllz</span>
 </footer>
 <script id="data" type="application/json">__DATA__</script>
 <script>
@@ -401,10 +445,27 @@ TEMPLATE = r"""<!doctype html>
       + `</defs>`);
     out.push(`<rect class="ground" x="0" y="0" width="${W.toFixed(1)}" height="${H}"/>`);
 
-    // -- the region ---------------------------------------------------------
-    const base = cur().base, geo = cur().geo;
+    // -- the region, or the city ---------------------------------------------
+    const geo = cur().geo;
+    const city = cur().city ? DATA.cityBase : null;
+    const base = city ? null : DATA.base;
     out.push('<g clip-path="url(#viewclip)">');
-    if (base) {
+    if (city) {
+      // Delta-encoded integers: cheap to store, cheap to walk back out.
+      const k = city.scale;
+      const decode = a => {
+        const pts = []; let x = a[0], y = a[1];
+        pts.push([x / k, y / k]);
+        for (let i = 2; i < a.length; i += 2) { x += a[i]; y += a[i + 1]; pts.push([x / k, y / k]); }
+        return pts;
+      };
+      city.water.forEach(l => out.push(`<path class="water" d="${line(decode(l))}Z"/>`));
+      city.roads.local.forEach(l => out.push(`<path class="rd-local" d="${line(decode(l))}"/>`));
+      city.roads.minor.forEach(l => out.push(`<path class="rd-minor" d="${line(decode(l))}"/>`));
+      city.roads.major.forEach(l => out.push(`<path class="rd-major" d="${line(decode(l))}"/>`));
+      city.streams.forEach(l => out.push(`<path class="river" d="${line(decode(l))}"/>`));
+      city.rail.forEach(l => out.push(`<path class="rail" d="${line(decode(l))}"/>`));
+    } else if (base) {
       base.borders.forEach(l => out.push(`<path class="border" d="${line(l)}"/>`));
       base.roads.forEach(l => out.push(`<path class="road" d="${line(l)}"/>`));
       base.rivers.forEach(l => out.push(`<path class="river" d="${line(l)}"/>`));
@@ -439,7 +500,17 @@ TEMPLATE = r"""<!doctype html>
     out.push('<g id="dots"></g>');
 
     // -- place names, on top so they stay readable ---------------------------
-    if (base) {
+    if (city) {
+      out.push('<g clip-path="url(#viewclip)">');
+      city.places.forEach(t => {
+        const [x, y] = project(t.lat, t.lon, g);
+        if (x < 4 || x > W - 4 || y < 4 || y > H - 4) return;
+        const big = t.rank <= 2;
+        out.push(`<circle class="town${big ? ' major' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${big ? 3.4 : 1.8}"/>`);
+        out.push(`<text class="placelbl${big ? ' big' : ''}" x="${(x + (big ? 7 : 4)).toFixed(1)}" y="${(y + 3).toFixed(1)}">${t.name}</text>`);
+      });
+      out.push('</g>');
+    } else if (base) {
       out.push('<g clip-path="url(#viewclip)">');
       base.towns.forEach(t => {
         const [x, y] = project(t.lat, t.lon, g);
@@ -546,6 +617,13 @@ TEMPLATE = r"""<!doctype html>
   addEventListener('resize', () => { MAP = null; if (cur()) drawMap(cur().records[pass]); });
 
   // -- panels -----------------------------------------------------------------
+  // Each signal says whether the thing it names was found. Colouring the dot by
+  // that turns a wall of sentences into something scannable: green fired, grey
+  // did not, and a reader sees the shape of the evidence before reading a word.
+  function signalFired(text) {
+    return !/^no |staggered|not enough history|no local baseline/i.test(text);
+  }
+
   function drawStatus(rec) {
     const sc = cur(), el = $('status');
     el.className = `card status k-${rec.kind}`;
@@ -553,24 +631,41 @@ TEMPLATE = r"""<!doctype html>
     let head = rec.reason || (rec.kind === 'QUIET' ? 'Monitoring. Nothing anomalous.' : '');
     if (rec.kind === 'SUSTAIN' && !rec.signals.length) head = rec.reason || 'Footprint held.';
     const change = registryChange(rec);
-    if (change) head += ` — registry ${change[0]} → ${change[1]} unreachable`;
-    let html = `<div class="headline"><span class="kind">${GLYPH[rec.kind]} ${rec.kind}</span>${esc(head)}</div>`;
-    if (rec.confidence) html += `<span class="chip ${rec.confidence}">confidence ${rec.confidence}</span>`;
-    if (declared) html += `<span class="chip">declared ${clock(declared.t)}${sc.onset != null ? ` · ${Math.round(declared.t - sc.onset)}s after onset` : ''}</span>`;
+
+    // Row one: what this is, at a glance.
+    let html = `<div class="vrow"><span class="kind">${GLYPH[rec.kind]} ${rec.kind}</span>`;
+    if (rec.confidence) html += `<span class="chip ${rec.confidence}">${rec.confidence}</span>`;
+    if (declared) html += `<span class="chip">declared ${clock(declared.t)}${sc.onset != null ? ` · +${Math.round(declared.t - sc.onset)}s` : ''}</span>`;
+    if (change) html += `<span class="chip">registry ${change[0]} → ${change[1]}</span>`;
+    html += `</div>`;
+
+    html += `<div class="headline">${esc(head)}</div>`;
+
     const km2 = rec.cells.length ? (rec.cells.length * (sc.grid.spacing_m / 1000) ** 2).toFixed(1) : '–';
     html += `<div class="stats">
-      <div class="stat"><b>${ACTIVE.has(rec.kind) ? rec.cells.length : '–'}</b><span>footprint cells</span></div>
+      <div class="stat"><b>${ACTIVE.has(rec.kind) ? rec.cells.length : '–'}</b><span>cells</span></div>
       <div class="stat"><b>${ACTIVE.has(rec.kind) ? km2 : '–'}</b><span>km²</span></div>
-      <div class="stat"><b>${rec.triage ? rec.triage.unreachable : '–'}</b><span>unreachable of ${rec.triage ? rec.triage.inside : sc.registry} registered</span></div>
+      <div class="stat"><b>${rec.triage ? rec.triage.unreachable : '–'}</b><span>unreachable of ${rec.triage ? rec.triage.inside : sc.registry}</span></div>
     </div>`;
-    if (rec.signals.length && rec.kind !== 'SUSTAIN') html += `<ul class="signals">${rec.signals.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`;
+
     if (rec.privacy) {
       const open = !!rec.privacy.open;
-      html += `<div class="privacy ${open ? 'open' : 'shut'}">` +
-              `<b>${open ? '◉ PERSONAL DATA · OPEN' : '○ PERSONAL DATA · CLOSED'}</b>` +
-              `<span>${esc(rec.privacy.note || '')}` +
-              (open ? ` <b>${rec.privacy.personal}</b> calls this pass.` : '') + `</span></div>`;
+      html += `<div class="privacy ${open ? 'open' : 'shut'}">`
+            + `<b>${open ? '◉ PERSONAL DATA' : '○ PERSONAL DATA'}</b>`
+            + `<span>${open
+                ? `${rec.privacy.personal} call${rec.privacy.personal === 1 ? '' : 's'} this pass, all inside the footprint`
+                : 'closed — the registry was not queried'}</span></div>`;
     }
+    if (rec.signals.length && rec.kind !== 'SUSTAIN') {
+      html += `<ul class="signals">${rec.signals.map(sig => {
+        const at = sig.indexOf(':');
+        const body = at > 0 && at < 34
+          ? `<b>${esc(sig.slice(0, at))}</b>${esc(sig.slice(at))}`
+          : esc(sig);
+        return `<li class="${signalFired(sig) ? 'yes' : 'no'}">${body}</li>`;
+      }).join('')}</ul>`;
+    }
+
     el.innerHTML = html;
   }
 
@@ -589,7 +684,7 @@ TEMPLATE = r"""<!doctype html>
     for (let i = pass; i >= 0; i--) { if (recs[i].brief && recs[i].kind !== 'QUIET') { text = recs[i].brief; break; } }
     if (rec.kind === 'QUIET' && rec.brief === '' && !recs.slice(0, pass + 1).some(r => ACTIVE.has(r.kind))) text = '';
     const el = $('brief');
-    el.className = 'brief' + (text ? '' : ' empty');
+    el.classList.toggle('empty', !text);
     el.textContent = text || 'No brief. The agent has nothing to tell the duty officer.';
   }
 
@@ -650,11 +745,11 @@ TEMPLATE = r"""<!doctype html>
     $('since').textContent = sc.onset != null && rec.t >= sc.onset ? `+${Math.round(rec.t - sc.onset)}s since onset` : `pass ${pass + 1} / ${recs.length}`;
     drawBeat(rec); drawMap(rec); drawStatus(rec); drawBrief(rec); drawZones(rec); drawRegistry(rec); drawLog(); drawFooter(rec);
     // Say how much is behind each tab, so the count is visible without opening it.
-    const counts = { zones: (rec.triage ? rec.triage.top.length : 0), registry: (rec.triage ? rec.triage.unreachable : 0), log: null };
+    const counts = { zones: (rec.triage ? rec.triage.top.length : 0), registry: (rec.triage ? rec.triage.unreachable : 0), brief: null, log: null };
+    const names = { zones: 'Priority zones', registry: 'Registry', brief: 'Brief', log: 'Log' };
     [...$('tabs').children].forEach(b => {
       const n = counts[b.dataset.pane];
-      const base = { zones: 'Priority zones', registry: 'Registry', log: 'Agent log' }[b.dataset.pane];
-      b.textContent = n ? `${base} · ${n}` : base;
+      b.textContent = n ? `${names[b.dataset.pane]} · ${n}` : names[b.dataset.pane];
     });
   }
 
@@ -676,7 +771,7 @@ TEMPLATE = r"""<!doctype html>
     const button = e.target.closest('button[data-pane]');
     if (!button) return;
     [...$('tabs').children].forEach(b => b.classList.toggle('on', b === button));
-    ['zones', 'registry', 'log'].forEach(id => $(id).classList.toggle('on', id === button.dataset.pane));
+    ['zones', 'registry', 'brief', 'log'].forEach(id => $(id).classList.toggle('on', id === button.dataset.pane));
   });
 
   document.addEventListener('keydown', e => {
