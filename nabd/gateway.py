@@ -197,11 +197,19 @@ def parse_congestion(response: Any) -> tuple[Level, int | None]:
 
 
 def parse_reachability(response: Any) -> Reach:
-    """Device Status. Anything that is not a positive CONNECTED is unreachable."""
+    """Device Status. Anything that is not a positive answer is unreachable.
+
+    The platform exposes two vocabularies for the same question — connectivity
+    (`CONNECTED_DATA` / `NOT_CONNECTED`) and reachability (`REACHABLE_DATA` /
+    `NOT_REACHABLE`) — and which one an account gets depends on the SDK release.
+    Both are read here, because for Nabd they answer the same question: did this
+    sentinel answer.
+    """
     if not response:
         return Reach.UNKNOWN
-    status = response.get("connectivityStatus", "")
-    return Reach.REACHABLE if "CONNECTED" in status and "NOT" not in status else Reach.UNREACHABLE
+    status = response.get("connectivityStatus") or response.get("reachabilityStatus") or ""
+    positive = "CONNECTED" in status or "REACHABLE" in status
+    return Reach.REACHABLE if positive and "NOT" not in status else Reach.UNREACHABLE
 
 
 def parse_location(response: Any, now: datetime) -> Location | None:
@@ -251,9 +259,36 @@ class LiveGateway:
     def tick(self, t: float) -> None:
         self.now = t
 
-    def _call(self, name: str, fn, **kwargs):
+    # Where each of the three calls lives on the SDK. Both the namespace and the
+    # method have moved between generated releases, so every hop is a list of
+    # candidates rather than a name — see `nac.client.namespace` / `.resolve`.
+    # `tests/test_nabd_live_wiring.py` checks these against the installed SDK, so
+    # a rename upstream fails the build instead of the demonstration.
+    ENDPOINTS = {
+        "congestion.query": (
+            ("congestion_insights",),
+            ("query_v1", "query_v_1", "query"),
+        ),
+        "device_status.connectivity": (
+            ("device_status",),
+            ("check_connectivity", "get_connectivity_v1", "get_connectivity_v_1",
+             "get_connectivity", "retrieve_reachability_status"),
+        ),
+        "location.retrieve": (
+            ("location", "location_retrieval"),
+            ("retrieve_v1", "retrieve_v_1", "retrieve"),
+        ),
+    }
+
+    def _resolve(self, call: str):
+        spaces, methods = self.ENDPOINTS[call]
+        return self.nac.resolve(self.nac.namespace(self.client, *spaces), *methods)
+
+    def _call(self, name: str, **kwargs):
+        """Invoke one endpoint. A platform 'no' — including a name that has moved
+        out from under us — is recorded as a result, never raised."""
         try:
-            response = self.nac.to_jsonable(fn(**kwargs))
+            response = self.nac.to_jsonable(self._resolve(name)(**kwargs))
             self.calls.append(Call(name=name, request=kwargs, response=response, ok=True, t=self.now))
             return response
         except Exception as exc:
@@ -263,20 +298,13 @@ class LiveGateway:
             return None
 
     def congestion(self, device: str) -> tuple[Level, int | None]:
-        fn = self.nac.resolve(self.client.congestion_insights, "query_v1", "query_v_1", "query")
-        response = self._call("congestion.query", fn, device={"phoneNumber": device})
-        return parse_congestion(response)
+        return parse_congestion(self._call("congestion.query", device={"phoneNumber": device}))
 
     def reachability(self, device: str) -> Reach:
-        fn = self.nac.resolve(
-            self.client.device_status, "get_connectivity_v1", "get_connectivity_v_1", "get_connectivity"
-        )
-        response = self._call("device_status.connectivity", fn, device={"phoneNumber": device})
-        return parse_reachability(response)
+        return parse_reachability(self._call("device_status.connectivity", device={"phoneNumber": device}))
 
     def location(self, device: str, max_age_s: int = 3600) -> Location | None:
-        fn = self.nac.resolve(self.client.location_retrieval, "retrieve_v1", "retrieve_v_1", "retrieve")
-        response = self._call("location.retrieve", fn, device={"phoneNumber": device}, max_age=max_age_s)
+        response = self._call("location.retrieve", device={"phoneNumber": device}, max_age=max_age_s)
         return parse_location(response, datetime.now(timezone.utc))
 
 

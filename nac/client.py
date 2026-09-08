@@ -84,6 +84,23 @@ def resolve(namespace: Any, *candidates: str) -> Callable[..., Any]:
     )
 
 
+def namespace(client: Any, *candidates: str) -> Any:
+    """Return the first API namespace the installed SDK actually exposes.
+
+    The generator has moved these too: Location Retrieval has appeared as both
+    `location` and `location_retrieval` across releases. Same guard as `resolve`,
+    one level up.
+    """
+    for name in candidates:
+        ns = getattr(client, name, None)
+        if ns is not None:
+            return ns
+    available = sorted(n for n in dir(client) if not n.startswith("_"))
+    raise AttributeError(
+        f"none of {candidates} exist on the client; available: {', '.join(available)}"
+    )
+
+
 def to_jsonable(value: Any) -> Any:
     """Best-effort serialisation of SDK pydantic models into evidence JSON."""
     if isinstance(value, list):
