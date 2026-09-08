@@ -114,18 +114,10 @@ def narration(seg: "Segment") -> str:
 # map big enough to read at 1080p and lays the side panels out in two columns
 # so a whole pass fits one frame without scrolling.
 CONSOLE_CSS = """
-  header { padding: 10px 22px; }
-  main { grid-template-columns: 660px 1fr !important; gap: 14px; padding: 12px 22px; }
-  aside { display: grid !important; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; }
-  aside > .card:first-child { grid-column: 1 / -1; }
-  /* Keep the tall panels from pushing the registry and the log off the frame:
-     a video frame has to show the whole pass at once. */
-  .brief { font-size: 12.5px !important; line-height: 1.34 !important; max-height: 232px; overflow: hidden; }
-  #zones { max-height: 232px; overflow: hidden; }
-  #registry { max-height: 214px; overflow: hidden; }
-  .log { max-height: 214px; }
-  aside .card h3 { margin-bottom: 6px; }
-  .controls { display: none !important; }
+  /* The console now fits a viewport on its own, so the film only has to take the
+     transport controls out of shot. One tab is open at a time, exactly as an
+     operator would see it; `Segment.tab` says which one each segment opens. */
+  .controls { visibility: hidden !important; }
 """
 
 
@@ -135,6 +127,7 @@ class Segment:
     text: str
     card: str | None = None
     frames: list[tuple[str, int]] = field(default_factory=list)  # (scene, pass)
+    tab: str = "zones"  # which side panel the narration is describing
     min_s: float = 0.0
 
     @property
@@ -193,7 +186,7 @@ SEGMENTS = [
              "neighbouring cells saturated as everyone calls at the same moment.",
     ),
     Segment(
-        "07-triage", frames=[("quake", 6), ("quake", 7)],
+        "07-triage", frames=[("quake", 6), ("quake", 7)], tab="registry",
         text="Only now does the agent touch a personal device. Thirteen registered people live "
              "inside the footprint and six of them are unreachable, ranked by need, each with a "
              "last-seen position. And every pass of the evidence records whether that personal "
@@ -201,12 +194,12 @@ SEGMENTS = [
              "every single line.",
     ),
     Segment(
-        "08-update", frames=[("quake", 14), ("quake", 16)],
+        "08-update", frames=[("quake", 14), ("quake", 16)], tab="registry",
         text="The picture keeps moving. Four minutes later two people answer again, and the list "
              "drops from six to four without anyone touching it.",
     ),
     Segment(
-        "09-lookalikes", frames=[("noise", 2), ("noise", 6), ("noise", 10)],
+        "09-lookalikes", frames=[("noise", 2), ("noise", 6), ("noise", 10)], tab="log",
         text="A detector is only useful if it stays quiet on the things that merely look like "
              "disasters. When one cell goes silent while its neighbours stay normal, that is a "
              "base station fault. When four go silent together but match a maintenance ticket on "
@@ -215,7 +208,7 @@ SEGMENTS = [
              "and no false alarm.",
     ),
     Segment(
-        "10-degraded", frames=[("degraded", 11), ("degraded", 21)],
+        "10-degraded", frames=[("degraded", 11), ("degraded", 21)], tab="log",
         text="Then the hard one. Four cells on a failing backhaul produce every signal a disaster "
              "has, and nothing on the calendar explains them, so the agent measures them instead: "
              "these cells were already unreachable in three of the last eleven passes, which means "
@@ -455,9 +448,13 @@ def shoot(segments: list[Segment]) -> None:
             page.add_style_tag(content=CONSOLE_CSS)
             for seg in shots:
                 for i, (scene, index) in enumerate(seg.frames):
-                    print(f"  frame {seg.id}-{i:02d}  #{scene}/{index}")
+                    print(f"  frame {seg.id}-{i:02d}  #{scene}/{index}  [{seg.tab}]")
                     page.evaluate(f"location.hash = '#{scene}/{index}'")
-                    page.wait_for_timeout(450)
+                    page.wait_for_timeout(400)
+                    page.evaluate(
+                        "t => document.querySelector(`#tabs button[data-pane=${t}]`)?.click()", seg.tab
+                    )
+                    page.wait_for_timeout(180)
                     page.screenshot(path=str(seg.stills()[i]), clip={"x": 0, "y": 0, "width": 1600, "height": 900})
         browser.close()
 

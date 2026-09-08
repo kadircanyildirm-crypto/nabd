@@ -44,6 +44,19 @@ def load(name: str) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def basemap() -> dict | None:
+    """Towns, water, roads and provincial lines for the monitored region.
+
+    One extract serves every scene: the regional window contains the city one, so
+    the console projects the same lines onto whichever grid it is drawing.
+    """
+    path = Path(__file__).resolve().parent / "data" / "basemap.json"
+    if not path.exists():
+        return None
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return {k: raw[k] for k in ("towns", "lakes", "rivers", "borders", "roads", "source")}
+
+
 def geometry_for(name: str) -> dict | None:
     """The measured event's own geometry, for the one scene that has one.
 
@@ -67,6 +80,7 @@ def scene_payload(name: str) -> dict:
     title, subtitle = TITLES[name]
     return {
         "geo": geometry_for(name),
+        "base": basemap(),
         "name": name,
         "title": title,
         "subtitle": subtitle,
@@ -122,21 +136,44 @@ TEMPLATE = r"""<!doctype html>
   .controls { display: flex; align-items: center; gap: 8px; }
   .controls button { background: #1a2330; color: var(--text); border: 1px solid var(--line); border-radius: 6px; width: 34px; height: 32px; cursor: pointer; font-size: 14px; }
   .controls input[type=range] { width: 220px; accent-color: var(--high); }
-  main { display: grid; grid-template-columns: minmax(420px, 1fr) minmax(380px, 520px); gap: 16px; padding: 16px 20px; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-  .map { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  /* The whole console is one screen. Nothing that matters may sit below a fold
+     nobody knows is there, so main fills the viewport and the only thing that
+     ever scrolls is a panel that visibly can. */
+  html, body { height: 100%; }
+  body { overflow: hidden; display: flex; flex-direction: column; }
+  header, footer { flex: 0 0 auto; }
+  main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 440px;
+         grid-template-rows: minmax(0, 1fr); gap: 14px; padding: 14px 18px; overflow: hidden; }
+  @media (max-width: 1100px) { main { grid-template-columns: minmax(0, 1fr) 380px; } }
+  .map { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+         display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; min-height: 0; overflow: hidden; }
+  .map svg { width: 100%; height: 100%; min-height: 0; }
   .beat { min-height: 44px; padding: 10px 12px; border-left: 3px solid var(--high); background: var(--panel-2); border-radius: 6px; color: var(--text); }
   .beat.empty { border-left-color: var(--line); color: var(--dim); }
   svg { width: 100%; height: auto; display: block; }
-  /* The measured event, drawn over the cells rather than under them: the cells
-     are opaque, and the point is to see both at once. */
+  /* --- the base map ------------------------------------------------------ */
+  .ground { fill: #0a1119; }
+  .border { fill: none; stroke: #2b3d4e; stroke-width: 1.1; stroke-dasharray: 7 5; }
+  .river  { fill: none; stroke: #1d4a63; stroke-width: 1.4; stroke-linecap: round; }
+  .lake   { fill: #14384b; stroke: #1d4a63; stroke-width: 1; }
+  .road   { fill: none; stroke: #2f3b48; stroke-width: 1.2; stroke-linecap: round; }
+  .town   { fill: #cfe0ee; }
+  .town.major { fill: #ffffff; }
+  .townlbl { font-family: var(--mono); font-size: 10px; fill: #9fb3c6; paint-order: stroke;
+             stroke: #0a1119; stroke-width: 3px; stroke-linejoin: round; }
+  .townlbl.major { font-size: 12px; fill: #eaf2f9; font-weight: 600; }
+  .hair { stroke: #223141; stroke-width: .6; opacity: .55; }
+  /* Cells are a wash over the map, not tiles on top of it: the ground, the roads
+     and the town names stay legible through them, which is the difference between
+     a data overlay and a chessboard. */
   .iso { fill: none; stroke-width: 1.7; opacity: .8; stroke-linejoin: round; stroke-linecap: round; }
   .iso.major { stroke-width: 2.6; opacity: .95; }
   .rupture { fill: none; stroke: #ffffff; stroke-width: 2.4; stroke-dasharray: 6 4; opacity: .9; }
   .isokey { font-family: var(--mono); font-size: 9.5px; fill: #0b1017; font-weight: 700; }
-  .cell { stroke: #0b1017; stroke-width: 1.5; }
-  .c-low { fill: var(--low); } .c-medium { fill: var(--medium); } .c-high { fill: var(--high); } .c-unmon { fill: var(--unmon); }
-  .c-dark { fill: var(--dark); stroke: #3a1a1a; }
+  .cell { stroke: none; }
+  .c-low { fill: #2b6ea333; } .c-medium { fill: #b58a1e55; } .c-high { fill: #d9822b77; }
+  .c-unmon { fill: #161c2433; }
+  .c-dark { fill: #04070ad9; }
   .fp { fill: none; stroke: var(--alert); stroke-width: 3; pointer-events: none; }
   .cand { fill: none; stroke: var(--cand); stroke-width: 2.5; stroke-dasharray: 5 4; pointer-events: none; }
   .held { fill: none; stroke: var(--held); stroke-width: 2; stroke-dasharray: 3 4; pointer-events: none; }
@@ -147,7 +184,30 @@ TEMPLATE = r"""<!doctype html>
   .halo { fill: var(--alert); fill-opacity: .07; stroke: var(--alert); stroke-opacity: .3; stroke-width: 1; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: 12px; }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; }
-  aside { display: flex; flex-direction: column; gap: 12px; }
+  /* The column is exactly as tall as the screen. The verdict and the brief are
+     always visible; everything else lives behind a tab, so a reader is told what
+     is there rather than left to guess that scrolling would reveal it. */
+  aside { display: grid; grid-template-rows: minmax(0, auto) minmax(0, auto) minmax(0, 1fr);
+          gap: 10px; min-height: 0; }
+  /* Each region gets a ceiling so the three of them always fit together: the
+     verdict may scroll its own signal list, the brief its own paragraph, and the
+     tabs keep the floor they need to be worth having. */
+  .card.status { max-height: 34vh; overflow: auto; }
+  .brief-card { max-height: 14vh; overflow: auto; }
+  .tabbed { min-height: 210px; }
+  .tabbed { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; padding: 0; overflow: hidden; }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); padding: 8px 10px 0; }
+  .tabs button { background: transparent; border: 1px solid transparent; border-bottom: none;
+                 color: var(--muted); font: inherit; font-size: 12.5px; padding: 6px 12px;
+                 border-radius: 6px 6px 0 0; cursor: pointer; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.on { color: var(--text); background: var(--panel-2); border-color: var(--line); }
+  .panes { position: relative; min-height: 0; overflow: hidden; }
+  .pane { display: none; height: 100%; overflow: auto; padding: 12px 14px 14px;
+          scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  .pane.on { display: block; }
+  .pane::-webkit-scrollbar { width: 8px; }
+  .pane::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
   .card h3 { margin: 0 0 8px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   .status { border-left: 4px solid var(--line); }
@@ -177,7 +237,7 @@ TEMPLATE = r"""<!doctype html>
   td.mono, th.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
   .bar { height: 6px; background: var(--alert); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
   .empty { color: var(--dim); font-size: 13px; }
-  .log { max-height: 340px; overflow: auto; }
+  .log { max-height: none; }
   .entry { padding: 8px 0; border-top: 1px solid var(--line); }
   .entry:first-child { border-top: 0; }
   .entry .when { font-family: var(--mono); color: var(--muted); font-size: 12px; margin-right: 8px; }
@@ -220,10 +280,19 @@ TEMPLATE = r"""<!doctype html>
   </section>
   <aside>
     <div class="card status" id="status"></div>
-    <div class="card"><h3>Command-centre brief</h3><div id="brief" class="brief empty"></div></div>
-    <div class="card"><h3>Priority zones</h3><div id="zones"></div></div>
-    <div class="card"><h3>Opt-in registry · unreachable</h3><div id="registry"></div></div>
-    <div class="card"><h3>Agent log</h3><div id="log" class="log"></div></div>
+    <div class="card brief-card"><h3>Command-centre brief</h3><div id="brief" class="brief empty"></div></div>
+    <div class="card tabbed">
+      <div class="tabs" id="tabs">
+        <button data-pane="zones" class="on">Priority zones</button>
+        <button data-pane="registry">Registry</button>
+        <button data-pane="log">Agent log</button>
+      </div>
+      <div class="panes">
+        <div id="zones" class="pane on"></div>
+        <div id="registry" class="pane"></div>
+        <div id="log" class="pane log"></div>
+      </div>
+    </div>
   </aside>
 </main>
 <footer>
@@ -271,52 +340,85 @@ TEMPLATE = r"""<!doctype html>
   }
 
   // -- map ------------------------------------------------------------------
+  let ORIGIN_X = M;  // the grid's left edge, once the view is widened to the panel
+
   function project(lat, lon, g) {
     const a = g.cells[0], b = g.cells[1], c = g.cells[g.cols];
     const dlon = b.lon - a.lon, dlat = c.lat - a.lat; // dlat is negative (south)
-    return [M + ((lon - a.lon) / dlon + 0.5) * S, M + ((lat - a.lat) / dlat + 0.5) * S];
+    return [ORIGIN_X + ((lon - a.lon) / dlon + 0.5) * S, M + ((lat - a.lat) / dlat + 0.5) * S];
   }
 
   function drawMap(rec) {
     const g = cur().grid, svg = $('grid');
-    const W = M + g.cols * S + 6, H = M + g.rows * S + 6;
-    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    // The panel is much wider than it is tall. A square map centred in it wastes
+    // the half of the screen the eye lands on first, so the view widens to the
+    // panel and the region fills it edge to edge; the monitored window is the
+    // framed part inside, and only the readings stop at its edge.
+    const rect = svg.getBoundingClientRect();
+    const H = M + g.rows * S + 6;
+    const natural = M + g.cols * S + 6;
+    const ratio = rect.height > 0 ? rect.width / rect.height : 1;
+    const W = Math.max(natural, H * ratio);
+    const OX = M + (W - natural) / 2;
+    ORIGIN_X = OX;
+    svg.setAttribute('viewBox', `0 0 ${W.toFixed(1)} ${H}`);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
     const out = [];
-    for (let c = 0; c < g.cols; c++) out.push(`<text class="lbl" x="${M + c * S + S / 2}" y="${M - 8}" text-anchor="middle">${c + 1}</text>`);
-    for (let r = 0; r < g.rows; r++) out.push(`<text class="lbl" x="${M - 8}" y="${M + r * S + S / 2 + 3}" text-anchor="end">${'ABCDEFGHIJKLMNOPQRST'[r]}</text>`);
+    const x0 = OX, y0 = M, w = g.cols * S, h = g.rows * S;
+    const cellAt = id => g.cells.find(c => c.id === id);
+    const line = pts => pts.map((p, i) => {
+      const [x, y] = project(p[1], p[0], g);
+      return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }).join('');
+
+    out.push(`<defs>`
+      + `<clipPath id="viewclip"><rect x="0" y="0" width="${W.toFixed(1)}" height="${H}"/></clipPath>`
+      + `<clipPath id="winclip"><rect x="${x0.toFixed(1)}" y="${y0}" width="${w}" height="${h}"/></clipPath>`
+      + `</defs>`);
+    out.push(`<rect class="ground" x="0" y="0" width="${W.toFixed(1)}" height="${H}"/>`);
+
+    // ---- the region, across the whole view --------------------------------
+    const base = cur().base, geo = cur().geo;
+    out.push('<g clip-path="url(#viewclip)">');
+    if (base) {
+      base.borders.forEach(l => out.push(`<path class="border" d="${line(l)}"/>`));
+      base.roads.forEach(l => out.push(`<path class="road" d="${line(l)}"/>`));
+      base.rivers.forEach(l => out.push(`<path class="river" d="${line(l)}"/>`));
+      base.lakes.forEach(l => out.push(`<path class="lake" d="${line(l)}Z"/>`));
+    }
+    out.push('</g>');
+
+    // ---- the readings, only where they were taken -------------------------
+    out.push('<g clip-path="url(#winclip)">');
     g.cells.forEach((cell, k) => {
       const ch = (rec.grid || '')[k] || 'x';
-      out.push(`<rect class="cell ${CLASS[ch]}" x="${M + cell.col * S}" y="${M + cell.row * S}" width="${S}" height="${S}" rx="3"><title>${cell.id} · ${cell.lat.toFixed(4)}N ${cell.lon.toFixed(4)}E</title></rect>`);
+      out.push(`<rect class="cell ${CLASS[ch]}" x="${(OX + cell.col * S).toFixed(1)}" y="${M + cell.row * S}" width="${S}" height="${S}"><title>${cell.id} · ${cell.lat.toFixed(4)}N ${cell.lon.toFixed(4)}E</title></rect>`);
     });
-    // The real event, when there is one: isoseismals at their published colours,
-    // then the rupture that produced them.
-    const geo = cur().geo;
-    if (geo) {
-      const path = pts => pts.map(([lon, lat], i) => {
-        const [x, y] = project(lat, lon, g);
-        return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
-      }).join('');
-      geo.contours.forEach(lv => {
-        const major = Math.abs(lv.mmi - Math.round(lv.mmi)) < 0.01;
-        lv.lines.forEach(line => out.push(
-          `<path class="iso${major ? ' major' : ''}" d="${path(line)}" stroke="${lv.color}"><title>Measured intensity MMI ${lv.mmi}</title></path>`));
-        if (major) {
-          const line = lv.lines.reduce((a, b) => b.length > a.length ? b : a);
-          const mid = line[Math.floor(line.length / 2)];
-          const [lx, ly] = project(mid[1], mid[0], g);
-          out.push(`<rect x="${lx - 9}" y="${ly - 7}" width="18" height="13" rx="3" fill="${lv.color}" opacity=".95"/>`);
-          out.push(`<text class="isokey" x="${lx}" y="${ly + 3}" text-anchor="middle">${Math.round(lv.mmi)}</text>`);
-        }
-      });
-      geo.rupture.forEach(ring => out.push(
-        `<path class="rupture" d="${path(ring)}Z"><title>Finite-fault rupture, USGS ShakeMap</title></path>`));
-    }
+    for (let c = 1; c < g.cols; c++) out.push(`<line class="hair" x1="${(OX + c * S).toFixed(1)}" y1="${y0}" x2="${(OX + c * S).toFixed(1)}" y2="${y0 + h}"/>`);
+    for (let r = 1; r < g.rows; r++) out.push(`<line class="hair" x1="${x0.toFixed(1)}" y1="${M + r * S}" x2="${(x0 + w).toFixed(1)}" y2="${M + r * S}"/>`);
     (cur().maintenance || []).forEach(m => {
       if (rec.t >= m.start && rec.t < m.end) m.cells.forEach(id => {
-        const cell = g.cells.find(c => c.id === id);
-        out.push(`<rect class="mnt" x="${M + cell.col * S + 3}" y="${M + cell.row * S + 3}" width="${S - 6}" height="${S - 6}" rx="2"/>`);
+        const cell = cellAt(id);
+        out.push(`<rect class="mnt" x="${(OX + cell.col * S + 3).toFixed(1)}" y="${M + cell.row * S + 3}" width="${S - 6}" height="${S - 6}" rx="2"/>`);
       });
     });
+    out.push('</g>');
+
+    // ---- the measured event, across the region ----------------------------
+    if (geo) {
+      out.push('<g clip-path="url(#viewclip)">');
+      geo.contours.forEach(lv => {
+        const major = Math.abs(lv.mmi - Math.round(lv.mmi)) < 0.01;
+        lv.lines.forEach(l => out.push(
+          `<path class="iso${major ? ' major' : ''}" d="${line(l)}" stroke="${lv.color}"><title>Measured intensity MMI ${lv.mmi}</title></path>`));
+      });
+      geo.rupture.forEach(r => out.push(
+        `<path class="rupture" d="${line(r)}Z"><title>Finite-fault rupture, USGS ShakeMap</title></path>`));
+      out.push('</g>');
+    }
+
+    // ---- the verdict -------------------------------------------------------
     let cls = null;
     if (ACTIVE.has(rec.kind)) cls = 'fp';
     else if (rec.kind === 'CANDIDATE') cls = 'cand';
@@ -324,30 +426,50 @@ TEMPLATE = r"""<!doctype html>
     if (cls && rec.cells.length) {
       const set = new Set(rec.cells);
       rec.cells.forEach(id => {
-        const cell = g.cells.find(c => c.id === id);
-        const x = M + cell.col * S, y = M + cell.row * S;
+        const cell = cellAt(id);
+        const x = OX + cell.col * S, y = M + cell.row * S;
         const n = (dr, dc) => set.has((g.cells.find(c => c.row === cell.row + dr && c.col === cell.col + dc) || {}).id);
-        if (!n(-1, 0)) out.push(`<line class="${cls}" x1="${x}" y1="${y}" x2="${x + S}" y2="${y}"/>`);
-        if (!n(1, 0)) out.push(`<line class="${cls}" x1="${x}" y1="${y + S}" x2="${x + S}" y2="${y + S}"/>`);
-        if (!n(0, -1)) out.push(`<line class="${cls}" x1="${x}" y1="${y}" x2="${x}" y2="${y + S}"/>`);
-        if (!n(0, 1)) out.push(`<line class="${cls}" x1="${x + S}" y1="${y}" x2="${x + S}" y2="${y + S}"/>`);
+        if (!n(-1, 0)) out.push(`<line class="${cls}" x1="${x.toFixed(1)}" y1="${y}" x2="${(x + S).toFixed(1)}" y2="${y}"/>`);
+        if (!n(1, 0)) out.push(`<line class="${cls}" x1="${x.toFixed(1)}" y1="${y + S}" x2="${(x + S).toFixed(1)}" y2="${y + S}"/>`);
+        if (!n(0, -1)) out.push(`<line class="${cls}" x1="${x.toFixed(1)}" y1="${y}" x2="${x.toFixed(1)}" y2="${y + S}"/>`);
+        if (!n(0, 1)) out.push(`<line class="${cls}" x1="${(x + S).toFixed(1)}" y1="${y}" x2="${(x + S).toFixed(1)}" y2="${y + S}"/>`);
       });
-      if (cls === 'fp') {
-        const cells = rec.cells.map(id => g.cells.find(c => c.id === id));
-        const bottom = Math.max(...cells.map(c => c.row)), left = Math.min(...cells.map(c => c.col));
-        const label = `FOOTPRINT · ${rec.confidence || ''} · ${(rec.cells.length * (g.spacing_m / 1000) ** 2).toFixed(1)} km²`;
-        const x = M + left * S, y = M + (bottom + 1) * S + 6;
-        out.push(`<rect x="${x}" y="${y}" width="${label.length * 6.8 + 12}" height="18" rx="4" fill="#0b1017" stroke="var(--alert)" stroke-width="1"/>`);
-        out.push(`<text class="fplabel" x="${x + 6}" y="${y + 13}">${label}</text>`);
-      }
     }
+
+    // ---- people, then place names on top so they stay readable -------------
     if (rec.triage) rec.triage.top.forEach(p => {
       if (!p.last_seen) return;
       const [x, y] = project(p.last_seen.lat, p.last_seen.lon, g);
       const r = (p.last_seen.radius_m / g.spacing_m) * S;
-      out.push(`<circle class="halo" cx="${x}" cy="${y}" r="${r}"/>`);
-      out.push(`<circle class="dot" cx="${x}" cy="${y}" r="4"><title>${p.person} · ${p.class} · ${p.cell}</title></circle>`);
+      out.push(`<circle class="halo" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"/>`);
+      out.push(`<circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"><title>${p.person} · ${p.class} · ${p.cell}</title></circle>`);
     });
+    if (base) {
+      out.push('<g clip-path="url(#viewclip)">');
+      base.towns.forEach(t => {
+        const [x, y] = project(t.lat, t.lon, g);
+        if (x < 4 || x > W - 4 || y < 4 || y > H - 4) return;
+        const major = t.pop >= 100000;
+        out.push(`<circle class="town${major ? ' major' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${major ? 3.6 : 2.2}"/>`);
+        out.push(`<text class="townlbl${major ? ' major' : ''}" x="${(x + (major ? 7 : 5)).toFixed(1)}" y="${(y + 3.5).toFixed(1)}">${t.name}</text>`);
+      });
+      out.push('</g>');
+    }
+
+    // ---- the monitored window, and its labels ------------------------------
+    out.push(`<rect x="${x0.toFixed(1)}" y="${y0}" width="${w}" height="${h}" fill="none" stroke="#54708a" stroke-width="1.2" stroke-dasharray="5 4" opacity=".8"/>`);
+    for (let c = 0; c < g.cols; c++) out.push(`<text class="lbl" x="${(OX + c * S + S / 2).toFixed(1)}" y="${M - 8}" text-anchor="middle">${c + 1}</text>`);
+    for (let r = 0; r < g.rows; r++) out.push(`<text class="lbl" x="${(OX - 8).toFixed(1)}" y="${M + r * S + S / 2 + 3}" text-anchor="end">${'ABCDEFGHIJKLMNOPQRST'[r]}</text>`);
+    if (cls === 'fp' && rec.cells.length) {
+      const cells = rec.cells.map(cellAt);
+      const bottom = Math.max(...cells.map(c => c.row)), left = Math.min(...cells.map(c => c.col));
+      const label = `FOOTPRINT · ${rec.confidence || ''} · ${(rec.cells.length * (g.spacing_m / 1000) ** 2).toFixed(1)} km²`;
+      const bw = label.length * 6.8 + 12;
+      const bx = Math.max(4, Math.min(OX + left * S, W - bw - 4));
+      const by = Math.min(M + (bottom + 1) * S + 6, H - 20);
+      out.push(`<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="18" rx="4" fill="#0b1017" stroke="var(--alert)" stroke-width="1"/>`);
+      out.push(`<text class="fplabel" x="${(bx + 6).toFixed(1)}" y="${by + 13}">${label}</text>`);
+    }
     svg.innerHTML = out.join('');
   }
 
@@ -455,6 +577,13 @@ TEMPLATE = r"""<!doctype html>
     const sc = cur();
     $('since').textContent = sc.onset != null && rec.t >= sc.onset ? `+${Math.round(rec.t - sc.onset)}s since onset` : `pass ${pass + 1} / ${recs.length}`;
     drawBeat(rec); drawMap(rec); drawStatus(rec); drawBrief(rec); drawZones(rec); drawRegistry(rec); drawLog(); drawFooter(rec);
+    // Say how much is behind each tab, so the count is visible without opening it.
+    const counts = { zones: (rec.triage ? rec.triage.top.length : 0), registry: (rec.triage ? rec.triage.unreachable : 0), log: null };
+    [...$('tabs').children].forEach(b => {
+      const n = counts[b.dataset.pane];
+      const base = { zones: 'Priority zones', registry: 'Registry', log: 'Agent log' }[b.dataset.pane];
+      b.textContent = n ? `${base} · ${n}` : base;
+    });
   }
 
   // -- playback ---------------------------------------------------------------
@@ -470,6 +599,14 @@ TEMPLATE = r"""<!doctype html>
   $('prev').onclick = () => { stop(); show(pass - 1); };
   $('next').onclick = () => { stop(); show(pass + 1); };
   $('scrub').oninput = e => { stop(); show(+e.target.value); };
+  // Tabs: one panel at a time, so the column never runs off the bottom.
+  $('tabs').addEventListener('click', e => {
+    const button = e.target.closest('button[data-pane]');
+    if (!button) return;
+    [...$('tabs').children].forEach(b => b.classList.toggle('on', b === button));
+    ['zones', 'registry', 'log'].forEach(id => $(id).classList.toggle('on', id === button.dataset.pane));
+  });
+
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
     if (e.code === 'Space') { e.preventDefault(); play(); }
