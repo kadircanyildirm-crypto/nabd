@@ -450,7 +450,8 @@ def shoot(segments: list[Segment]) -> None:
                 for i, (scene, index) in enumerate(seg.frames):
                     print(f"  frame {seg.id}-{i:02d}  #{scene}/{index}  [{seg.tab}]")
                     page.evaluate(f"location.hash = '#{scene}/{index}'")
-                    page.wait_for_timeout(400)
+                    # The cells ease into their colour over 550 ms; shoot after it lands.
+                    page.wait_for_timeout(750)
                     page.evaluate(
                         "t => document.querySelector(`#tabs button[data-pane=${t}]`)?.click()", seg.tab
                     )
