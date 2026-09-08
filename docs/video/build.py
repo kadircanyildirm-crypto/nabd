@@ -15,9 +15,15 @@ other frame is `nabd/replay.html` — the real command-centre console — opened
 a named pass, and the console draws only from `nac/evidence/nabd-scene-*.jsonl`.
 Change the agent, re-run the scenes, re-run this, and the video follows.
 
-Pipeline: narration → edge-tts mp3 per segment (durations measured with
-ffprobe) → Playwright/Chromium screenshots at 1920×1080 → ffmpeg concat
-demuxer, durations quantised to whole frames so picture and voice never drift.
+Pipeline: narration → one mp3 per segment (Chatterbox by default; `--engine edge`
+falls back to edge-tts and needs no account) → Playwright/Chromium screenshots at
+1920×1080 → ffmpeg concat demuxer, durations quantised to whole frames so picture
+and voice never drift.
+
+Narration is resumable. The Chatterbox Space runs on a shared GPU with a daily
+allowance that does not cover both cuts in one sitting, so running out is treated
+as a pause rather than a failure: finished segments are kept, the rest are named,
+and the same command continues when the window resets.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -51,6 +58,7 @@ LANGS = {
         "out": "Nabd-Demo.mp4",
         "shots": "shot-list.md",
         "title": "Nabd \u2014 demo video shot list",
+        "language_id": "en",
     },
     "tr": {
         "voice": "tr-TR-AhmetNeural",
@@ -59,10 +67,36 @@ LANGS = {
         "out": "Nabd-Demo-TR.mp4",
         "shots": "shot-list-tr.md",
         "title": "Nabd \u2014 demo videosu \u00e7ekim listesi (T\u00fcrk\u00e7e)",
+        "language_id": "tr",
     },
 }
 
+# Narration is Chatterbox (Resemble AI, MIT) running on its public Space, because
+# nothing that installs locally for free comes close and the alternatives all cost
+# something: credits, five gigabytes, or an afternoon in front of a microphone.
+#
+# One model and one reference clip serve both cuts, so the Turkish and English
+# films are narrated by the same voice — a consequence of the multilingual Space
+# demanding a reference, not a plan.
+#
+# The Space runs on ZeroGPU. A free account's daily allowance does not cover
+# twenty-eight segments in one sitting, so `narrate` treats running out as an
+# ordinary outcome: it writes what it got, says what is left, and exits. Run it
+# again when the window resets and it picks up where it stopped.
+CHATTERBOX = {
+    "space": "https://resembleai-chatterbox-multilingual-tts.hf.space/",
+    "reference": "voice-reference.wav",
+    "seed": 42,
+    # Softer emotion, slower delivery, less variance between words. Lower cfg is
+    # what slows Chatterbox down; lower exaggeration is what stops it acting.
+    "exaggeration": 0.25,
+    "temperature": 0.60,
+    "cfg_weight": 0.35,
+    "timeout_s": 400,
+}
+
 LANG = "en"  # set by main()
+ENGINE = "chatterbox"  # set by main(); "edge" is the offline fallback
 
 
 def cfg(key: str):
@@ -352,18 +386,70 @@ TURKISH = {
 # ---------------------------------------------------------------- narration
 
 
-async def _tts(text: str, out: Path) -> None:
+class QuotaSpent(RuntimeError):
+    """The Space's shared GPU allowance ran out. Not a failure — a pause."""
+
+
+async def _edge(text: str, out: Path) -> None:
     import edge_tts
 
     await edge_tts.Communicate(text, cfg("voice"), rate=cfg("rate")).save(str(out))
 
 
+def _chatterbox(text: str, out: Path) -> None:
+    """One segment through the Chatterbox Space, converted to mp3 like the rest."""
+    from gradio_client import Client, handle_file
+
+    token_file = Path(os.path.expanduser("~/.cache/huggingface/token"))
+    if not token_file.exists():
+        raise RuntimeError(
+            "No Hugging Face token at ~/.cache/huggingface/token. A free account's "
+            "read token lifts the Space's anonymous GPU allowance; without one, "
+            "re-run with --engine edge."
+        )
+    client = Client(
+        CHATTERBOX["space"], token=token_file.read_text().strip(), verbose=False,
+        httpx_kwargs={"timeout": CHATTERBOX["timeout_s"]},
+    )
+    try:
+        wav = client.predict(
+            text_input=text,
+            language_id=cfg("language_id"),
+            audio_prompt_path_input=handle_file(str(HERE / CHATTERBOX["reference"])),
+            exaggeration_input=CHATTERBOX["exaggeration"],
+            temperature_input=CHATTERBOX["temperature"],
+            seed_num_input=CHATTERBOX["seed"],
+            cfgw_input=CHATTERBOX["cfg_weight"],
+            api_name="/generate_tts_audio",
+        )
+    except Exception as exc:
+        if "ZeroGPU" in str(exc) or "quota" in str(exc).lower():
+            raise QuotaSpent(str(exc)) from exc
+        raise
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", wav, "-b:a", "160k", str(out), "-y"], check=True,
+    )
+
+
 def narrate(segments: list[Segment], skip: bool) -> None:
-    for seg in segments:
-        if seg.audio.exists() and skip:
-            continue
-        print(f"  tts   {seg.id}")
-        asyncio.run(_tts(narration(seg), seg.audio))
+    todo = [s for s in segments if not (skip and s.audio.exists())]
+    todo = [s for s in todo if not s.audio.exists()] if ENGINE == "chatterbox" else todo
+    done = 0
+    for seg in todo:
+        try:
+            if ENGINE == "edge":
+                print(f"  tts   {seg.id}")
+                asyncio.run(_edge(narration(seg), seg.audio))
+            else:
+                print(f"  say   {seg.id}")
+                _chatterbox(narration(seg), seg.audio)
+            done += 1
+        except QuotaSpent:
+            left = [s.id for s in todo[todo.index(seg):]]
+            print(f"\n  GPU allowance spent after {done} segment(s).")
+            print(f"  {len(left)} still to render: {', '.join(left)}")
+            print("  Re-run the same command when the window resets; finished segments are kept.\n")
+            raise SystemExit(3)
 
 
 def duration(path: Path) -> float:
@@ -517,13 +603,16 @@ def main(argv: list[str]) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--lang", choices=sorted(LANGS), default="en", help="which cut to build")
+    parser.add_argument("--engine", choices=("chatterbox", "edge"), default="chatterbox",
+                        help="narration engine; edge needs no account and sounds it")
     parser.add_argument("--only", help="rebuild assets for one segment id")
     parser.add_argument("--no-tts", action="store_true", help="reuse the narration already rendered")
     parser.add_argument("--no-shoot", action="store_true", help="reuse the frames already rendered")
     args = parser.parse_args(argv[1:])
 
-    global LANG
+    global LANG, ENGINE
     LANG = args.lang
+    ENGINE = args.engine
 
     for tool in ("ffmpeg", "ffprobe"):
         if not shutil.which(tool):
@@ -541,7 +630,7 @@ def main(argv: list[str]) -> int:
         print(f"no segment matches {args.only}", file=sys.stderr)
         return 2
 
-    print(f"\n  {LANG} cut \u2014 narration ({len(todo)} segment(s))")
+    print(f"\n  {LANG} cut \u2014 narration via {ENGINE} ({len(todo)} segment(s))")
     narrate(todo, skip=args.no_tts)
     if not args.no_shoot:
         print(f"\n  frames")
