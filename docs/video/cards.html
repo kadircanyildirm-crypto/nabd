@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nabd — demo video cards</title>
+<style>
+  :root{
+    --bg:#0d1418; --panel:#141d22; --panel2:#111a1f; --line:#223037;
+    --text:#e8eef0; --muted:#8ba0a8; --dim:#5d7078; --amber:#e0913f; --amber-dim:#a86f33;
+    --ok:#5fbf8f; --alert:#ff5a4e;
+    --sans:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;font-family:var(--sans)}
+  /* Every card is exactly one 1080p frame. The build script screenshots each
+     .card element, so nothing here may reflow between runs. */
+  .card{width:1920px;height:1080px;background:var(--bg);color:var(--text);
+        padding:96px 132px;position:relative;overflow:hidden;display:flex;
+        flex-direction:column}
+  .kicker{font-family:var(--mono);font-size:21px;letter-spacing:.11em;text-transform:uppercase;
+          color:var(--amber);margin-bottom:34px;white-space:nowrap}
+  h1{font-size:118px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  h1 .ar{font-size:64px;color:var(--dim);font-weight:400;margin-left:14px}
+  h2{font-size:62px;font-weight:700;letter-spacing:-.015em;line-height:1.12;max-width:1560px}
+  h2.small{font-size:52px}
+  .tagline{font-size:44px;color:var(--text);margin-top:22px;font-weight:400}
+  .body{font-size:38px;color:var(--muted);line-height:1.42;max-width:1400px;margin-top:56px}
+  .chips{display:flex;gap:18px;margin-top:auto;margin-bottom:104px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:25px;color:var(--text);border:1.5px solid var(--amber-dim);
+        border-radius:9px;padding:14px 22px}
+  .foot{display:flex;justify-content:space-between;font-family:var(--mono);font-size:22px;
+        color:var(--dim);position:absolute;left:132px;right:132px;bottom:66px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:52px}
+  .cols.three{grid-template-columns:repeat(3,1fr);gap:32px}
+  .panel{background:var(--panel);border:1.5px solid transparent;border-radius:16px;padding:38px 42px}
+  .panel.accent{border-color:var(--amber-dim)}
+  .panel .lbl{font-family:var(--mono);font-size:23px;letter-spacing:.1em;text-transform:uppercase;
+              color:var(--muted);margin-bottom:16px}
+  .panel h3{font-size:40px;font-weight:700;margin-bottom:22px}
+  .panel h3.sm{font-size:33px}
+  .panel ul{list-style:none}
+  .panel li{font-size:30px;line-height:1.36;color:#cfdde2;margin-bottom:15px;padding-left:30px;position:relative}
+  .panel li::before{content:"·";position:absolute;left:8px;color:var(--amber);font-weight:700}
+  .panel p{font-size:30px;line-height:1.38;color:#cfdde2}
+  code{font-family:var(--mono);color:var(--amber);font-size:.95em}
+  .big{display:flex;gap:56px;margin-top:60px}
+  .stat{flex:1}
+  .stat b{display:block;font-family:var(--mono);font-size:82px;color:var(--text);line-height:1}
+  .stat span{display:block;font-size:26px;color:var(--muted);margin-top:14px;line-height:1.3}
+  .stat.amber b{color:var(--amber)}
+  .flow{display:flex;align-items:center;gap:14px;margin-top:54px;flex-wrap:wrap}
+  .node{font-family:var(--mono);font-size:26px;padding:18px 24px;border-radius:11px;
+        background:var(--panel);border:1.5px solid var(--line)}
+  .node.key{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:700}
+  .node.gate{border-color:var(--amber);color:var(--amber)}
+  .arr{color:var(--dim);font-size:28px}
+  .note{font-size:29px;color:var(--muted);margin-top:40px;line-height:1.4;max-width:1560px}
+  .rule{height:1.5px;background:var(--line);margin:44px 0}
+  .checks{margin-top:46px}
+  .check{display:flex;gap:26px;align-items:baseline;margin-bottom:26px}
+  .check .n{font-family:var(--mono);font-size:27px;color:var(--amber);min-width:44px}
+  .check .t{font-size:31px;line-height:1.34;color:#cfdde2;max-width:1440px}
+  .check .t b{color:var(--text)}
+  .badge{font-family:var(--mono);font-size:23px;padding:7px 14px;border-radius:7px;margin-left:14px}
+  .badge.pass{background:#12301f;color:#7fd6a4}
+  .badge.pend{background:#2f2612;color:#e5bd72}
+  .quote{font-family:var(--mono);font-size:29px;color:var(--amber);line-height:1.4;
+         border-left:4px solid var(--amber-dim);padding-left:26px;margin-top:34px}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ 01 title -->
+<section class="card" id="c01-title">
+  <div class="kicker">GSMA MENA Ignite 2026 · Prototype Phase · Theme 6 — Climate Resilience</div>
+  <h1>Nabd <span class="ar">نبض</span></h1>
+  <div class="tagline">Read where the network goes silent.</div>
+  <div class="body">An AI agent that turns coordinated network silence into a live disaster-impact map for command centres.</div>
+  <div class="chips">
+    <span class="chip">Nokia Network-as-Code</span>
+    <span class="chip">CAMARA · Congestion Insights · Device Reachability · Location Retrieval</span>
+    <span class="chip">LangGraph</span>
+  </div>
+  <div class="foot"><span>Kadir's Team · Türkiye</span><span>impact map in the first minute · triage across the first 72 hours</span></div>
+</section>
+
+<!-- ========================================================== 02 problem -->
+<section class="card" id="c02-problem">
+  <div class="kicker">The problem</div>
+  <h2>Seconds to know that it happened.<br>Hours to know where.</h2>
+  <div class="big">
+    <div class="stat"><b>seconds</b><span>for a seismometer to confirm an earthquake occurred</span></div>
+    <div class="stat amber"><b>hours</b><span>before anyone knows which neighbourhoods lost their people</span></div>
+    <div class="stat"><b>53,000+</b><span>dead in the 2023 Kahramanmaraş earthquakes</span></div>
+  </div>
+  <div class="note">In the first hours, rescue is held back not by resources but by information — and the picture is assembled from
+  fragmented emergency calls at exactly the moment the network is overloaded and calls cannot get through.</div>
+  <div class="foot"><span>Nabd is not early warning.</span><span>the impact map in the first minute · triage over the first 72 hours</span></div>
+</section>
+
+<!-- ========================================================== 03 insight -->
+<section class="card" id="c03-insight">
+  <div class="kicker">The insight · two layers</div>
+  <h2>Coordinated silence is a sensor.</h2>
+  <div class="cols">
+    <div class="panel accent">
+      <div class="lbl">Layer 1 — detection is aggregate</div>
+      <h3 class="sm">A grid of sentinel devices</h3>
+      <ul>
+        <li>municipal or operator-owned SIMs, one per cell — <b>never the public</b></li>
+        <li>read every 30 s through Congestion Insights and Device Reachability</li>
+        <li>the stable CAMARA endpoints are device-scoped, so a fixed SIM per cell is how an area-level read is built</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="lbl">Layer 2 — triage is consented</div>
+      <h3 class="sm">An opt-in registry</h3>
+      <ul>
+        <li>elderly, disabled, pilgrimage groups, lone workers — people who chose to be findable</li>
+        <li>queried <b>only inside a declared footprint</b>, and only for those who opted in</li>
+        <li>who is unreachable, and where they were last seen</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>detection touches no member of the public, ever</span><span>the register is held by the agency; operators honour it</span></div>
+</section>
+
+<!-- ============================================================= 10 hood -->
+<section class="card" id="c10-hood">
+  <div class="kicker">Under the hood · the agent, on LangGraph</div>
+  <h2 class="small">One signal never declares alone.</h2>
+  <div class="flow">
+    <span class="node">sense</span><span class="arr">→</span>
+    <span class="node">correlate</span><span class="arr">→</span>
+    <span class="node">exclude</span><span class="arr">→</span>
+    <span class="node key">declare</span><span class="arr">⇢</span>
+    <span class="node gate">triage</span><span class="arr">|</span>
+    <span class="node">hold</span><span class="arr">→</span>
+    <span class="node">brief → log</span>
+  </div>
+  <div class="cols" style="margin-top:44px">
+    <div class="panel">
+      <div class="lbl">Two gates — can veto, never cause</div>
+      <ul>
+        <li><b>contiguous silence</b> — a connected block at or above the size floor</li>
+        <li><b>local baseline</b> — the silence must be abnormal <i>here</i>, against these cells' own history</li>
+      </ul>
+    </div>
+    <div class="panel accent">
+      <div class="lbl">Corroborations — a list the arithmetic counts</div>
+      <ul>
+        <li><b>synchronised onset</b> · <b>hot ring</b> — two make HIGH, one MEDIUM, none abstains</li>
+        <li>a new network surface is an <b>append to that list</b>, not a redesign</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>the LLM writes the brief and nothing else — detection is deterministic and replayable</span><span>83 / 83 tests · 10 suites</span></div>
+</section>
+
+<!-- =========================================================== 11 parity -->
+<section class="card" id="c11-parity">
+  <div class="kicker">Honest boundaries · one agent, every backend</div>
+  <h2 class="small">The sandbox cannot stage a disaster.<br>So the seam is measured, not asserted.</h2>
+  <div class="checks">
+    <div class="check"><span class="n">01</span><span class="t">The agent stack <b>imports no SDK, constructs no gateway and names no simulated world</b> — read from the syntax tree<span class="badge pass">PASS</span></span></div>
+    <div class="check"><span class="n">02</span><span class="t">Exactly <b>one function</b> chooses the network; nothing else in the package names a backend<span class="badge pass">PASS</span></span></div>
+    <div class="check"><span class="n">03</span><span class="t">Every scene is recorded and replayed through <b>the same three parsing functions the live gateway uses</b> — evidence identical line for line<span class="badge pass">PASS</span></span></div>
+    <div class="check"><span class="n">04</span><span class="t">The recorded live transcript replays through the same agent <b>with no credentials</b> — the check anyone can repeat<span class="badge pend">PENDING A LIVE RUN</span></span></div>
+  </div>
+  <div class="note">The live platform proves the integration. The simulator proves the scenario. The risk was never the simulator —
+  it was a perceived discontinuity between the two paths, so the discontinuity is what gets measured.</div>
+  <div class="foot"><span>python -m nabd.parity</span><span>a PENDING check never reads as a pass</span></div>
+</section>
+
+<!-- ============================================================ 12 close -->
+<section class="card" id="c12-close">
+  <div class="kicker">One engine · many hazards</div>
+  <h2 class="small">The network already knows.<br>Nabd makes it say so — in the first minute.</h2>
+  <div class="cols three">
+    <div class="panel">
+      <div class="lbl">Impact</div>
+      <p>Earthquake, flood, storm, mass outage — to the network each is an area going dark. The first dispatch decision moves from hours to minutes.</p>
+    </div>
+    <div class="panel">
+      <div class="lbl">Who buys it</div>
+      <p>Civil-defence agencies, Red Crescent societies, municipalities, hospital networks — through the operator, as an Open Gateway impact feed.</p>
+    </div>
+    <div class="panel accent">
+      <div class="lbl">Roadmap</div>
+      <p>Geofencing for boundary events · QoD priority for responders inside the footprint · an aggregate network surface the day one ships.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Nabd · نبض · Kadir's Team · MENA Ignite 2026</span><span>Theme 6 — Climate Resilience &amp; Environmental Monitoring</span></div>
+</section>
+
+</body>
+</html>

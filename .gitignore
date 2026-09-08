@@ -54,3 +54,6 @@ Nabd-Demo.mp4
 
 # Raw CAMARA call dumps — regenerable with `python -m nabd.scene --calls`, ~4 MB
 nac/evidence/nabd-calls-*.jsonl
+
+# Video build intermediates - narration mp3s and 1080p stills, regenerable
+docs/video/build/
