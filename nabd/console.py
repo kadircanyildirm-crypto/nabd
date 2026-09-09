@@ -297,6 +297,34 @@ TEMPLATE = r"""<!doctype html>
   .dot { fill: #fff; stroke: var(--alert); stroke-width: 1.5; }
   .halo { fill: none; stroke: var(--alert); stroke-opacity: .45; stroke-width: 1; stroke-dasharray: 3 3; }
   .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; color: var(--muted); font-size: 12px; }
+  /* The key: a panel over the map, every symbol drawn as the map draws it. */
+  #keybtn { background: transparent; color: var(--muted); font: inherit; font-size: 11.5px;
+            border: 1px solid var(--line); border-radius: 6px; padding: 4px 11px; cursor: pointer; white-space: nowrap; }
+  #keybtn:hover, #keybtn.on { color: var(--text); border-color: var(--high); background: #1a2330; }
+  #mapkey { position: absolute; top: 44px; right: 8px; z-index: 3; width: min(1180px, calc(100% - 16px)); max-height: calc(100% - 52px);
+            columns: 3; column-gap: 22px; column-fill: balance;
+            overflow: auto; background: #0b1017f2; border: 1px solid var(--line); border-radius: 10px;
+            padding: 14px 16px 10px; box-shadow: 0 12px 40px #00000088; font-size: 12.5px; line-height: 1.45; }
+  #mapkey.hidden { display: none; }
+  #mapkey h4 { margin: 10px 0 5px; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+               color: var(--high); font-weight: 600; break-after: avoid; }
+  #mapkey .row, #mapkey .iso-scale, #mapkey .iso-lbls { break-inside: avoid; }
+  #mapkey .close { column-span: all; }
+  #mapkey h4:first-child { margin-top: 0; }
+  #mapkey h4 small { color: var(--muted); letter-spacing: 0; text-transform: none; font-weight: 400; margin-left: 8px; }
+  #mapkey .row { display: grid; grid-template-columns: 58px 1fr; gap: 10px; align-items: start; padding: 4px 0;
+                 border-bottom: 1px solid #1a2430; font-size: 12px; line-height: 1.4; }
+  #mapkey .row:last-child { border-bottom: 0; }
+  #mapkey .sym { width: 58px; height: 34px; }
+  #mapkey .sym svg { width: 58px; height: 34px; display: block; }
+  #mapkey b { color: var(--text); font-weight: 600; }
+  #mapkey .row span { color: var(--muted); display: block; }
+  #mapkey .close { float: right; background: none; border: 0; color: var(--muted); font-size: 16px; cursor: pointer;
+                   line-height: 1; padding: 0 2px; }
+  #mapkey .close:hover { color: var(--text); }
+  #mapkey .iso-scale { display: flex; gap: 0; margin: 6px 0 2px; border-radius: 4px; overflow: hidden; }
+  #mapkey .iso-scale i { flex: 1; height: 10px; display: block; }
+  #mapkey .iso-lbls { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); }
   /* The measured event is a second reading of the same map, not the map itself. */
   /* Map controls belong on the map, not in the key underneath it. */
   .mapctl { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; align-items: center;
@@ -444,9 +472,11 @@ TEMPLATE = r"""<!doctype html>
     <div class="mapview">
       <svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="mapctl">
+        <button id="keybtn" title="what every colour and line on the map means">Map key</button>
         <button id="detail" class="hidden" title="measured intensity contours and the fault rupture">Measured intensity</button>
         <span class="zoomer"><button id="zout" title="zoom out">−</button><button id="zlvl" title="back to the whole picture">1×</button><button id="zin" title="zoom in — drag the map to move, or roll the wheel over the spot you want">+</button></span>
       </div>
+      <div id="mapkey" class="hidden"></div>
     </div>
     <div class="legend">
       <span><i class="sw-low"></i>Normal</span>
@@ -530,6 +560,7 @@ TEMPLATE = r"""<!doctype html>
     $('evidence').textContent = `nabd-scene-${cur().name}.jsonl`;
     $('intensity').textContent = cur().geo ? ` · intensity USGS ShakeMap ${cur().geo.source.event}` : '';
     $('detail').classList.toggle('hidden', !cur().geo);
+    if (!$('mapkey').classList.contains('hidden')) drawKey();
     setZoom(0);
     show(0);
   }
@@ -1246,6 +1277,67 @@ TEMPLATE = r"""<!doctype html>
     svg.addEventListener('pointerup', end);
     svg.addEventListener('pointercancel', end);
   })();
+
+  // -- the key to the map ----------------------------------------------------
+  // Each swatch is an SVG using the map's own classes and patterns, so what is
+  // shown here is exactly what is drawn there.
+  function drawKey() {
+    const sw = inner => `<div class="sym"><svg viewBox="0 0 58 34">${inner}</svg></div>`;
+    const cell = cls => sw(`<rect x="6" y="3" width="46" height="28" fill="none" stroke="#2b3c4e"/><rect class="cell ${cls}" x="6" y="3" width="46" height="28"/>`);
+    const row = (sym, name, text) => `<div class="row">${sym}<div><b>${name}</b><span>${text}</span></div></div>`;
+    const streets = sw(`<path class="rd-local" d="M4 30 L22 10 L40 22 L56 6"/><path class="rd-major" d="M2 14 H56"/><path class="river" d="M6 4 C 20 18, 30 6, 54 30"/>`);
+    const win = sw(`<rect class="focus" x="0" y="0" width="58" height="34"/><rect x="12" y="6" width="34" height="22" fill="#0c1420"/><rect class="win" x="12" y="6" width="34" height="22"/>`);
+    const ruler = sw(`<rect class="ruler" x="4" y="4" width="50" height="12"/><path class="ruler-edge" d="M4 16 H54"/><path class="tick" d="M14 12 V16 M29 12 V16 M44 12 V16"/><text class="lbl" x="21.5" y="13" text-anchor="middle">6</text><text class="lbl" x="36.5" y="13" text-anchor="middle">7</text>`);
+    const dot = sw(`<circle class="halo" cx="29" cy="17" r="13"/><circle class="dot" cx="29" cy="17" r="4"/>`);
+    const fp = sw(`<path id="edge-key" class="fp" d="M8 6 H50 V28 H8 Z" style="stroke:var(--alert);stroke-width:3;fill:none"/>`);
+    const cand = sw(`<path d="M8 6 H50 V28 H8 Z" style="stroke:var(--cand);stroke-width:2.5;stroke-dasharray:6 4;fill:none"/>`);
+    const held = sw(`<path d="M8 6 H50 V28 H8 Z" style="stroke:var(--held);stroke-width:2;stroke-dasharray:4 4;fill:none"/>`);
+    const mnt = sw(`<rect class="cell c-dark" x="6" y="3" width="46" height="28"/><rect class="mnt" x="12" y="7" width="34" height="20" rx="2"/>`);
+    const iso = sw(`<path class="iso major" d="M2 28 C 16 4, 40 30, 56 8" stroke="#ffc600"/><path class="iso" d="M2 20 C 16 2, 38 24, 56 2" stroke="#ff9100"/>`);
+    const rup = sw(`<path class="rupture" d="M6 26 L52 8"/>`);
+    const geo = cur().geo;
+    const levels = geo ? geo.contours.map(l => [l.mmi, l.color]) : [];
+
+    let html = `<button class="close" title="close">×</button>`;
+    html += `<h4>The network<small>one reading per cell, every 30 s</small></h4>`;
+    html += row(cell('c-low'), 'Normal', 'The sentinel answers and the load is ordinary. Nothing is drawn \u2014 the street map showing through is the sign that all is well.');
+    html += row(cell('c-medium'), 'Medium load', 'Sparse yellow hatch. Congestion Insights reports the cell at Medium.');
+    html += row(cell('c-high'), 'High congestion', 'Dense orange crosshatch. The cell is saturated: everyone in reach is calling at once. Around a silent block this is the \u201chot ring\u201d.');
+    html += row(cell('c-dark'), 'Sentinel unreachable', 'Solid black. Device Reachability says the cell\u2019s sentinel does not answer. The streets beneath are dimmed, not removed.');
+    html += `<h4>The agent<small>what it claims, and what it refuses</small></h4>`;
+    html += row(fp, 'Declared footprint', 'Solid red outline around a contiguous block of silent cells the agent has declared an impact. Its confidence and area are on the red label.');
+    html += row(cand, 'Candidate', 'Yellow dashed outline. A block that looks like an impact, held for one more pass before anything is declared.');
+    html += row(held, 'Explained, held', 'Grey dashed outline. Silence the agent can account for: a single-cell fault, a maintenance ticket, or a block where silence is the local normal. No alert.');
+    html += row(mnt, 'Maintenance ticket', 'Dotted inset square. The operator\u2019s calendar says this cell is under planned work, so its silence is expected.');
+    html += `<h4>People<small>only inside a declared footprint, only opt-in</small></h4>`;
+    html += row(dot, 'Last-seen position', 'White dot: where the network last saw an unreachable opt-in registry member. The dashed red ring is that position\u2019s uncertainty radius in metres, from Location Retrieval.');
+    html += `<h4>The measured event<small>real events, with \u201cMeasured intensity\u201d on</small></h4>`;
+    html += row(iso, 'Isoseismals', 'USGS ShakeMap contours of estimated shaking intensity (MMI), in USGS\u2019s own colours; thicker lines are whole steps. A declared footprint should sit inside the VIII line \u2014 that is the check.');
+    if (levels.length) {
+      html += `<div class="iso-scale">${levels.map(([m, c]) => `<i style="background:${c}" title="MMI ${m}"></i>`).join('')}</div>`;
+      html += `<div class="iso-lbls"><span>MMI ${levels[0][0]} \u00b7 ${mmiWord(levels[0][0])}</span><span>MMI ${levels[levels.length - 1][0]} \u00b7 ${mmiWord(levels[levels.length - 1][0])}</span></div>`;
+    }
+    html += row(rup, 'Fault rupture', 'White dashed line: the surface projection of the finite fault from the same ShakeMap. The reason a footprint is a band and not a circle.');
+    html += `<h4>The map</h4>`;
+    html += row(streets, 'Streets and water', 'Grey-blue lines are roads, thicker for the trunk network; blue lines are rivers and wadis; blue fills are lakes and reservoirs. OpenStreetMap.');
+    html += row(win, 'Monitored window', 'The thin rectangle is the area the sentinel grid watches. Outside it the map is context and is stepped back a little.');
+    html += row(ruler, 'Grid reference', 'The ruled margin names rows A\u2013J and columns 1\u201310, so a cell is F6. It follows the view when the window\u2019s own edge is zoomed off-screen.');
+    $('mapkey').innerHTML = html;
+    $('mapkey').querySelector('.close').onclick = () => toggleKey(false);
+  }
+
+  function mmiWord(m) {
+    const w = { 4: 'light', 5: 'moderate', 6: 'strong', 7: 'very strong', 8: 'severe', 9: 'violent', 10: 'extreme' };
+    return w[Math.round(m)] || '';
+  }
+
+  function toggleKey(force) {
+    const on = force == null ? $('mapkey').classList.contains('hidden') : force;
+    if (on) drawKey();
+    $('mapkey').classList.toggle('hidden', !on);
+    $('keybtn').classList.toggle('on', on);
+  }
+  $('keybtn').onclick = () => toggleKey();
 
   $('detail').onclick = () => {
     detail = !detail;
