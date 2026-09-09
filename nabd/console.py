@@ -211,9 +211,9 @@ TEMPLATE = r"""<!doctype html>
   .road   { fill: none; stroke: #2f3b48; stroke-width: 1.2; stroke-linecap: round; }
   /* A city reads by its street hierarchy: the trunk roads first, then the grid
      of everything else underneath them. */
-  .rd-local { fill: none; stroke: #1c2836; stroke-width: .7; stroke-linecap: round; }
-  .rd-minor { fill: none; stroke: #2b3a4a; stroke-width: 1.1; stroke-linecap: round; }
-  .rd-major { fill: none; stroke: #46586c; stroke-width: 1.9; stroke-linecap: round; }
+  .rd-local { fill: none; stroke: #3b5065; stroke-width: .8; stroke-linecap: round; }
+  .rd-minor { fill: none; stroke: #55697e; stroke-width: 1.1; stroke-linecap: round; }
+  .rd-major { fill: none; stroke: #7f96ac; stroke-width: 1.9; stroke-linecap: round; }
   .rail     { fill: none; stroke: #3a4452; stroke-width: 1.1; stroke-dasharray: 5 4; }
   .water    { fill: #14384b; stroke: #1d4a63; stroke-width: .8; }
   .placelbl { font-family: var(--mono); font-size: 9px; fill: #7f93a6; paint-order: stroke;
@@ -236,9 +236,10 @@ TEMPLATE = r"""<!doctype html>
      the layer is softened, so a pass reads as the network changing rather than a
      chessboard being repainted. */
   .cell { stroke: none; transition: fill .55s cubic-bezier(.4,0,.2,1); }
-  .c-low { fill: #2f6d9e2e; } .c-medium { fill: #b8892255; } .c-high { fill: #e08a2e85; }
+  .c-low { fill: #2f6d9e33; } .c-medium { fill: #b8892242; } .c-high { fill: #e08a2e5c; }
   .c-unmon { fill: #141a2226; }
   .c-dark { fill: #01030699; }
+  .c-clear { fill: #00000000; }
   .fpfill { fill: var(--alert); fill-opacity: 0; transition: fill-opacity .55s cubic-bezier(.4,0,.2,1); }
   .fpfill.on { fill-opacity: .10; }
   .fpfill.cand { fill: var(--cand); fill-opacity: .12; }
@@ -537,9 +538,31 @@ TEMPLATE = r"""<!doctype html>
       const bucket = key.split('.').reduce((o, p) => (o || {})[p], src) || [];
       bucket.forEach(l => out.push(`<path class="${cls}" d="${line(decode(l, src.scale))}"/>`));
     };
+    // Water is ground, so it goes down before the readings; the roads come back
+    // over the top of them.
     if (isCity) {
       const city = DATA.cityBase;
       if (city) city.water.forEach(l => out.push(`<path class="water" d="${line(decode(l, city.scale))}Z"/>`));
+    } else {
+      const region = DATA.regionBase;
+      if (region) region.water.forEach(l => out.push(`<path class="water" d="${line(decode(l, region.scale))}Z"/>`));
+    }
+    out.push('</g>');
+
+    const field = (id, cls) => {
+      out.push(`<g clip-path="url(#winclip)" filter="url(#soften)"><g id="${id}">`);
+      g.cells.forEach(c => out.push(
+        `<rect class="cell ${cls}" data-k="${c.row * g.cols + c.col}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"><title>${c.id} · ${c.lat.toFixed(4)}N ${c.lon.toFixed(4)}E</title></rect>`));
+      out.push('</g></g>');
+    };
+
+    // -- how loaded the network is: a wash under the streets it describes ----
+    field('cells', 'c-unmon');
+
+    // -- the streets, over the wash -----------------------------------------
+    out.push('<g clip-path="url(#viewclip)">');
+    if (isCity) {
+      const city = DATA.cityBase;
       layer(city, 'roads.local', 'rd-local');
       layer(city, 'roads.minor', 'rd-minor');
       layer(city, 'roads.major', 'rd-major');
@@ -547,22 +570,22 @@ TEMPLATE = r"""<!doctype html>
       layer(city, 'rail', 'rail');
     } else {
       const region = DATA.regionBase, mid = DATA.midBase;
-      if (region) region.water.forEach(l => out.push(`<path class="water" d="${line(decode(l, region.scale))}Z"/>`));
-      // Each step in reveals the tier below: the between-towns network at 2x,
-      // the streets themselves at 4x, wherever they exist.
-      if (ZOOM >= 4) layer(DATA.cityBase, 'roads.local', 'rd-local');
-      if (ZOOM >= 4) layer(DATA.cityBase, 'roads.minor', 'rd-minor');
-      if (ZOOM >= 2) layer(mid, 'roads.minor', 'rd-local');
+      // The city scenes look the way they do because the ground under them is
+      // dense. The region gets the same treatment from the start: the whole
+      // between-towns network, not just the trunk roads, so the map has texture
+      // to read the footprint against. Zooming in then adds the streets.
+      layer(DATA.cityBase, 'roads.local', 'rd-local');
+      layer(DATA.cityBase, 'roads.minor', 'rd-minor');
+      layer(mid, 'roads.minor', 'rd-local');
       layer(region, 'roads.major', 'rd-major');
       layer(region, 'streams', 'river');
     }
     out.push('</g>');
 
-    // -- the readings, softened into a field --------------------------------
-    out.push('<g clip-path="url(#winclip)" filter="url(#soften)"><g id="cells">');
-    g.cells.forEach(c => out.push(
-      `<rect class="cell c-unmon" data-k="${c.row * g.cols + c.col}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"><title>${c.id} · ${c.lat.toFixed(4)}N ${c.lon.toFixed(4)}E</title></rect>`));
-    out.push('</g><g id="fpfills">');
+    // -- what has gone dark, over everything: it is an absence, not a tint ---
+    field('dark', 'c-clear');
+
+    out.push('<g clip-path="url(#winclip)" filter="url(#soften)"><g id="fpfills">');
     g.cells.forEach(c => out.push(
       `<rect class="fpfill" data-id="${c.id}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"/>`));
     out.push('</g></g>');
@@ -622,6 +645,7 @@ TEMPLATE = r"""<!doctype html>
     svg.innerHTML = out.join('');
     MAP = { scene: cur().name, w: Math.round(svg.getBoundingClientRect().width), OX, W, H,
             cells: [...svg.querySelectorAll('#cells rect')],
+            dark: [...svg.querySelectorAll('#dark rect')],
             fills: new Map([...svg.querySelectorAll('#fpfills rect')].map(r => [r.dataset.id, r])) };
   }
 
@@ -634,7 +658,13 @@ TEMPLATE = r"""<!doctype html>
 
     // -- the field ----------------------------------------------------------
     MAP.cells.forEach((rect, k) => {
-      rect.setAttribute('class', 'cell ' + CLASS[(rec.grid || '')[k] || 'x']);
+      const ch = (rec.grid || '')[k] || 'x';
+      // Under the streets: how loaded the cell is. A dark cell has no reading at
+      // all, so it shows as unmonitored here and as black in the layer above.
+      rect.setAttribute('class', 'cell ' + (ch === 'D' ? 'c-unmon' : CLASS[ch]));
+    });
+    MAP.dark.forEach((rect, k) => {
+      rect.setAttribute('class', 'cell ' + ((rec.grid || '')[k] === 'D' ? 'c-dark' : 'c-clear'));
     });
 
     // -- what the verdict claims, as a tint that grows ----------------------
