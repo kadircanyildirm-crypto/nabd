@@ -145,6 +145,24 @@ class Flaky:
 
 
 @dataclass(frozen=True)
+class Dropout:
+    """Sentinels that fail on their own, at random, one at a time.
+
+    Real fixed devices do this: a SIM loses registration for a pass, a modem
+    reboots, a meter's battery dips. None of it is an impact, and a detector
+    that cannot live with it would cry wolf every morning. Each cell is
+    unreachable on each pass independently with probability `rate`, drawn from
+    the world's seed so a run is repeatable.
+    """
+
+    rate: float
+    t0: float = 0.0
+
+    def dark(self, world: "World", cell_id: str, t: float) -> bool:
+        return t >= self.t0 and world._unit("dropout", cell_id, int(t // 30)) < self.rate
+
+
+@dataclass(frozen=True)
 class Rupture:
     """Outage driven by a measured intensity field instead of a drawn shape.
 
@@ -184,7 +202,7 @@ class Rupture:
         return None
 
 
-Event = Quake | CellFault | Peak | Flaky | Rupture
+Event = Quake | CellFault | Peak | Flaky | Dropout | Rupture
 
 
 class World:
@@ -219,6 +237,8 @@ class World:
             if isinstance(ev, CellFault) and ev.t0 <= t < ev.t1 and cell_id == ev.cell:
                 return Reach.UNREACHABLE, Level.UNKNOWN
             if isinstance(ev, Flaky) and cell_id in ev.cells and ev.dark_at(t):
+                return Reach.UNREACHABLE, Level.UNKNOWN
+            if isinstance(ev, Dropout) and ev.dark(self, cell_id, t):
                 return Reach.UNREACHABLE, Level.UNKNOWN
             if isinstance(ev, Rupture):
                 dark_at = ev.dark_from(cell_id)

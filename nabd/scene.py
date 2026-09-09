@@ -22,6 +22,7 @@ in the centre falls silent at once while the ring around it goes to High.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from dataclasses import dataclass, field
 
@@ -252,13 +253,17 @@ def build(name: str, seed: int = 7) -> Scenario:
     return BUILDERS[name](seed)
 
 
-def make_runner(runner: str, gateway, scenario: Scenario, name: str | None = None):
+def make_runner(runner: str, gateway, scenario: Scenario, name: str | None = None, composer=None):
+    # The composer is the one place a language model is allowed in, and it is
+    # bound here and nowhere else. None means the template: the offline demo
+    # never waits on a network. See nabd/llm.py for what a bound model may do.
     kwargs = dict(
         gateway=gateway,
         grid=scenario.world.grid,
         registry=scenario.world.registry,
         calendar=scenario.calendar,
         name=name or f"nabd-scene-{scenario.name}",
+        composer=composer,
     )
     if runner == "loop":
         from nabd.loop import NabdLoop
@@ -269,10 +274,10 @@ def make_runner(runner: str, gateway, scenario: Scenario, name: str | None = Non
     return NabdGraph(**kwargs)
 
 
-def run(scenario: Scenario, runner: str = "graph", verbose: bool = False, out=None):
+def run(scenario: Scenario, runner: str = "graph", verbose: bool = False, out=None, composer=None):
     """Run one scenario to the end. Returns (log, gateway)."""
     gateway = build_gateway("offline", world=scenario.world)
-    agent = make_runner(runner, gateway, scenario)
+    agent = make_runner(runner, gateway, scenario, composer=composer)
     pending = sorted(scenario.beats, key=lambda b: b.t)
     t = 0.0
     while t <= scenario.duration_s:
@@ -386,8 +391,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--calls", action="store_true", help="also write every raw CAMARA call to nac/evidence/")
     parser.add_argument("--console", action="store_true", help="rebuild nabd/replay.html from the evidence afterwards")
+    parser.add_argument("--llm", choices=["groq", "gemini", "openrouter", "ollama"],
+                        help="let a language model phrase the brief (guarded: it may not invent a number); "
+                             "needs the provider's key in the environment, see nabd/llm.py")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
+
+    composer = None
+    if args.llm:
+        os.environ["NABD_LLM"] = args.llm
+    if args.llm or os.environ.get("NABD_LLM"):
+        from nabd.llm import from_env
+
+        composer = from_env(report=sys.stderr)
 
     if args.backend == "live":
         run_live(out=sys.stdout)
@@ -402,7 +418,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\n" + "═" * 66)
         print(f"  NABD · scene: {name}  ·  runner: {args.runner}  ·  {clock(0)} at {KAHRAMANMARAS[0]:.3f}N {KAHRAMANMARAS[1]:.3f}E")
         print("═" * 66)
-        log, gateway = run(scenario, runner=args.runner, verbose=args.verbose, out=sys.stdout)
+        log, gateway = run(scenario, runner=args.runner, verbose=args.verbose, out=sys.stdout, composer=composer)
         _print_summary(log, gateway, scenario, sys.stdout)
         path = log.write()
         print(f"  evidence      {path.name}", end="")

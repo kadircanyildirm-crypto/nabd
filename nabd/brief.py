@@ -50,48 +50,60 @@ def facts(verdict: Verdict, triage: TriageResult | None, grid: Grid) -> dict[str
 
 
 def compose(verdict: Verdict, triage: TriageResult | None, grid: Grid, llm: Composer | None = None) -> str:
+    """The sentence for this pass: the model's if one is bound, else the template's.
+
+    Both are given the same facts. `nabd.llm.guarded` is what makes binding a
+    model safe — it reads the sentence back against these facts and lets the
+    template speak instead if the model added a number of its own.
+    """
     f = facts(verdict, triage, grid)
     if llm is not None:
         return llm(f)
-    kind = verdict.kind
+    return template(f)
+
+
+def template(f: dict[str, Any]) -> str:
+    """The fixed phrasing of a pass's facts. Never waits on a network."""
+    kind = Kind(f["kind"])
+    cells = f["cells"]
     if kind is Kind.QUIET:
         return ""
     if kind is Kind.CANDIDATE:
         return (
-            f"Possible impact footprint over {len(verdict.cells)} cells "
-            f"({verdict.cells[0]}–{verdict.cells[-1]}); holding one pass for confirmation before alerting."
+            f"Possible impact footprint over {len(cells)} cells "
+            f"({cells[0]}–{cells[-1]}); holding one pass for confirmation before alerting."
         )
     if kind is Kind.ABSTAIN:
-        return f"No alert. {verdict.reason}."
+        return f"No alert. {f['reason']}."
     if kind is Kind.CLEAR:
         return "Footprint cleared: every cell is answering again."
     if kind in (Kind.DECLARE, Kind.UPDATE):
         head = "Impact footprint declared" if kind is Kind.DECLARE else "Footprint updated"
         c = f["centre"]
         text = (
-            f"{head}: {len(verdict.cells)} cells, about {f['area_km2']} km², "
+            f"{head}: {len(cells)} cells, about {f['area_km2']} km², "
             f"centred {c['lat']:.4f}N {c['lon']:.4f}E, confidence {f['confidence']}. "
-            f"Signals: {'; '.join(verdict.signals)}."
+            f"Signals: {'; '.join(f['signals'])}."
         )
-        return text + _registry_sentence(triage)
+        return text + _registry_sentence(f.get("registry"))
     # SUSTAIN
-    return f"Footprint holds ({len(verdict.cells)} cells)." + _registry_sentence(triage)
+    return f"Footprint holds ({len(cells)} cells)." + _registry_sentence(f.get("registry"))
 
 
-def _registry_sentence(triage: TriageResult | None) -> str:
-    if triage is None:
+def _registry_sentence(reg: dict[str, Any] | None) -> str:
+    if reg is None:
         return ""
-    if triage.inside == 0:
+    if reg["inside"] == 0:
         return " No registered people inside the footprint."
-    text = f" Registry: {triage.inside} opted-in people inside, {triage.unreachable} unreachable."
-    first = triage.top(3)
+    text = f" Registry: {reg['inside']} opted-in people inside, {reg['unreachable']} unreachable."
+    first = reg.get("first") or []
     if first:
         parts = []
         for e in first:
             seen = ""
-            if e.location is not None:
-                seen = f", last seen {_age(e.location.age_s)} ago within {e.location.radius_m} m"
-            parts.append(f"{e.person} ({e.vulnerability.value}, {e.cell}{seen})")
+            if e.get("last_seen_age_s") is not None:
+                seen = f", last seen {_age(e['last_seen_age_s'])} ago within {e['radius_m']} m"
+            parts.append(f"{e['person']} ({e['class']}, {e['cell']}{seen})")
         text += " First to reach: " + "; ".join(parts) + "."
     return text
 
