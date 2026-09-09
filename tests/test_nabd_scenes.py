@@ -106,7 +106,7 @@ def test_degraded_scene_suppresses_chronic_silence_and_still_declares():
 def test_privacy_gate_is_stated_on_every_pass_and_matches_the_calls():
     """Every record says what the personal-data path did, and the count is checkable."""
     total_personal = 0
-    for name in ("quiet", "quake", "noise", "degraded", "maras"):
+    for name in ("quiet", "quake", "noise", "degraded", "maras", "atlas"):
         scenario, log, gateway = _records(name)
         registry = {p.msisdn for p in scenario.world.registry}
         for r in log.records:
@@ -156,15 +156,16 @@ def test_console_is_a_view_over_the_evidence():
     start = html.index('<script id="data" type="application/json">') + len('<script id="data" type="application/json">')
     data = json.loads(html[start : html.index("</script>", start)])  # "<\/" is plain JSON escaping
     names = [s["name"] for s in data["scenes"]]
-    assert names == ["quiet", "quake", "noise", "degraded", "maras"], names
+    assert names == ["quiet", "quake", "noise", "degraded", "maras", "atlas"], names
     quake = next(s for s in data["scenes"] if s["name"] == "quake")
     assert all(len(r["grid"]) == 100 for r in quake["records"]), "every pass carries the full grid"
     declared = next(r for r in quake["records"] if r["kind"] == "DECLARE")
     assert declared["grid"].count("D") == 9 and declared["grid"].count("H") >= 16
-    # A ceiling, not a target. The console carries its own base map — six thousand
-    # streets of Kahramanmaraş and the trunk network of the region — because it has
-    # to open with no network at all. Two megabytes is the budget for that; if a
-    # change pushes past it, the question is what got added, not where the limit is.
+    # A ceiling, not a target. The console carries its own base maps — six thousand
+    # streets of Kahramanmaraş, the trunk network of two regions and the wadis of
+    # the High Atlas — because it has to open with no network at all. Two megabytes
+    # is the budget for that; if a change pushes past it, the question is what got
+    # added, not where the limit is.
     assert out.stat().st_size < 2_000_000, f"{out.stat().st_size:,} bytes"
     print(f"        {out.stat().st_size // 1024} KB, {sum(len(s['records']) for s in data['scenes'])} passes inlined")
 

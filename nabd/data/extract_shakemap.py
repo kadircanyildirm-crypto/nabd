@@ -3,6 +3,10 @@
 
     python nabd/data/extract_shakemap.py path/to/grid.xml
 
+The event is read out of the grid itself and looked up in EVENTS below, so the
+same command handles every earthquake the project carries. Adding one is a row
+in that table: the window to watch, and the product it came from.
+
 The published grid is 28 MB and 468,000 nodes; Nabd needs a hundred numbers.
 This script does the reduction once and writes `shakemap-us6000jllz.json`, which
 is what the package reads. It is committed alongside the extract so the number
@@ -30,18 +34,32 @@ import sys
 from datetime import date
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent / "shakemap-us6000jllz.json"
+HERE = Path(__file__).resolve().parent
+ROW_LETTERS = "ABCDEFGHIJKLMNOPQRST"
 
-# The window Nabd monitors: a 10x10 grid of 10 km cells over Kahramanmaraş and
-# the northern half of the rupture. Chosen because it is the scale at which the
-# question "which district first" is actually asked, and because the measured
-# field varies across it — MMI 6 to nearly 9 — rather than being uniform.
-CENTRE = (37.55, 37.05)
-ROWS = COLS = 10
-SPACING_KM = 10.0
-ROW_LETTERS = "ABCDEFGHIJ"
-
-PRODUCT = "https://earthquake.usgs.gov/product/shakemap/us6000jllz/us/1756921940993/download/grid.xml"
+# Each window is a 10x10 grid of 10 km cells, chosen at the scale the question
+# "which district first" is actually asked at, and placed so the measured field
+# varies across it — a window that is uniformly ruined or uniformly fine tests
+# nothing.
+EVENTS = {
+    "us6000jllz": {
+        "centre": (37.55, 37.05),
+        "rows": 10, "cols": 10, "spacing_km": 10.0,
+        "where": "Kahramanmaraş and the northern half of the rupture",
+        "product": "https://earthquake.usgs.gov/product/shakemap/us6000jllz/us/1756921940993/download/grid.xml",
+    },
+    # The High Atlas above Marrakesh. Placed to hold both halves of what made
+    # this event what it was: the mountain douars along the rupture, where the
+    # roads were cut by landslides and nobody knew for days which had gone, and
+    # Marrakesh itself in the north — a city of a million people that was shaken
+    # hard enough to be on every television in the world and still answered.
+    "us7000kufc": {
+        "centre": (31.28, -8.28),
+        "rows": 10, "cols": 10, "spacing_km": 10.0,
+        "where": "the High Atlas from Amizmiz to Talat N'Yaaqoub, with Marrakesh in the north",
+        "product": "https://earthquake.usgs.gov/product/shakemap/us7000kufc/us/1699242609676/download/grid.xml",
+    },
+}
 
 
 def load(path: Path):
@@ -62,6 +80,13 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     a, ev, values = load(Path(argv[1]))
+    event_id = argv[2] if len(argv) > 2 else ev.get("event_id")
+    if event_id not in EVENTS:
+        print(f"unknown event {event_id!r}; add a window for it to EVENTS", file=sys.stderr)
+        return 2
+    win = EVENTS[event_id]
+    CENTRE, ROWS, COLS, SPACING_KM = win["centre"], win["rows"], win["cols"], win["spacing_km"]
+    OUT = HERE / f"shakemap-{event_id}.json"
     lon0, lon1 = float(a["lon_min"]), float(a["lon_max"])
     lat0, lat1 = float(a["lat_min"]), float(a["lat_max"])
     nlon, nlat = int(a["nlon"]), int(a["nlat"])
@@ -105,7 +130,7 @@ def main(argv: list[str]) -> int:
             "intensity_observations": int(ev.get("intensity_observations", 0)),
         },
         "source": {
-            "product": PRODUCT,
+            "product": win["product"],
             "shakemap_version": None,
             "retrieved": date.today().isoformat(),
             "note": "MMI is ShakeMap's estimated intensity field, constrained by the stations and "
@@ -116,6 +141,7 @@ def main(argv: list[str]) -> int:
             "rows": ROWS,
             "cols": COLS,
             "spacing_km": SPACING_KM,
+            "where": win["where"],
             "sampling": "mean of the published lattice nodes falling inside each cell",
         },
         "mmi": cells,

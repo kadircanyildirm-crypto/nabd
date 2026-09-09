@@ -69,11 +69,20 @@ class State:
     # its own footprint is normal.
     passes_observed: int = 0
     dark_passes: dict[str, int] = field(default_factory=dict)
+    # ...and how many of those the cell has been dark for *without interruption*,
+    # up to now. An outage that is still running is the thing being judged, not
+    # evidence about what is normal, so it is taken back out below.
+    dark_run: dict[str, int] = field(default_factory=dict)
+
+    def baseline(self, cell: str) -> tuple[int, int]:
+        """(ordinary passes, of which dark) — discounting the silence running now."""
+        run = self.dark_run.get(cell, 0)
+        return (max(0, self.passes_observed - run),
+                max(0, self.dark_passes.get(cell, 0) - run))
 
     def dark_rate(self, cell: str) -> float:
-        if self.passes_observed == 0:
-            return 0.0
-        return self.dark_passes.get(cell, 0) / self.passes_observed
+        observed, dark = self.baseline(cell)
+        return dark / observed if observed else 0.0
 
 
 @dataclass(frozen=True)
@@ -320,8 +329,12 @@ def apply(verdict: Verdict, corr: Correlation, state: State, policy: Policy, t: 
     # teaching the detector that the disaster it is watching is normal.
     if not state.footprint:
         state.passes_observed += 1
+        for cell in list(state.dark_run):
+            if cell not in dark:
+                del state.dark_run[cell]
         for cell in dark:
             state.dark_passes[cell] = state.dark_passes.get(cell, 0) + 1
+            state.dark_run[cell] = state.dark_run.get(cell, 0) + 1
 
     if verdict.kind in (Kind.CANDIDATE, Kind.DECLARE, Kind.UPDATE) or (
         verdict.kind is Kind.SUSTAIN and verdict.signals
@@ -451,26 +464,31 @@ def gate_local_baseline(ctx: SignalContext) -> Evidence:
     defence: silence is only news where silence is not the local normal.
     """
     state, policy = ctx.state, ctx.policy
-    if state.passes_observed < policy.baseline_min_passes:
+    # Every count here sets aside the unbroken silence running now, so the gate
+    # is asked about the cells' ordinary life rather than about the outage it is
+    # being shown. Judged on the cluster's median, so one odd cell cannot carry
+    # or sink the block.
+    stats = [state.baseline(c) for c in ctx.cluster]
+    ordinary = sorted(o for o, _ in stats)[len(stats) // 2]
+    if ordinary < policy.baseline_min_passes:
         return Evidence(
             "local-baseline", "gate", True,
-            f"no local baseline yet ({state.passes_observed} passes observed) — not enough history to call this normal",
+            f"no local baseline yet ({ordinary} ordinary passes observed) — not enough history to call this normal",
             "Device Reachability Status",
         )
-    rates = [state.dark_rate(c) for c in ctx.cluster]
-    typical = sorted(rates)[len(rates) // 2]
-    dark_counts = sum(state.dark_passes.get(c, 0) for c in ctx.cluster) / len(ctx.cluster)
+    typical = sorted(state.dark_rate(c) for c in ctx.cluster)[len(ctx.cluster) // 2]
+    dark_counts = sum(d for _, d in stats) / len(stats)
     if typical >= policy.baseline_dark_rate:
         return Evidence(
             "local-baseline", "gate", False,
             f"silence is the local baseline: these {len(ctx.cluster)} cells were already unreachable in "
-            f"{dark_counts:.0f} of the last {state.passes_observed} passes ({typical:.0%} of the time)",
+            f"{dark_counts:.0f} of the last {ordinary} ordinary passes ({typical:.0%} of the time)",
             "Device Reachability Status",
         )
     return Evidence(
         "local-baseline", "gate", True,
         f"against local baseline: these cells were unreachable in {dark_counts:.1f} of the last "
-        f"{state.passes_observed} passes ({typical:.0%}) — this silence is abnormal here",
+        f"{ordinary} ordinary passes ({typical:.0%}) — this silence is abnormal here",
         "Device Reachability Status",
     )
 

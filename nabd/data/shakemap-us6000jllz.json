@@ -16,7 +16,7 @@
  "source": {
   "product": "https://earthquake.usgs.gov/product/shakemap/us6000jllz/us/1756921940993/download/grid.xml",
   "shakemap_version": 19,
-  "retrieved": "2026-09-08",
+  "retrieved": "2026-09-09",
   "note": "MMI is ShakeMap's estimated intensity field, constrained by the stations and intensity observations above. It is a model, not a measurement at every point."
  },
  "window": {
@@ -27,6 +27,7 @@
   "rows": 10,
   "cols": 10,
   "spacing_km": 10.0,
+  "where": "Kahramanmaraş and the northern half of the rupture",
   "sampling": "mean of the published lattice nodes falling inside each cell"
  },
  "mmi": {

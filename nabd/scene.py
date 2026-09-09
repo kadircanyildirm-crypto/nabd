@@ -153,6 +153,70 @@ def _degraded(seed: int) -> Scenario:
     )
 
 
+def _measured(event: str, seed: int):
+    """The common half of a real-event scene: a world driven by a ShakeMap.
+
+    Both real scenes are built from here, with the same thresholds, so the
+    second one is a held-out test rather than a second calibration. What
+    differs between them is the window, the intensity field, and what there is
+    to say about the place — never the rule.
+    """
+    from nabd import shakemap
+
+    sm = shakemap.load(event)
+    grid = sm.grid()
+    registry = make_registry(grid, seed=seed)
+    onset = 125.0
+    rupture = Rupture(onset, sm.mmi)
+    world = World(grid, registry, events=(rupture,), seed=seed)
+    collapse = sm.band(rupture.collapse_mmi)
+    battery = sm.band(rupture.power_mmi, rupture.collapse_mmi)
+    eventual = (len(collapse) + len(battery)) / len(sm.mmi)
+    return sm, grid, registry, onset, rupture, world, collapse, battery, eventual
+
+
+def _real_scenario(name, sm, world, beats, onset, collapse, battery, eventual) -> Scenario:
+    return Scenario(
+        name, world, (), beats, duration_s=900,
+        core=collapse, onset_t=onset,
+        extra={"shakemap": sm.citation, "collapse": collapse, "battery": battery, "eventual": eventual},
+    )
+
+
+def _atlas(seed: int) -> Scenario:
+    """The second real one: Al Haouz, Morocco, 8 September 2023.
+
+    The point of this scene is what was *not* done to it. The thresholds that
+    turn shaking into silence were calibrated against what Turkcell reported
+    from Kahramanmaraş, and they are carried over here untouched; the window is
+    a different country, a different terrain and a different kind of
+    earthquake, and the detector is the same detector.
+
+    What comes out is not a copy of the first scene. An M6.8 at 19 km under the
+    High Atlas puts almost nothing above the collapse threshold — a three-cell
+    core around the epicentre, right on the size floor — and spreads a wide band
+    of 7-to-8 across the mountain instead. So the first map is small and late in
+    growing, and the footprint arrives mostly through the batteries. That is a
+    harder shape to read than a compact block, and it is the shape the real
+    event had.
+
+    Marrakesh sits in the north of the window at about intensity 6. It was on
+    every television in the world and its cells answer for the whole scene,
+    which is the distinction the product is for: what was shaken is not what
+    was cut off.
+    """
+    from nabd import shakemap
+
+    sm, grid, registry, onset, rupture, world, collapse, battery, eventual = _measured(shakemap.AL_HAOUZ, seed)
+    beats = [
+        Beat(0, f"{clock(0)} — {len(grid.monitored())} cells of {sm.window['spacing_km']:.0f} km monitored across {sm.window['where']}. {len(registry)} people on the opt-in registry. Intensity per cell: {sm.citation}."),
+        Beat(onset, f"{clock(onset)} — the earthquake. In the real event this is 08 Sep 2023, 22:11:01 UTC — twenty past eleven on a Friday night. The thresholds are the ones calibrated on Kahramanmaraş and they have not been touched: only {len(collapse)} cells sit above intensity {rupture.collapse_mmi:.0f} here, and another {len(battery)} are between {rupture.power_mmi:.0f} and {rupture.collapse_mmi:.0f} and now running on battery."),
+        Beat(onset + 180, f"{clock(onset + 180)} — a magnitude 6.8 at 19 km spreads its damage instead of concentrating it, so the first map is small and the footprint arrives through the batteries rather than through the shaking. Marrakesh, in the north of the window, is shaken hard enough to be on every television in the world and answers throughout."),
+        Beat(onset + 600, f"{clock(onset + 600)} — {eventual:.0%} of the monitored window is dark. This ShakeMap is constrained by {sm.event['seismic_stations']} seismic stations against 262 for Kahramanmaraş: in the mountains the ground truth arrives late and thin, which is exactly the gap the network is already talking through."),
+    ]
+    return _real_scenario("atlas", sm, world, beats, onset, collapse, battery, eventual)
+
+
 def _maras(seed: int) -> Scenario:
     """The real one: 6 February 2023, run over the measured ground motion.
 
@@ -170,30 +234,18 @@ def _maras(seed: int) -> Scenario:
     """
     from nabd import shakemap
 
-    sm = shakemap.load()
-    grid = sm.grid()
-    registry = make_registry(grid, seed=seed)
-    onset = 125.0
-    rupture = Rupture(onset, sm.mmi)
-    world = World(grid, registry, events=(rupture,), seed=seed)
-
-    collapse = sm.band(rupture.collapse_mmi)
-    battery = sm.band(rupture.power_mmi, rupture.collapse_mmi)
-    eventual = (len(collapse) + len(battery)) / len(sm.mmi)
+    sm, grid, registry, onset, rupture, world, collapse, battery, eventual = _measured(shakemap.KAHRAMANMARAS, seed)
     beats = [
-        Beat(0, f"{clock(0)} — {len(grid.monitored())} cells of {sm.window['spacing_km']:.0f} km monitored across Kahramanmaraş and the northern half of the rupture. {len(registry)} people on the opt-in registry. Intensity per cell: {sm.citation}."),
+        Beat(0, f"{clock(0)} — {len(grid.monitored())} cells of {sm.window['spacing_km']:.0f} km monitored across {sm.window['where']}. {len(registry)} people on the opt-in registry. Intensity per cell: {sm.citation}."),
         Beat(onset, f"{clock(onset)} — the earthquake. In the real event this is 06 Feb 2023, 01:17:34 UTC. {len(collapse)} cells sit above intensity {rupture.collapse_mmi:.0f}, where masts come down with the buildings they are mounted on; another {len(battery)} are shaken hard enough to lose mains power and are now running on battery."),
         Beat(onset + 180, f"{clock(onset + 180)} — the batteries begin to fail, worst-shaken first. The footprint is not a fixed shape; it grows as the network dies, which is what the field reports describe and what the map has to be allowed to do."),
         Beat(onset + 600, f"{clock(onset + 600)} — {eventual:.0%} of the monitored window is dark. Turkcell reported that more than half of local base stations were inoperative and sent ~250 portable ones; that is the figure these thresholds are calibrated against."),
     ]
-    return Scenario(
-        "maras", world, (), beats, duration_s=900,
-        core=collapse, onset_t=onset,
-        extra={"shakemap": sm.citation, "collapse": collapse, "battery": battery, "eventual": eventual},
-    )
+    return _real_scenario("maras", sm, world, beats, onset, collapse, battery, eventual)
 
 
-BUILDERS = {"quiet": _quiet, "quake": _quake, "noise": _noise, "degraded": _degraded, "maras": _maras}
+BUILDERS = {"quiet": _quiet, "quake": _quake, "noise": _noise, "degraded": _degraded,
+            "maras": _maras, "atlas": _atlas}
 
 
 def build(name: str, seed: int = 7) -> Scenario:

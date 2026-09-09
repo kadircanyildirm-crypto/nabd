@@ -57,6 +57,27 @@ def encode(points: list[tuple[float, float]], step: int = MIN_STEP) -> list[int]
     return out if len(out) >= 4 else None
 
 
+def label(tags: dict) -> str | None:
+    """A name the console's monospace font can actually draw.
+
+    Moroccan places carry three scripts in one `name` tag — "Imlil ⵉⵎⵍⵉⵍ إمليل" —
+    and Tifinagh comes out of a terminal font as a row of boxes. Where the local
+    name is already Latin it is kept exactly as it is, which leaves every Turkish
+    label untouched; where it is not, OSM's own `name:en` / `name:fr` is used
+    rather than transliterating anything ourselves.
+    """
+    def latin(text: str) -> bool:
+        return bool(text) and all(ord(ch) < 0x250 for ch in text)
+
+    name = tags.get("name") or ""
+    if latin(name):
+        return name
+    for key in ("name:en", "name:fr"):
+        if latin(tags.get(key) or ""):
+            return tags[key]
+    return "".join(ch for ch in name if ord(ch) < 0x250).strip() or None
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
         print(__doc__)
@@ -75,7 +96,7 @@ def main(argv: list[str]) -> int:
         tags = e.get("tags", {})
         if e["type"] == "node":
             kind = tags.get("place")
-            name = tags.get("name")
+            name = label(tags)
             if not name or kind not in ("city", "town", "village", "suburb", "neighbourhood"):
                 continue
             places.append({
@@ -103,8 +124,36 @@ def main(argv: list[str]) -> int:
         elif tags.get("railway") == "rail":
             rail.append(line)
 
+    # A 150 km window over the High Atlas comes back with three and a half
+    # thousand wadis, most of them two points long. Past a few hundred they stop
+    # being terrain and start being noise, and they are what makes the file big,
+    # so keep the long ones and drop the trickles.
+    def longest(bucket: list, keep: int) -> list:
+        return sorted(bucket, key=len, reverse=True)[:keep] if len(bucket) > keep else bucket
+
+    streams = longest(streams, 900)
+    water = longest(water, 260)
+
+    # Cities and towns are all kept. Villages are not: there are hundreds, and
+    # taking the first twenty-two alphabetically gave a window over the High
+    # Atlas whose every label began with A and which named none of the places the
+    # event happened in. Spread them instead — each new one as far as possible
+    # from the ones already chosen — so the labels cover the window evenly.
     places.sort(key=lambda p: (p["rank"], p["name"]))
-    places = [p for p in places if p["rank"] <= 2] + [p for p in places if p["rank"] > 2][:22]
+    seen: set[str] = set()
+    places = [p for p in places if not (p["name"] in seen or seen.add(p["name"]))]
+    named = [p for p in places if p["rank"] <= 2]
+    rest = [p for p in places if p["rank"] > 2]
+    spread: list[dict] = []
+    while rest and len(spread) < 22:
+        anchors = named + spread
+        if not anchors:
+            spread.append(rest.pop(0))
+            continue
+        far = max(rest, key=lambda p: min((p["lon"] - a["lon"]) ** 2 + (p["lat"] - a["lat"]) ** 2 for a in anchors))
+        rest.remove(far)
+        spread.append(far)
+    places = named + spread
 
     payload = {
         "_": "Street-level base map for the city-scale scenes. Coordinates are delta-encoded "

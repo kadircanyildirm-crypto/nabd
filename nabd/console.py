@@ -32,8 +32,16 @@ TITLES = {
     "quake": ("Earthquake", "the reference case — nine cells fall silent at once, the ring goes hot"),
     "noise": ("Look-alikes", "the false-alarm defence — a cell fault, a maintenance window, a stadium crowd"),
     "degraded": ("Chronic degradation", "the hardest look-alike — a block where silence is normal, and a real impact in the same run"),
-    "maras": ("6 February 2023", "the real event — measured ground motion decides which cells go silent"),
+    "maras": ("Kahramanmaraş", "6 February 2023 — the real event, where measured ground motion decides which cells go silent"),
+    "atlas": ("Al Haouz", "8 September 2023 — a second real event on the same thresholds; nothing was retuned for it"),
 }
+
+#: Which set of base maps a scene is drawn on. Four scenes and the first real
+#: one watch Türkiye; the second real one watches Morocco.
+REGION_OF = {"quiet": "tr", "quake": "tr", "noise": "tr", "degraded": "tr", "maras": "tr", "atlas": "ma"}
+
+#: The measured event behind a scene, for the ones that have one.
+EVENT_OF = {"maras": "us6000jllz", "atlas": "us7000kufc"}
 
 
 def load(name: str) -> list[dict]:
@@ -59,6 +67,11 @@ def basemap() -> dict | None:
     return {"borders": raw["borders"], "source": raw["source"]}
 
 
+def json_data(filename: str) -> dict | None:
+    path = Path(__file__).resolve().parent / "data" / filename
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
 def region_basemap() -> dict | None:
     """The same street data as the city scenes, thinned for a 150 km view.
 
@@ -66,10 +79,7 @@ def region_basemap() -> dict | None:
     OpenStreetMap made it the odd one out — a sparser map for the one scene that
     matters most. Both windows come from the same source now.
     """
-    path = Path(__file__).resolve().parent / "data" / "basemap-region.json"
-    if not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json_data("basemap-region.json")
 
 
 def mid_basemap() -> dict | None:
@@ -80,10 +90,7 @@ def mid_basemap() -> dict | None:
     the tier underneath: the tertiary and unclassified network across the
     monitored window.
     """
-    path = Path(__file__).resolve().parent / "data" / "basemap-mid.json"
-    if not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json_data("basemap-mid.json")
 
 
 def city_basemap() -> dict | None:
@@ -93,27 +100,40 @@ def city_basemap() -> dict | None:
     which is not a map. This is OpenStreetMap, delta-encoded, and it is what makes
     the four city-scale scenes legible as a place.
     """
-    path = Path(__file__).resolve().parent / "data" / "basemap-city.json"
-    if not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json_data("basemap-city.json")
 
 
 def geometry_for(name: str) -> dict | None:
-    """The measured event's own geometry, for the one scene that has one.
+    """The measured event's own geometry, for the scenes that have one.
 
     Four scenes are worlds we drew, and there is nothing real to lay under them.
-    The fifth is 6 February 2023, and for that one the published isoseismals and
-    the finite-fault rupture go on the map — so the footprint Nabd declares can
-    be checked against the shaking that caused it, by eye, in a second.
+    Two are earthquakes that happened, and for those the published isoseismals
+    and the finite-fault rupture go on the map — so the footprint Nabd declares
+    can be checked against the shaking that caused it, by eye, in a second.
     """
-    if name != "maras":
+    event = EVENT_OF.get(name)
+    raw = json_data(f"shakemap-{event}-geo.json") if event else None
+    if not raw:
         return None
-    path = Path(__file__).resolve().parent / "data" / "shakemap-us6000jllz-geo.json"
-    if not path.exists():
-        return None
-    raw = json.loads(path.read_text(encoding="utf-8"))
     return {"contours": raw["contours"], "rupture": raw["rupture"], "source": raw["source"]}
+
+
+def counted_calls(records: list[dict]) -> list[dict]:
+    """Replace each pass's list of CAMARA calls with a tally of it.
+
+    A 10x10 grid makes two hundred calls a pass, and the console shows one
+    number: how many. Carrying the two hundred names into the page cost more
+    than every base map in it put together. The ordered list stays where it
+    belongs — in `nac/evidence/nabd-scene-*.jsonl`, which is the audit trail;
+    this is the same information at the resolution the screen uses.
+    """
+    out = []
+    for record in records:
+        tally: dict[str, int] = {}
+        for call in record.get("api_calls", ()):
+            tally[call] = tally.get(call, 0) + 1
+        out.append({**record, "api_calls": tally})
+    return out
 
 
 def scene_payload(name: str) -> dict:
@@ -123,6 +143,7 @@ def scene_payload(name: str) -> dict:
     return {
         "geo": geometry_for(name),
         "city": grid.spacing_m <= 2000,
+        "maps": REGION_OF.get(name, "tr"),
         "name": name,
         "title": title,
         "subtitle": subtitle,
@@ -137,7 +158,7 @@ def scene_payload(name: str) -> dict:
         "core": list(scenario.core),
         "registry": len(scenario.world.registry),
         "maintenance": [{"ticket": m.ticket, "cells": list(m.cells), "start": m.start, "end": m.end} for m in scenario.calendar],
-        "records": load(name),
+        "records": counted_calls(load(name)),
     }
 
 
@@ -147,10 +168,15 @@ def build_console(names: tuple[str, ...] = tuple(BUILDERS), out: Path = OUT) -> 
     # than it needed to be, so it is carried once and referenced by a flag.
     payload = {
         "scenes": [scene_payload(n) for n in names],
-        "base": basemap(),
-        "cityBase": city_basemap(),
-        "regionBase": region_basemap(),
-        "midBase": mid_basemap(),
+        # One set of base maps per region watched, carried once at the top and
+        # named by each scene. Morocco has no city-scale scene and no Natural
+        # Earth extract, and the map layer simply skips what is not there.
+        "maps": {
+            "tr": {"base": basemap(), "city": city_basemap(),
+                   "mid": mid_basemap(), "region": region_basemap()},
+            "ma": {"region": json_data("basemap-region-ma.json"),
+                   "mid": json_data("basemap-mid-ma.json")},
+        },
     }
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.replace("__DATA__", data)
@@ -179,8 +205,10 @@ TEMPLATE = r"""<!doctype html>
   header { display: grid; grid-template-columns: auto 1fr auto auto; gap: 18px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
   .brand { font-weight: 700; letter-spacing: .02em; font-size: 16px; white-space: nowrap; }
   .brand span { color: var(--muted); font-weight: 400; margin-left: 8px; }
-  nav { display: flex; gap: 6px; }
-  nav button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  nav { display: flex; gap: 5px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px;
+               padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; white-space: nowrap; }
   nav button.on { color: var(--text); border-color: var(--high); background: #1a2330; }
   .clock { font-family: var(--mono); font-size: 22px; font-variant-numeric: tabular-nums; text-align: right; line-height: 1.1; }
   .clock small { display: block; font-size: 11px; color: var(--muted); font-family: inherit; }
@@ -419,7 +447,7 @@ TEMPLATE = r"""<!doctype html>
   <span>backend <b>offline simulator</b></span>
   <span>evidence <b id="evidence"></b></span>
   <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd>–<kbd>5</kbd> scene</span>
-  <span class="credit">map © OpenStreetMap contributors (ODbL) · Natural Earth · GeoNames (CC BY) · intensity USGS ShakeMap us6000jllz</span>
+  <span class="credit">map © OpenStreetMap contributors (ODbL) · Natural Earth · GeoNames (CC BY)<span id="intensity"></span></span>
 </footer>
 <script id="data" type="application/json">__DATA__</script>
 <script>
@@ -455,6 +483,7 @@ TEMPLATE = r"""<!doctype html>
     [...nav.children].forEach((b, k) => b.classList.toggle('on', k === i));
     $('scrub').max = cur().records.length - 1;
     $('evidence').textContent = `nabd-scene-${cur().name}.jsonl`;
+    $('intensity').textContent = cur().geo ? ` · intensity USGS ShakeMap ${cur().geo.source.event}` : '';
     $('detail').classList.toggle('hidden', !cur().geo);
     setZoom(0);
     show(0);
@@ -531,7 +560,8 @@ TEMPLATE = r"""<!doctype html>
     // -- the region, or the city ---------------------------------------------
     const geo = detail ? cur().geo : null;
     const isCity = !!cur().city;          // the scene watches one city, not a region
-    const base = DATA.base;
+    const MS = DATA.maps[cur().maps] || {};
+    const base = MS.base;
     out.push('<g clip-path="url(#viewclip)">');
     if (base) base.borders.forEach(l => out.push(`<path class="border" d="${line(l)}"/>`));
     const decode = (a, k) => {
@@ -547,13 +577,8 @@ TEMPLATE = r"""<!doctype html>
     };
     // Water is ground, so it goes down before the readings; the roads come back
     // over the top of them.
-    if (isCity) {
-      const city = DATA.cityBase;
-      if (city) city.water.forEach(l => out.push(`<path class="water" d="${line(decode(l, city.scale))}Z"/>`));
-    } else {
-      const region = DATA.regionBase;
-      if (region) region.water.forEach(l => out.push(`<path class="water" d="${line(decode(l, region.scale))}Z"/>`));
-    }
+    const ground = isCity ? MS.city : MS.region;
+    if (ground) ground.water.forEach(l => out.push(`<path class="water" d="${line(decode(l, ground.scale))}Z"/>`));
     out.push('</g>');
 
     const field = (id, cls) => {
@@ -569,23 +594,21 @@ TEMPLATE = r"""<!doctype html>
     // -- the streets, over the wash -----------------------------------------
     out.push('<g clip-path="url(#viewclip)">');
     if (isCity) {
-      const city = DATA.cityBase;
-      layer(city, 'roads.local', 'rd-local');
-      layer(city, 'roads.minor', 'rd-minor');
-      layer(city, 'roads.major', 'rd-major');
-      layer(city, 'streams', 'river');
-      layer(city, 'rail', 'rail');
+      layer(MS.city, 'roads.local', 'rd-local');
+      layer(MS.city, 'roads.minor', 'rd-minor');
+      layer(MS.city, 'roads.major', 'rd-major');
+      layer(MS.city, 'streams', 'river');
+      layer(MS.city, 'rail', 'rail');
     } else {
-      const region = DATA.regionBase, mid = DATA.midBase;
       // The city scenes look the way they do because the ground under them is
       // dense. The region gets the same treatment from the start: the whole
       // between-towns network, not just the trunk roads, so the map has texture
       // to read the footprint against. Zooming in then adds the streets.
-      layer(DATA.cityBase, 'roads.local', 'rd-local');
-      layer(DATA.cityBase, 'roads.minor', 'rd-minor');
-      layer(mid, 'roads.minor', 'rd-local');
-      layer(region, 'roads.major', 'rd-major');
-      layer(region, 'streams', 'river');
+      layer(MS.city, 'roads.local', 'rd-local');
+      layer(MS.city, 'roads.minor', 'rd-minor');
+      layer(MS.mid, 'roads.minor', 'rd-local');
+      layer(MS.region, 'roads.major', 'rd-major');
+      layer(MS.region, 'streams', 'river');
     }
     out.push('</g>');
 
@@ -615,7 +638,7 @@ TEMPLATE = r"""<!doctype html>
     out.push('<g id="dots"></g>');
 
     // -- place names, on top so they stay readable ---------------------------
-    const places = (isCity ? DATA.cityBase : DATA.regionBase);
+    const places = (isCity ? MS.city : MS.region);
     if (places) {
       out.push('<g clip-path="url(#viewclip)">');
       // Places are ranked, so when two labels want the same spot the more
@@ -871,8 +894,11 @@ TEMPLATE = r"""<!doctype html>
   }
 
   function drawFooter(rec) {
-    $('calls-pass').textContent = rec.api_calls.length;
-    $('calls-total').textContent = cur().records.slice(0, pass + 1).reduce((n, r) => n + r.api_calls.length, 0);
+    // The calls arrive as a tally per pass — {endpoint: count} — so the number
+    // on screen is the sum of it.
+    const calls = r => Object.values(r.api_calls || {}).reduce((n, c) => n + c, 0);
+    $('calls-pass').textContent = calls(rec);
+    $('calls-total').textContent = cur().records.slice(0, pass + 1).reduce((n, r) => n + calls(r), 0);
   }
 
   function show(i) {
