@@ -72,6 +72,20 @@ def region_basemap() -> dict | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def mid_basemap() -> dict | None:
+    """The road network between the towns, for when the region is zoomed in.
+
+    At the full 150 km view only the trunk roads are worth drawing. Zooming in
+    should reveal something, not just magnify what was already there, so this is
+    the tier underneath: the tertiary and unclassified network across the
+    monitored window.
+    """
+    path = Path(__file__).resolve().parent / "data" / "basemap-mid.json"
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def city_basemap() -> dict | None:
     """The street network, for the scenes that watch a single city.
 
@@ -136,6 +150,7 @@ def build_console(names: tuple[str, ...] = tuple(BUILDERS), out: Path = OUT) -> 
         "base": basemap(),
         "cityBase": city_basemap(),
         "regionBase": region_basemap(),
+        "midBase": mid_basemap(),
     }
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.replace("__DATA__", data)
@@ -183,6 +198,7 @@ TEMPLATE = r"""<!doctype html>
   @media (max-width: 1100px) { main { grid-template-columns: minmax(0, 1fr) 380px; } }
   .map { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
          display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; min-height: 0; overflow: hidden; }
+  .mapview { position: relative; min-height: 0; display: grid; }
   .map svg { width: 100%; height: 100%; min-height: 0; }
   .beat { min-height: 44px; padding: 10px 12px; border-left: 3px solid var(--high); background: var(--panel-2); border-radius: 6px; color: var(--text); }
   .beat.empty { border-left-color: var(--line); color: var(--dim); }
@@ -241,12 +257,25 @@ TEMPLATE = r"""<!doctype html>
   .halo { fill: var(--alert); fill-opacity: .07; stroke: var(--alert); stroke-opacity: .3; stroke-width: 1; }
   .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; color: var(--muted); font-size: 12px; }
   /* The measured event is a second reading of the same map, not the map itself. */
-  #detail { margin-left: auto; background: transparent; color: var(--muted); font: inherit;
+  /* Map controls belong on the map, not in the key underneath it. */
+  .mapctl { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; align-items: center;
+            gap: 8px; background: #0b1017cc; border-radius: 8px; padding: 4px; }
+  #detail { background: transparent; color: var(--muted); font: inherit;
             font-size: 11.5px; border: 1px solid var(--line); border-radius: 6px;
             padding: 4px 11px; cursor: pointer; white-space: nowrap; }
   #detail:hover { color: var(--text); }
   #detail.on { color: var(--text); border-color: var(--high); background: #1a2330; }
   #detail.hidden { display: none; }
+  .zoomer { display: flex; align-items: center; gap: 0; }
+  .zoomer button { background: transparent; color: var(--muted); font: inherit; font-size: 13px;
+                   border: 1px solid var(--line); width: 26px; height: 24px; cursor: pointer; }
+  .zoomer button:first-child { border-radius: 6px 0 0 6px; }
+  .zoomer button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+  .zoomer button:hover:not(:disabled) { color: var(--text); }
+  .zoomer button:disabled { opacity: .35; cursor: default; }
+  .zoomer span { font-family: var(--mono); font-size: 11px; color: var(--muted);
+                 border: 1px solid var(--line); border-left: 0; border-right: 0;
+                 height: 24px; line-height: 22px; padding: 0 8px; }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; }
   /* The column is exactly as tall as the screen. The verdict and the brief are
      always visible; everything else lives behind a tab, so a reader is told what
@@ -342,7 +371,13 @@ TEMPLATE = r"""<!doctype html>
 <main>
   <section class="map">
     <div id="beat" class="beat empty"></div>
-    <svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="mapview">
+      <svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="mapctl">
+        <button id="detail" class="hidden" title="measured intensity contours and the fault rupture">Measured intensity</button>
+        <span class="zoomer"><button id="zout" title="zoom out">−</button><span id="zlvl">1×</span><button id="zin" title="zoom in — each step brings in another layer of the map">+</button></span>
+      </div>
+    </div>
     <div class="legend">
       <span><i style="background:var(--low)"></i>Low</span>
       <span><i style="background:var(--medium)"></i>Medium</span>
@@ -352,7 +387,7 @@ TEMPLATE = r"""<!doctype html>
       <span><i style="border:2px dashed var(--cand)"></i>Candidate</span>
       <span><i style="border:2px dashed var(--held)"></i>Explained, held</span>
       <span><i style="background:#fff;border-radius:50%"></i>Last-seen position</span>
-      <button id="detail" class="hidden" title="measured intensity contours and the fault rupture">Measured intensity</button>
+
     </div>
   </section>
   <aside>
@@ -416,16 +451,24 @@ TEMPLATE = r"""<!doctype html>
     $('scrub').max = cur().records.length - 1;
     $('evidence').textContent = `nabd-scene-${cur().name}.jsonl`;
     $('detail').classList.toggle('hidden', !cur().geo);
+    setZoom(0);
     show(0);
   }
 
   // -- map ------------------------------------------------------------------
   let ORIGIN_X = M;  // the grid's left edge, once the view is widened to the panel
 
+  // Zoom scales the geometry, not the viewBox, so line weights and place names
+  // keep their size while the map spreads out under them — which is what makes a
+  // zoomed map more readable rather than just bigger.
+  const zx = x => ZCX + (x - ZCX) * ZOOM;
+  const zy = y => ZCY + (y - ZCY) * ZOOM;
+
   function project(lat, lon, g) {
     const a = g.cells[0], b = g.cells[1], c = g.cells[g.cols];
     const dlon = b.lon - a.lon, dlat = c.lat - a.lat; // dlat is negative (south)
-    return [ORIGIN_X + ((lon - a.lon) / dlon + 0.5) * S, M + ((lat - a.lat) / dlat + 0.5) * S];
+    return [zx(ORIGIN_X + ((lon - a.lon) / dlon + 0.5) * S),
+            zy(M + ((lat - a.lat) / dlat + 0.5) * S)];
   }
 
   // The map is built once per scene and then only updated, because a redraw
@@ -434,6 +477,9 @@ TEMPLATE = r"""<!doctype html>
   // is something you watch happen.
   let MAP = null;
   let detail = false;   // the measured-event overlay, off unless asked for
+  const ZOOMS = [1, 2, 4];
+  let zi = 0;           // index into ZOOMS
+  let ZOOM = 1, ZCX = 0, ZCY = 0;   // scale, and the point it scales about
 
   function mapGeometry(g, svg) {
     const rect = svg.getBoundingClientRect();
@@ -452,6 +498,9 @@ TEMPLATE = r"""<!doctype html>
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
     const x0 = OX, y0 = M, w = g.cols * S, h = g.rows * S;
+    ZOOM = ZOOMS[zi];
+    ZCX = OX + w / 2; ZCY = M + h / 2;   // zoom about the middle of what is watched
+    const SZ = S * ZOOM;
     const line = pts => pts.map((p, i) => {
       const [x, y] = project(p[1], p[0], g);
       return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
@@ -462,9 +511,9 @@ TEMPLATE = r"""<!doctype html>
       + `<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">`
       + `<stop offset="0" stop-color="#0c1420"/><stop offset="1" stop-color="#080d14"/></linearGradient>`
       + `<clipPath id="viewclip"><rect x="0" y="0" width="${W.toFixed(1)}" height="${H}"/></clipPath>`
-      + `<clipPath id="winclip"><rect x="${x0.toFixed(1)}" y="${y0}" width="${w}" height="${h}"/></clipPath>`
+      + `<clipPath id="winclip"><rect x="${zx(x0).toFixed(1)}" y="${zy(y0).toFixed(1)}" width="${(w * ZOOM).toFixed(1)}" height="${(h * ZOOM).toFixed(1)}"/></clipPath>`
       + `<filter id="soften" x="-10%" y="-10%" width="120%" height="120%">`
-      + `<feGaussianBlur stdDeviation="${(S * 0.045).toFixed(2)}"/></filter>`
+      + `<feGaussianBlur stdDeviation="${(SZ * 0.045).toFixed(2)}"/></filter>`
       + `<filter id="glow" x="-30%" y="-30%" width="160%" height="160%">`
       + `<feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/>`
       + `<feMergeNode in="SourceGraphic"/></feMerge></filter>`
@@ -473,35 +522,49 @@ TEMPLATE = r"""<!doctype html>
 
     // -- the region, or the city ---------------------------------------------
     const geo = detail ? cur().geo : null;
-    const city = cur().city ? DATA.cityBase : DATA.regionBase;
+    const isCity = !!cur().city;          // the scene watches one city, not a region
     const base = DATA.base;
     out.push('<g clip-path="url(#viewclip)">');
     if (base) base.borders.forEach(l => out.push(`<path class="border" d="${line(l)}"/>`));
-    if (city) {
-      // Delta-encoded integers: cheap to store, cheap to walk back out.
-      const k = city.scale;
-      const decode = a => {
-        const pts = []; let x = a[0], y = a[1];
-        pts.push([x / k, y / k]);
-        for (let i = 2; i < a.length; i += 2) { x += a[i]; y += a[i + 1]; pts.push([x / k, y / k]); }
-        return pts;
-      };
-      city.water.forEach(l => out.push(`<path class="water" d="${line(decode(l))}Z"/>`));
-      city.roads.local.forEach(l => out.push(`<path class="rd-local" d="${line(decode(l))}"/>`));
-      city.roads.minor.forEach(l => out.push(`<path class="rd-minor" d="${line(decode(l))}"/>`));
-      city.roads.major.forEach(l => out.push(`<path class="rd-major" d="${line(decode(l))}"/>`));
-      city.streams.forEach(l => out.push(`<path class="river" d="${line(decode(l))}"/>`));
-      city.rail.forEach(l => out.push(`<path class="rail" d="${line(decode(l))}"/>`));
+    const decode = (a, k) => {
+      const pts = []; let x = a[0], y = a[1];
+      pts.push([x / k, y / k]);
+      for (let i = 2; i < a.length; i += 2) { x += a[i]; y += a[i + 1]; pts.push([x / k, y / k]); }
+      return pts;
+    };
+    const layer = (src, key, cls) => {
+      if (!src) return;
+      const bucket = key.split('.').reduce((o, p) => (o || {})[p], src) || [];
+      bucket.forEach(l => out.push(`<path class="${cls}" d="${line(decode(l, src.scale))}"/>`));
+    };
+    if (isCity) {
+      const city = DATA.cityBase;
+      if (city) city.water.forEach(l => out.push(`<path class="water" d="${line(decode(l, city.scale))}Z"/>`));
+      layer(city, 'roads.local', 'rd-local');
+      layer(city, 'roads.minor', 'rd-minor');
+      layer(city, 'roads.major', 'rd-major');
+      layer(city, 'streams', 'river');
+      layer(city, 'rail', 'rail');
+    } else {
+      const region = DATA.regionBase, mid = DATA.midBase;
+      if (region) region.water.forEach(l => out.push(`<path class="water" d="${line(decode(l, region.scale))}Z"/>`));
+      // Each step in reveals the tier below: the between-towns network at 2x,
+      // the streets themselves at 4x, wherever they exist.
+      if (ZOOM >= 4) layer(DATA.cityBase, 'roads.local', 'rd-local');
+      if (ZOOM >= 4) layer(DATA.cityBase, 'roads.minor', 'rd-minor');
+      if (ZOOM >= 2) layer(mid, 'roads.minor', 'rd-local');
+      layer(region, 'roads.major', 'rd-major');
+      layer(region, 'streams', 'river');
     }
     out.push('</g>');
 
     // -- the readings, softened into a field --------------------------------
     out.push('<g clip-path="url(#winclip)" filter="url(#soften)"><g id="cells">');
     g.cells.forEach(c => out.push(
-      `<rect class="cell c-unmon" data-k="${c.row * g.cols + c.col}" x="${(OX + c.col * S).toFixed(1)}" y="${M + c.row * S}" width="${S}" height="${S}"><title>${c.id} · ${c.lat.toFixed(4)}N ${c.lon.toFixed(4)}E</title></rect>`));
+      `<rect class="cell c-unmon" data-k="${c.row * g.cols + c.col}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"><title>${c.id} · ${c.lat.toFixed(4)}N ${c.lon.toFixed(4)}E</title></rect>`));
     out.push('</g><g id="fpfills">');
     g.cells.forEach(c => out.push(
-      `<rect class="fpfill" data-id="${c.id}" x="${(OX + c.col * S).toFixed(1)}" y="${M + c.row * S}" width="${S}" height="${S}"/>`));
+      `<rect class="fpfill" data-id="${c.id}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"/>`));
     out.push('</g></g>');
     out.push('<g id="mnt" clip-path="url(#winclip)"></g>');
 
@@ -522,12 +585,13 @@ TEMPLATE = r"""<!doctype html>
     out.push('<g id="dots"></g>');
 
     // -- place names, on top so they stay readable ---------------------------
-    if (city) {
+    const places = (isCity ? DATA.cityBase : DATA.regionBase);
+    if (places) {
       out.push('<g clip-path="url(#viewclip)">');
       // Places are ranked, so when two labels want the same spot the more
       // important one keeps it and the other loses its text but keeps its dot.
       const placed = [];
-      city.places.forEach(t => {
+      places.places.forEach(t => {
         const [x, y] = project(t.lat, t.lon, g);
         if (x < 4 || x > W - 4 || y < 4 || y > H - 4) return;
         const big = t.rank <= 2;
@@ -541,12 +605,14 @@ TEMPLATE = r"""<!doctype html>
     }
 
     // -- the monitored window, its labels, and the furniture of a map --------
-    out.push(`<rect x="${x0.toFixed(1)}" y="${y0}" width="${w}" height="${h}" fill="none" stroke="#54708a" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>`);
-    for (let c = 0; c < g.cols; c++) out.push(`<text class="lbl" x="${(OX + c * S + S / 2).toFixed(1)}" y="${M - 8}" text-anchor="middle">${c + 1}</text>`);
-    for (let r = 0; r < g.rows; r++) out.push(`<text class="lbl" x="${(OX - 8).toFixed(1)}" y="${M + r * S + S / 2 + 3}" text-anchor="end">${'ABCDEFGHIJKLMNOPQRST'[r]}</text>`);
+    out.push(`<rect x="${zx(x0).toFixed(1)}" y="${zy(y0).toFixed(1)}" width="${(w * ZOOM).toFixed(1)}" height="${(h * ZOOM).toFixed(1)}" fill="none" stroke="#54708a" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>`);
+    if (ZOOM === 1) {
+      for (let c = 0; c < g.cols; c++) out.push(`<text class="lbl" x="${zx(OX + c * S + S / 2).toFixed(1)}" y="${M - 8}" text-anchor="middle">${c + 1}</text>`);
+      for (let r = 0; r < g.rows; r++) out.push(`<text class="lbl" x="${(OX - 8).toFixed(1)}" y="${zy(M + r * S + S / 2).toFixed(1)}" text-anchor="end">${'ABCDEFGHIJKLMNOPQRST'[r]}</text>`);
+    }
 
     const km = g.spacing_m / 1000, span = km >= 5 ? 50 : 2;   // a round distance
-    const bar = (span / km) * S, bx = 14, by = H - 14;
+    const bar = (span / km) * SZ, bx = 14, by = H - 14;
     out.push(`<path class="scale" d="M${bx} ${by - 5}V${by}H${(bx + bar).toFixed(1)}V${by - 5}"/>`);
     out.push(`<text class="scaletxt" x="${bx}" y="${by - 9}">${span} km</text>`);
     out.push(`<text class="compass" x="${(W - 18).toFixed(1)}" y="${M + 4}" text-anchor="middle">N</text>`);
@@ -587,12 +653,13 @@ TEMPLATE = r"""<!doctype html>
       const set = new Set(rec.cells);
       rec.cells.forEach(id => {
         const cell = g.cells.find(c => c.id === id);
-        const x = OX + cell.col * S, y = M + cell.row * S;
+        const x = zx(OX + cell.col * S), y = zy(M + cell.row * S);
+        const sz = S * ZOOM;
         const n = (dr, dc) => set.has((g.cells.find(c => c.row === cell.row + dr && c.col === cell.col + dc) || {}).id);
-        if (!n(-1, 0)) edge.push(`M${x.toFixed(1)} ${y}h${S}`);
-        if (!n(1, 0)) edge.push(`M${x.toFixed(1)} ${y + S}h${S}`);
-        if (!n(0, -1)) edge.push(`M${x.toFixed(1)} ${y}v${S}`);
-        if (!n(0, 1)) edge.push(`M${(x + S).toFixed(1)} ${y}v${S}`);
+        if (!n(-1, 0)) edge.push(`M${x.toFixed(1)} ${y.toFixed(1)}h${sz.toFixed(1)}`);
+        if (!n(1, 0)) edge.push(`M${x.toFixed(1)} ${(y + sz).toFixed(1)}h${sz.toFixed(1)}`);
+        if (!n(0, -1)) edge.push(`M${x.toFixed(1)} ${y.toFixed(1)}v${sz.toFixed(1)}`);
+        if (!n(0, 1)) edge.push(`M${(x + sz).toFixed(1)} ${y.toFixed(1)}v${sz.toFixed(1)}`);
       });
     }
     const style = cls === 'on' ? 'fp' : (cls === 'cand' ? 'cand' : 'held');
@@ -624,8 +691,8 @@ TEMPLATE = r"""<!doctype html>
       const bottom = Math.max(...cells.map(c => c.row)), left = Math.min(...cells.map(c => c.col));
       const text = `FOOTPRINT · ${rec.confidence || ''} · ${(rec.cells.length * (g.spacing_m / 1000) ** 2).toFixed(1)} km²`;
       const bw = text.length * 6.8 + 12;
-      const bx = Math.max(4, Math.min(OX + left * S, W - bw - 4));
-      const by = Math.min(M + (bottom + 1) * S + 6, H - 20);
+      const bx = Math.max(4, Math.min(zx(OX + left * S), W - bw - 4));
+      const by = Math.min(zy(M + (bottom + 1) * S) + 6, H - 20);
       label = `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="18" rx="4" fill="#0b1017" stroke="var(--alert)" stroke-width="1"/>`
             + `<text class="fplabel" x="${(bx + 6).toFixed(1)}" y="${by + 13}">${text}</text>`;
     }
@@ -791,6 +858,17 @@ TEMPLATE = r"""<!doctype html>
     [...$('tabs').children].forEach(b => b.classList.toggle('on', b === button));
     ['zones', 'registry', 'brief', 'log'].forEach(id => $(id).classList.toggle('on', id === button.dataset.pane));
   });
+
+  function setZoom(next) {
+    zi = Math.max(0, Math.min(ZOOMS.length - 1, next));
+    $('zlvl').textContent = ZOOMS[zi] + '×';
+    $('zin').disabled = zi === ZOOMS.length - 1;
+    $('zout').disabled = zi === 0;
+    MAP = null;
+    drawMap(cur().records[pass]);
+  }
+  $('zin').onclick = () => setZoom(zi + 1);
+  $('zout').onclick = () => setZoom(zi - 1);
 
   $('detail').onclick = () => {
     detail = !detail;
