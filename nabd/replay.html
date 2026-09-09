@@ -112,9 +112,13 @@
   .zoomer button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
   .zoomer button:hover:not(:disabled) { color: var(--text); }
   .zoomer button:disabled { opacity: .35; cursor: default; }
-  .zoomer span { font-family: var(--mono); font-size: 11px; color: var(--muted);
-                 border: 1px solid var(--line); border-left: 0; border-right: 0;
-                 height: 24px; line-height: 22px; padding: 0 8px; }
+  .zoomer #zlvl { font-family: var(--mono); font-size: 11px; width: 42px;
+                  border-radius: 0; border-left: 0; border-right: 0; }
+  /* The map is a thing you handle, so it says so: grab it, drag it, and the
+     wheel brings the point under the pointer closer rather than the middle. */
+  #grid { cursor: grab; touch-action: none; }
+  #grid.dragging { cursor: grabbing; }
+  .mapview { overflow: hidden; }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; }
   /* The column is exactly as tall as the screen. The verdict and the brief are
      always visible; everything else lives behind a tab, so a reader is told what
@@ -214,7 +218,7 @@
       <svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="mapctl">
         <button id="detail" class="hidden" title="measured intensity contours and the fault rupture">Measured intensity</button>
-        <span class="zoomer"><button id="zout" title="zoom out">−</button><span id="zlvl">1×</span><button id="zin" title="zoom in — each step brings in another layer of the map">+</button></span>
+        <span class="zoomer"><button id="zout" title="zoom out">−</button><button id="zlvl" title="back to the whole picture">1×</button><button id="zin" title="zoom in — drag the map to move, or roll the wheel over the spot you want">+</button></span>
       </div>
     </div>
     <div class="legend">
@@ -300,8 +304,13 @@
   // Zoom scales the geometry, not the viewBox, so line weights and place names
   // keep their size while the map spreads out under them — which is what makes a
   // zoomed map more readable rather than just bigger.
-  const zx = x => ZCX + (x - ZCX) * ZOOM;
-  const zy = y => ZCY + (y - ZCY) * ZOOM;
+  //
+  // A scale and an offset, and every single thing drawn on the map goes through
+  // this pair. That is the whole contract: anything that skips it drifts out of
+  // register the moment the reader zooms, which is exactly what used to happen
+  // to the maintenance boxes and the uncertainty haloes.
+  const zx = x => x * ZOOM + TX;
+  const zy = y => y * ZOOM + TY;
 
   function project(lat, lon, g) {
     const a = g.cells[0], b = g.cells[1], c = g.cells[g.cols];
@@ -316,9 +325,9 @@
   // is something you watch happen.
   let MAP = null;
   let detail = false;   // the measured-event overlay, off unless asked for
-  const ZOOMS = [1, 2, 4];
+  const ZOOMS = [1, 2, 4, 8];
   let zi = 0;           // index into ZOOMS
-  let ZOOM = 1, ZCX = 0, ZCY = 0;   // scale, and the point it scales about
+  let ZOOM = 1, TX = 0, TY = 0;   // scale, and where the scaled map sits
 
   function mapGeometry(g, svg) {
     const rect = svg.getBoundingClientRect();
@@ -337,8 +346,6 @@
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
     const x0 = OX, y0 = M, w = g.cols * S, h = g.rows * S;
-    ZOOM = ZOOMS[zi];
-    ZCX = OX + w / 2; ZCY = M + h / 2;   // zoom about the middle of what is watched
     const SZ = S * ZOOM;
     const line = pts => pts.map((p, i) => {
       const [x, y] = project(p[1], p[0], g);
@@ -467,15 +474,31 @@
 
     // -- the monitored window, its labels, and the furniture of a map --------
     out.push(`<rect x="${zx(x0).toFixed(1)}" y="${zy(y0).toFixed(1)}" width="${(w * ZOOM).toFixed(1)}" height="${(h * ZOOM).toFixed(1)}" fill="none" stroke="#54708a" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>`);
-    if (ZOOM === 1) {
-      for (let c = 0; c < g.cols; c++) out.push(`<text class="lbl" x="${zx(OX + c * S + S / 2).toFixed(1)}" y="${M - 8}" text-anchor="middle">${c + 1}</text>`);
-      for (let r = 0; r < g.rows; r++) out.push(`<text class="lbl" x="${(OX - 8).toFixed(1)}" y="${zy(M + r * S + S / 2).toFixed(1)}" text-anchor="end">${'ABCDEFGHIJKLMNOPQRST'[r]}</text>`);
+    // Row and column letters ride the edge of the view, not the edge of the
+    // window: zoomed in, the window's own edge is off-screen, and a reader still
+    // needs to know that this is F6.
+    const ly = Math.min(Math.max(zy(M) - 8, 11), H - 8);
+    // Pinned to the left edge, the letters have to read outwards instead of in.
+    const pinned = zx(OX) - 8 < 18;
+    const lx = pinned ? 6 : Math.min(zx(OX) - 8, W - 6);
+    for (let c = 0; c < g.cols; c++) {
+      const x = zx(OX + c * S + S / 2);
+      if (x > 10 && x < W - 10) out.push(`<text class="lbl" x="${x.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle">${c + 1}</text>`);
+    }
+    for (let r = 0; r < g.rows; r++) {
+      const y = zy(M + r * S + S / 2);
+      if (y > 14 && y < H - 6) out.push(`<text class="lbl" x="${lx.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${pinned ? 'start' : 'end'}">${'ABCDEFGHIJKLMNOPQRST'[r]}</text>`);
     }
 
-    const km = g.spacing_m / 1000, span = km >= 5 ? 50 : 2;   // a round distance
+    // A scale bar keeps its length and changes its number, the way a paper map
+    // does. Pick the roundest distance near the bar we already draw at 1×.
+    const km = g.spacing_m / 1000;
+    const LADDER = [.1, .2, .25, .5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 500];
+    const want = (km >= 5 ? 50 : 2) / ZOOM;
+    const span = LADDER.reduce((a, b) => Math.abs(b - want) < Math.abs(a - want) ? b : a);
     const bar = (span / km) * SZ, bx = 14, by = H - 14;
     out.push(`<path class="scale" d="M${bx} ${by - 5}V${by}H${(bx + bar).toFixed(1)}V${by - 5}"/>`);
-    out.push(`<text class="scaletxt" x="${bx}" y="${by - 9}">${span} km</text>`);
+    out.push(`<text class="scaletxt" x="${bx}" y="${by - 9}">${span < 1 ? Math.round(span * 1000) + ' m' : span + ' km'}</text>`);
     out.push(`<text class="compass" x="${(W - 18).toFixed(1)}" y="${M + 4}" text-anchor="middle">N</text>`);
     out.push(`<path class="scale" d="M${(W - 18).toFixed(1)} ${M + 8}V${M + 24}M${(W - 22).toFixed(1)} ${M + 13}L${(W - 18).toFixed(1)} ${M + 8}L${(W - 14).toFixed(1)} ${M + 13}"/>`);
 
@@ -538,7 +561,9 @@
     (cur().maintenance || []).forEach(m => {
       if (rec.t >= m.start && rec.t < m.end) m.cells.forEach(id => {
         const cell = g.cells.find(c => c.id === id);
-        mnt.push(`<rect class="mnt" x="${(OX + cell.col * S + 3).toFixed(1)}" y="${M + cell.row * S + 3}" width="${S - 6}" height="${S - 6}" rx="2"/>`);
+        // Through zx/zy like everything else: these used to be pinned to the
+        // unzoomed grid, so the yellow boxes stayed put while the map moved.
+        mnt.push(`<rect class="mnt" x="${(zx(OX + cell.col * S) + 3).toFixed(1)}" y="${(zy(M + cell.row * S) + 3).toFixed(1)}" width="${(S * ZOOM - 6).toFixed(1)}" height="${(S * ZOOM - 6).toFixed(1)}" rx="2"/>`);
       });
     });
     $('mnt').innerHTML = mnt.join('');
@@ -547,7 +572,7 @@
     if (rec.triage) rec.triage.top.forEach(p => {
       if (!p.last_seen) return;
       const [x, y] = project(p.last_seen.lat, p.last_seen.lon, g);
-      const r = (p.last_seen.radius_m / g.spacing_m) * S;
+      const r = (p.last_seen.radius_m / g.spacing_m) * S * ZOOM;   // a real distance, so it scales
       dots.push(`<circle class="halo" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"/>`);
       dots.push(`<circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"><title>${p.person} · ${p.class} · ${p.cell}</title></circle>`);
     });
@@ -727,8 +752,28 @@
     ['zones', 'registry', 'brief', 'log'].forEach(id => $(id).classList.toggle('on', id === button.dataset.pane));
   });
 
-  function setZoom(next) {
-    zi = Math.max(0, Math.min(ZOOMS.length - 1, next));
+  // Keep the watched window overlapping the middle of the view, so the map can
+  // be dragged freely but never thrown away off the edge.
+  function clampPan() {
+    if (!MAP) return;
+    const g = cur().grid, { W, H, OX } = MAP;
+    const w = g.cols * S * ZOOM, h = g.rows * S * ZOOM;
+    TX = Math.min(W * 0.75 - OX * ZOOM, Math.max(W * 0.25 - (OX * ZOOM + w), TX));
+    TY = Math.min(H * 0.75 - M * ZOOM, Math.max(H * 0.25 - (M * ZOOM + h), TY));
+  }
+
+  // Zoom about a point instead of about the middle: whatever is under (ax, ay)
+  // stays under it, which is the difference between choosing what to look at and
+  // being handed whatever the middle happened to be.
+  function setZoom(next, ax, ay) {
+    next = Math.max(0, Math.min(ZOOMS.length - 1, next));
+    const z0 = ZOOM, z1 = ZOOMS[next];
+    if (ax == null) { ax = (MAP ? MAP.W : 0) / 2; ay = (MAP ? MAP.H : 0) / 2; }
+    TX = ax - (ax - TX) * (z1 / z0);
+    TY = ay - (ay - TY) * (z1 / z0);
+    zi = next; ZOOM = z1;
+    if (zi === 0) { TX = 0; TY = 0; }        // 1× is always the whole picture
+    clampPan();
     $('zlvl').textContent = ZOOMS[zi] + '×';
     $('zin').disabled = zi === ZOOMS.length - 1;
     $('zout').disabled = zi === 0;
@@ -737,6 +782,61 @@
   }
   $('zin').onclick = () => setZoom(zi + 1);
   $('zout').onclick = () => setZoom(zi - 1);
+  $('zlvl').onclick = () => setZoom(0);
+
+  // Pointer position in the map's own units, whatever the element is scaled to.
+  function atPointer(e) {
+    const svg = $('grid'), r = svg.getBoundingClientRect();
+    if (!MAP || !r.width) return [0, 0];
+    return [(e.clientX - r.left) * MAP.W / r.width, (e.clientY - r.top) * MAP.H / r.height];
+  }
+
+  $('grid').addEventListener('wheel', e => {
+    if (!MAP) return;
+    e.preventDefault();
+    const [ax, ay] = atPointer(e);
+    setZoom(zi + (e.deltaY < 0 ? 1 : -1), ax, ay);
+  }, { passive: false });
+
+  $('grid').addEventListener('dblclick', e => {
+    if (!MAP) return;
+    const [ax, ay] = atPointer(e);
+    setZoom(zi + 1, ax, ay);
+  });
+
+  // Dragging moves the element with a CSS transform, which costs nothing, and
+  // the map is rebuilt once at the end — a rebuild per frame would drop the
+  // playback to a slideshow on a map with eight thousand paths in it.
+  (() => {
+    const svg = $('grid');
+    let from = null;
+    svg.addEventListener('pointerdown', e => {
+      if (!MAP || e.button !== 0) return;
+      from = { x: e.clientX, y: e.clientY };
+      svg.classList.add('dragging');
+      svg.setPointerCapture(e.pointerId);
+    });
+    svg.addEventListener('pointermove', e => {
+      if (!from) return;
+      svg.style.transform = `translate(${e.clientX - from.x}px, ${e.clientY - from.y}px)`;
+    });
+    const end = e => {
+      if (!from) return;
+      const r = svg.getBoundingClientRect();
+      const k = r.width ? MAP.W / r.width : 1;
+      const dx = e.clientX - from.x, dy = e.clientY - from.y;
+      from = null;
+      svg.classList.remove('dragging');
+      svg.style.transform = '';
+      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;   // a click, not a drag
+      TX += dx * k; TY += dy * k;
+      clampPan();
+      MAP = null;
+      drawMap(cur().records[pass]);
+    };
+    svg.addEventListener('pointerup', end);
+    svg.addEventListener('pointercancel', end);
+  })();
 
   $('detail').onclick = () => {
     detail = !detail;
