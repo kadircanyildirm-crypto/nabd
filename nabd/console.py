@@ -264,6 +264,8 @@ TEMPLATE = r"""<!doctype html>
      (it never occludes the map and never turns brown over it), dark is solid,
      and normal is nothing at all — the map itself is the sign that all is well. */
   .cell { stroke: none; }
+  /* The scene is scaled as a group; its strokes are not. */
+  #scene path, #scene rect, #scene circle, #scene line { vector-effect: non-scaling-stroke; }
   .c-low { fill: none; }
   .c-medium { fill: url(#hatch-medium); }
   .c-high { fill: url(#hatch-high); }
@@ -280,11 +282,17 @@ TEMPLATE = r"""<!doctype html>
   .scale { stroke: #7f8f9f; stroke-width: 1.4; fill: none; }
   .scaletxt, .compass { font-family: var(--mono); font-size: 10px; fill: #9fb3c6; }
   .compass { font-size: 13px; font-weight: 700; }
-  .fp { fill: none; stroke: var(--alert); stroke-width: 3; pointer-events: none; }
-  .cand { fill: none; stroke: var(--cand); stroke-width: 2.5; stroke-dasharray: 5 4; pointer-events: none; }
-  .held { fill: none; stroke: var(--held); stroke-width: 2; stroke-dasharray: 3 4; pointer-events: none; }
+  #edge .fp { fill: none; stroke: var(--alert); stroke-width: 3; pointer-events: none; }
+  #edge .cand { fill: none; stroke: var(--cand); stroke-width: 2.5; stroke-dasharray: 6 4; stroke-linecap: round; pointer-events: none; }
+  #edge .held { fill: none; stroke: var(--held); stroke-width: 2; stroke-dasharray: 4 4; stroke-linecap: round; pointer-events: none; }
   .mnt { fill: none; stroke: var(--held); stroke-width: 1; stroke-dasharray: 2 3; pointer-events: none; }
-  .lbl { fill: var(--dim); font-family: var(--mono); font-size: 10px; }
+  /* The grid reference lives in a ruled margin, the way a map sheet's does. */
+  .ruler { fill: #0b1017; fill-opacity: .86; }
+  .ruler-edge { stroke: #3a4d61; stroke-width: 1; }
+  .tick { stroke: #6b8299; stroke-width: 1; }
+  .lbl { fill: #a9bccd; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .04em; }
+  .win { fill: none; stroke: #6b8299; stroke-width: 1; opacity: .9; }
+  .focus { fill: #05080d; opacity: .3; }
   .fplabel { fill: var(--alert); font-family: var(--mono); font-size: 11px; font-weight: 700; }
   .dot { fill: #fff; stroke: var(--alert); stroke-width: 1.5; }
   .halo { fill: none; stroke: var(--alert); stroke-opacity: .45; stroke-width: 1; stroke-dasharray: 3 3; }
@@ -329,8 +337,9 @@ TEMPLATE = r"""<!doctype html>
   .legend i { display: inline-block; width: 13px; height: 13px; border-radius: 2px; vertical-align: -2px; margin-right: 6px;
               box-sizing: border-box; }
   .legend i.sw-low { border: 1px solid #2b3c4e; }
-  .legend i.sw-medium { background: repeating-linear-gradient(-45deg, #c9922e 0 1px, transparent 1px 5px); border: 1px solid #2b3c4e; }
-  .legend i.sw-high { background: repeating-linear-gradient(-45deg, #e08a2e 0 1.4px, transparent 1.4px 3.6px); border: 1px solid #2b3c4e; }
+  .legend i.sw-medium { background: repeating-linear-gradient(-45deg, #d9b24d 0 1px, transparent 1px 5px); border: 1px solid #2b3c4e; }
+  .legend i.sw-high { background: repeating-linear-gradient(-45deg, #f07a2a 0 1.2px, transparent 1.2px 4px),
+                                  repeating-linear-gradient(45deg, #f07a2a 0 1.2px, transparent 1.2px 4px); border: 1px solid #2b3c4e; }
   .legend i.sw-dark { background: #04070d; border: 1px solid #3a1a1a; }
   /* The column is exactly as tall as the screen. The verdict and the brief are
      always visible; everything else lives behind a tab, so a reader is told what
@@ -525,14 +534,27 @@ TEMPLATE = r"""<!doctype html>
   // this pair. That is the whole contract: anything that skips it drifts out of
   // register the moment the reader zooms, which is exactly what used to happen
   // to the maintenance boxes and the uncertainty haloes.
-  const zx = x => x * ZOOM + TX;
+  const zx = x => x * ZOOM + TX;   // unzoomed map units -> screen
   const zy = y => y * ZOOM + TY;
 
+  // Geometry inside the scene is kept in unzoomed units and the scene's own
+  // transform does the rest, so project() answers in those units.
   function project(lat, lon, g) {
     const a = g.cells[0], b = g.cells[1], c = g.cells[g.cols];
     const dlon = b.lon - a.lon, dlat = c.lat - a.lat; // dlat is negative (south)
-    return [zx(ORIGIN_X + ((lon - a.lon) / dlon + 0.5) * S),
-            zy(M + ((lat - a.lat) / dlat + 0.5) * S)];
+    return [ORIGIN_X + ((lon - a.lon) / dlon + 0.5) * S,
+            M + ((lat - a.lat) / dlat + 0.5) * S];
+  }
+
+  const viewTransform = () => `translate(${TX.toFixed(2)},${TY.toFixed(2)}) scale(${ZOOM})`;
+
+  // One attribute write per layer moves the whole map; the hatch is
+  // counter-scaled so its texture keeps the same weight at every zoom.
+  function applyView() {
+    if (!MAP) return;
+    MAP.scene.setAttribute('transform', viewTransform());
+    MAP.labels.setAttribute('transform', `translate(${TX.toFixed(2)},${TY.toFixed(2)})`);
+    MAP.patterns.forEach(p => p.setAttribute('patternTransform', `rotate(45) scale(${(1 / ZOOM).toFixed(4)})`));
   }
 
   // The map is built once per scene and then only updated, because a redraw
@@ -562,10 +584,11 @@ TEMPLATE = r"""<!doctype html>
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
     const x0 = OX, y0 = M, w = g.cols * S, h = g.rows * S;
-    const SZ = S * ZOOM;
+    // Two decimals: the scene is built once at 1x and shown at up to 8x, and a
+    // tenth of a unit would show as a wobble in the streets by then.
     const line = pts => pts.map((p, i) => {
       const [x, y] = project(p[1], p[0], g);
-      return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+      return (i ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2);
     }).join('');
     const out = [];
 
@@ -573,25 +596,31 @@ TEMPLATE = r"""<!doctype html>
       + `<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">`
       + `<stop offset="0" stop-color="#0c1420"/><stop offset="1" stop-color="#080d14"/></linearGradient>`
       + `<clipPath id="viewclip"><rect x="0" y="0" width="${W.toFixed(1)}" height="${H}"/></clipPath>`
-      + `<clipPath id="winclip"><rect x="${zx(x0).toFixed(1)}" y="${zy(y0).toFixed(1)}" width="${(w * ZOOM).toFixed(1)}" height="${(h * ZOOM).toFixed(1)}"/></clipPath>`
+      + `<clipPath id="winclip"><rect x="${x0.toFixed(1)}" y="${y0}" width="${w}" height="${h}"/></clipPath>`
       // Hatches in user units, so the texture stays the same weight at every zoom
       // while the cells under it grow.
-      + `<pattern id="hatch-high" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">`
-      + `<line x1="0" y1="0" x2="0" y2="5" stroke="#e08a2e" stroke-width="1.4" stroke-opacity=".8"/></pattern>`
       + `<pattern id="hatch-medium" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(45)">`
-      + `<line x1="0" y1="0" x2="0" y2="9" stroke="#c9922e" stroke-width="1" stroke-opacity=".55"/></pattern>`
+      + `<line x1="0" y1="0" x2="0" y2="9" stroke="#d9b24d" stroke-width="1.1" stroke-opacity=".6"/></pattern>`
+      + `<pattern id="hatch-high" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">`
+      + `<line x1="0" y1="0" x2="0" y2="6" stroke="#f07a2a" stroke-width="1.2" stroke-opacity=".8"/>`
+      + `<line x1="0" y1="3" x2="6" y2="3" stroke="#f07a2a" stroke-width="1.2" stroke-opacity=".8"/></pattern>`
       + `<filter id="glow" x="-30%" y="-30%" width="160%" height="160%">`
       + `<feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/>`
       + `<feMergeNode in="SourceGraphic"/></feMerge></filter>`
       + `</defs>`);
     out.push(`<rect class="ground" x="0" y="0" width="${W.toFixed(1)}" height="${H}"/>`);
 
+    // Everything that is *the map* lives in one scaled group; the clip that
+    // keeps it inside the view sits on the parent, in screen units, so it does
+    // not travel with the scene.
+    out.push(`<g clip-path="url(#viewclip)"><g id="scene" transform="${viewTransform()}">`);
+
     // -- the region, or the city ---------------------------------------------
     const geo = detail ? cur().geo : null;
     const isCity = !!cur().city;          // the scene watches one city, not a region
     const MS = DATA.maps[cur().maps] || {};
     const base = MS.base;
-    out.push('<g clip-path="url(#viewclip)">');
+    out.push('<g>');
     if (base) base.borders.forEach(l => out.push(`<path class="border" d="${line(l)}"/>`));
     const decode = (a, k) => {
       const pts = []; let x = a[0], y = a[1];
@@ -613,12 +642,12 @@ TEMPLATE = r"""<!doctype html>
     const field = (id, cls) => {
       out.push(`<g clip-path="url(#winclip)"><g id="${id}">`);
       g.cells.forEach(c => out.push(
-        `<rect class="cell ${cls}" data-k="${c.row * g.cols + c.col}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"><title>${c.id} · ${c.lat.toFixed(4)}N ${c.lon.toFixed(4)}E</title></rect>`));
+        `<rect class="cell ${cls}" data-k="${c.row * g.cols + c.col}" x="${(OX + c.col * S).toFixed(1)}" y="${M + c.row * S}" width="${S}" height="${S}"><title>${c.id} · ${c.lat.toFixed(4)}N ${c.lon.toFixed(4)}E</title></rect>`));
       out.push('</g></g>');
     };
 
     // -- the streets ---------------------------------------------------------
-    out.push('<g clip-path="url(#viewclip)">');
+    out.push('<g>');
     if (isCity) {
       layer(MS.city, 'roads.local', 'rd-local');
       layer(MS.city, 'roads.minor', 'rd-minor');
@@ -646,13 +675,13 @@ TEMPLATE = r"""<!doctype html>
 
     out.push('<g clip-path="url(#winclip)"><g id="fpfills">');
     g.cells.forEach(c => out.push(
-      `<rect class="fpfill" data-id="${c.id}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"/>`));
+      `<rect class="fpfill" data-id="${c.id}" x="${(OX + c.col * S).toFixed(1)}" y="${M + c.row * S}" width="${S}" height="${S}"/>`));
     out.push('</g></g>');
     out.push('<g id="mnt" clip-path="url(#winclip)"></g>');
 
     // -- the measured event --------------------------------------------------
     if (geo) {
-      out.push('<g clip-path="url(#viewclip)">');
+      out.push('<g>');
       geo.contours.forEach(lv => {
         const major = Math.abs(lv.mmi - Math.round(lv.mmi)) < 0.01;
         lv.lines.forEach(l => out.push(
@@ -666,16 +695,48 @@ TEMPLATE = r"""<!doctype html>
     out.push('<g id="edge" filter="url(#glow)"></g>');
     out.push('<g id="dots"></g>');
 
-    // -- place names, on top so they stay readable ---------------------------
+    out.push('</g></g>');                        // #scene, and its clip
+    out.push('<g id="labels"></g>');            // names and dots: translated, never scaled
+    out.push('</g>');                            // the view clip
+    out.push('<g id="chrome"></g><g id="fplabel"></g>');
+    svg.innerHTML = out.join('');
+    MAP = { name: cur().name, w: Math.round(svg.getBoundingClientRect().width), OX, W, H,
+            cells: [...svg.querySelectorAll('#cells rect')],
+            dark: [...svg.querySelectorAll('#dark rect')],
+            fills: new Map([...svg.querySelectorAll('#fpfills rect')].map(r => [r.dataset.id, r])),
+            scene: svg.querySelector('#scene'), labels: svg.querySelector('#labels'),
+            patterns: [...svg.querySelectorAll('pattern')] };
+    applyView();
+    drawLabels();
+    drawChrome();
+  }
+
+  // -- place names: laid out in screen units so they never scale -----------
+  // The ruled margin covers a strip along the top and the left of the window;
+  // a name that would sit under it is left out rather than half-covered.
+  const BAND = 16;
+  function drawLabels() {
+    if (!MAP) return;
+    const g = cur().grid, { W, H, OX } = MAP;
+    const isCity = !!cur().city;
+    const MS = DATA.maps[cur().maps] || {};
     const places = (isCity ? MS.city : MS.region);
+    const x0 = OX, y0 = M, w = g.cols * S, h = g.rows * S;
+    const bX0 = zx(x0), bY0 = zy(y0), bX1 = bX0 + w * ZOOM, bY1 = bY0 + h * ZOOM;
+    const bty = Math.max(bY0 - BAND, 0), blx = Math.max(bX0 - BAND, 0);
+    const underBand = (x, y) =>
+      (y >= bty - 4 && y <= bty + BAND + 4 && x >= blx && x <= Math.min(bX1, W)) ||
+      (x >= blx - 4 && x <= blx + BAND + 4 && y >= bty && y <= Math.min(bY1, H));
+    const out = [];
     if (places) {
-      out.push('<g clip-path="url(#viewclip)">');
       // Places are ranked, so when two labels want the same spot the more
       // important one keeps it and the other loses its text but keeps its dot.
       const placed = [];
       places.places.forEach(t => {
-        const [x, y] = project(t.lat, t.lon, g);
-        if (x < 4 || x > W - 4 || y < 4 || y > H - 4) return;
+        const [bx, by] = project(t.lat, t.lon, g);
+        const x = bx * ZOOM, y = by * ZOOM;               // in the translated layer
+        const px = x + TX, py = y + TY;                    // on screen
+        if (px < 4 || px > W - 4 || py < 4 || py > H - 4 || underBand(px, py)) return;
         const big = t.rank <= 2;
         out.push(`<circle class="town${big ? ' major' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${big ? 3.4 : 1.8}"/>`);
         const wide = t.name.length * (big ? 6.6 : 4.6) + 10, tall = big ? 13 : 10;
@@ -683,25 +744,59 @@ TEMPLATE = r"""<!doctype html>
         placed.push({ x, y, w: wide, h: tall });
         out.push(`<text class="placelbl${big ? ' big' : ''}" x="${(x + (big ? 7 : 4)).toFixed(1)}" y="${(y + 3).toFixed(1)}">${t.name}</text>`);
       });
-      out.push('</g>');
     }
+    MAP.labels.innerHTML = out.join('');
+  }
 
-    // -- the monitored window, its labels, and the furniture of a map --------
-    out.push(`<rect x="${zx(x0).toFixed(1)}" y="${zy(y0).toFixed(1)}" width="${(w * ZOOM).toFixed(1)}" height="${(h * ZOOM).toFixed(1)}" fill="none" stroke="#54708a" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>`);
-    // Row and column letters ride the edge of the view, not the edge of the
-    // window: zoomed in, the window's own edge is off-screen, and a reader still
-    // needs to know that this is F6.
-    const ly = Math.min(Math.max(zy(M) - 8, 11), H - 8);
-    // Pinned to the left edge, the letters have to read outwards instead of in.
-    const pinned = zx(OX) - 8 < 18;
-    const lx = pinned ? 6 : Math.min(zx(OX) - 8, W - 6);
-    for (let c = 0; c < g.cols; c++) {
-      const x = zx(OX + c * S + S / 2);
-      if (x > 10 && x < W - 10) out.push(`<text class="lbl" x="${x.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle">${c + 1}</text>`);
+  // -- the window, its margin and the furniture of a map: screen units -----
+  function drawChrome() {
+    if (!MAP) return;
+    const g = cur().grid, { W, H, OX } = MAP;
+    const x0 = OX, y0 = M, w = g.cols * S, h = g.rows * S;
+    const SZ = S * ZOOM;
+    const out = [];
+    const X0 = zx(x0), Y0 = zy(y0), X1 = X0 + w * ZOOM, Y1 = Y0 + h * ZOOM;
+    const f = n => n.toFixed(1);
+
+    // Everything outside the window steps back a little, so the watched area
+    // is plainly the stage and the rest is context.
+    out.push(`<rect class="focus" x="0" y="0" width="${f(W)}" height="${f(Math.max(0, Y0))}"/>`);
+    out.push(`<rect class="focus" x="0" y="${f(Y1)}" width="${f(W)}" height="${f(Math.max(0, H - Y1))}"/>`);
+    out.push(`<rect class="focus" x="0" y="${f(Math.max(0, Y0))}" width="${f(Math.max(0, X0))}" height="${f(Math.max(0, Math.min(Y1, H) - Math.max(0, Y0)))}"/>`);
+    out.push(`<rect class="focus" x="${f(X1)}" y="${f(Math.max(0, Y0))}" width="${f(Math.max(0, W - X1))}" height="${f(Math.max(0, Math.min(Y1, H) - Math.max(0, Y0)))}"/>`);
+    out.push(`<rect class="win" x="${f(X0)}" y="${f(Y0)}" width="${f(w * ZOOM)}" height="${f(h * ZOOM)}"/>`);
+
+    // The grid reference, in a ruled margin along the top and the left. The
+    // margin hugs the window while the window's edge is on screen and hugs the
+    // view once it has been zoomed off, so a reader always knows this is F6.
+    const TICK = 4;
+    const vx0 = Math.max(X0, 0), vx1 = Math.min(X1, W);
+    const vy0 = Math.max(Y0, 0), vy1 = Math.min(Y1, H);
+    const ty = Math.max(Y0 - BAND, 0);          // top band's upper edge
+    const lx = Math.max(X0 - BAND, 0);          // left band's left edge
+    out.push(`<rect class="ruler" x="${f(lx)}" y="${f(ty)}" width="${f(vx1 - lx)}" height="${BAND}"/>`);
+    out.push(`<rect class="ruler" x="${f(lx)}" y="${f(ty + BAND)}" width="${BAND}" height="${f(Math.max(0, vy1 - ty - BAND))}"/>`);
+    out.push(`<path class="ruler-edge" d="M${f(lx)} ${f(ty + BAND)}H${f(vx1)}M${f(lx + BAND)} ${f(ty + BAND)}V${f(vy1)}"/>`);
+    const letters = 'ABCDEFGHIJKLMNOPQRST';
+    for (let c = 0; c <= g.cols; c++) {
+      const x = zx(OX + c * S);
+      if (x >= vx0 - .5 && x <= vx1 + .5) {
+        out.push(`<path class="tick" d="M${f(x)} ${f(ty + BAND - TICK)}V${f(ty + BAND)}"/>`);
+        if (Y1 < H) out.push(`<path class="tick" d="M${f(x)} ${f(Y1)}v${TICK}"/>`);
+      }
+      if (c === g.cols) break;
+      const mid = zx(OX + c * S + S / 2);
+      if (mid > vx0 + 5 && mid < vx1 - 5) out.push(`<text class="lbl" x="${f(mid)}" y="${f(ty + 11.5)}" text-anchor="middle">${c + 1}</text>`);
     }
-    for (let r = 0; r < g.rows; r++) {
-      const y = zy(M + r * S + S / 2);
-      if (y > 14 && y < H - 6) out.push(`<text class="lbl" x="${lx.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${pinned ? 'start' : 'end'}">${'ABCDEFGHIJKLMNOPQRST'[r]}</text>`);
+    for (let r = 0; r <= g.rows; r++) {
+      const y = zy(M + r * S);
+      if (y >= vy0 - .5 && y <= vy1 + .5 && y >= ty + BAND) {
+        out.push(`<path class="tick" d="M${f(lx + BAND - TICK)} ${f(y)}H${f(lx + BAND)}"/>`);
+        if (X1 < W) out.push(`<path class="tick" d="M${f(X1)} ${f(y)}h${TICK}"/>`);
+      }
+      if (r === g.rows) break;
+      const mid = zy(M + r * S + S / 2);
+      if (mid > Math.max(vy0, ty + BAND) + 5 && mid < vy1 - 5) out.push(`<text class="lbl" x="${f(lx + BAND / 2)}" y="${f(mid + 3.5)}" text-anchor="middle">${letters[r]}</text>`);
     }
 
     // A scale bar keeps its length and changes its number, the way a paper map
@@ -713,21 +808,17 @@ TEMPLATE = r"""<!doctype html>
     const bar = (span / km) * SZ, bx = 14, by = H - 14;
     out.push(`<path class="scale" d="M${bx} ${by - 5}V${by}H${(bx + bar).toFixed(1)}V${by - 5}"/>`);
     out.push(`<text class="scaletxt" x="${bx}" y="${by - 9}">${span < 1 ? Math.round(span * 1000) + ' m' : span + ' km'}</text>`);
-    out.push(`<text class="compass" x="${(W - 18).toFixed(1)}" y="${M + 4}" text-anchor="middle">N</text>`);
-    out.push(`<path class="scale" d="M${(W - 18).toFixed(1)} ${M + 8}V${M + 24}M${(W - 22).toFixed(1)} ${M + 13}L${(W - 18).toFixed(1)} ${M + 8}L${(W - 14).toFixed(1)} ${M + 13}"/>`);
+    const cx = W - 20, cy = H - 40;
+    out.push(`<text class="compass" x="${cx.toFixed(1)}" y="${cy}" text-anchor="middle">N</text>`);
+    out.push(`<path class="scale" d="M${cx.toFixed(1)} ${cy + 4}V${cy + 22}M${(cx - 4).toFixed(1)} ${cy + 9}L${cx.toFixed(1)} ${cy + 4}L${(cx + 4).toFixed(1)} ${cy + 9}"/>`);
 
-    out.push(`<g id="fplabel"></g>`);
-    svg.innerHTML = out.join('');
-    MAP = { scene: cur().name, w: Math.round(svg.getBoundingClientRect().width), OX, W, H,
-            cells: [...svg.querySelectorAll('#cells rect')],
-            dark: [...svg.querySelectorAll('#dark rect')],
-            fills: new Map([...svg.querySelectorAll('#fpfills rect')].map(r => [r.dataset.id, r])) };
+    $('chrome').innerHTML = out.join('');
   }
 
   function drawMap(rec) {
     const svg = $('grid'), g = cur().grid;
     const width = Math.round(svg.getBoundingClientRect().width);
-    if (!MAP || MAP.scene !== cur().name || Math.abs(MAP.w - width) > 8) buildMap();
+    if (!MAP || MAP.name !== cur().name || Math.abs(MAP.w - width) > 8) buildMap();
     const { OX, W, H } = MAP;
     ORIGIN_X = OX;
 
@@ -758,8 +849,8 @@ TEMPLATE = r"""<!doctype html>
       const set = new Set(rec.cells);
       rec.cells.forEach(id => {
         const cell = g.cells.find(c => c.id === id);
-        const x = zx(OX + cell.col * S), y = zy(M + cell.row * S);
-        const sz = S * ZOOM;
+        const x = OX + cell.col * S, y = M + cell.row * S;
+        const sz = S;
         const n = (dr, dc) => set.has((g.cells.find(c => c.row === cell.row + dr && c.col === cell.col + dc) || {}).id);
         if (!n(-1, 0)) edge.push(`M${x.toFixed(1)} ${y.toFixed(1)}h${sz.toFixed(1)}`);
         if (!n(1, 0)) edge.push(`M${x.toFixed(1)} ${(y + sz).toFixed(1)}h${sz.toFixed(1)}`);
@@ -777,7 +868,7 @@ TEMPLATE = r"""<!doctype html>
         const cell = g.cells.find(c => c.id === id);
         // Through zx/zy like everything else: these used to be pinned to the
         // unzoomed grid, so the yellow boxes stayed put while the map moved.
-        mnt.push(`<rect class="mnt" x="${(zx(OX + cell.col * S) + 3).toFixed(1)}" y="${(zy(M + cell.row * S) + 3).toFixed(1)}" width="${(S * ZOOM - 6).toFixed(1)}" height="${(S * ZOOM - 6).toFixed(1)}" rx="2"/>`);
+        mnt.push(`<rect class="mnt" x="${(OX + cell.col * S + 3).toFixed(1)}" y="${(M + cell.row * S + 3).toFixed(1)}" width="${S - 6}" height="${S - 6}" rx="2"/>`);
       });
     });
     $('mnt').innerHTML = mnt.join('');
@@ -786,22 +877,31 @@ TEMPLATE = r"""<!doctype html>
     if (rec.triage) rec.triage.top.forEach(p => {
       if (!p.last_seen) return;
       const [x, y] = project(p.last_seen.lat, p.last_seen.lon, g);
-      const r = (p.last_seen.radius_m / g.spacing_m) * S * ZOOM;   // a real distance, so it scales
+      const r = (p.last_seen.radius_m / g.spacing_m) * S;   // a real distance: the scene's scale applies
       dots.push(`<circle class="halo" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"/>`);
-      dots.push(`<circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"><title>${p.person} · ${p.class} · ${p.cell}</title></circle>`);
+      // The dot is a marker, not a distance, so it is sized against the scale.
+      dots.push(`<circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(4 / ZOOM).toFixed(2)}"><title>${p.person} · ${p.class} · ${p.cell}</title></circle>`);
     });
     $('dots').innerHTML = dots.join('');
 
+    drawFootprintLabel(rec);
+  }
+
+  // The footprint's own label is chrome: placed in screen units against the
+  // view, so it stays readable however far the map has been dragged.
+  function drawFootprintLabel(rec) {
+    if (!MAP) return;
+    const g = cur().grid, { OX, W, H } = MAP;
     let label = '';
-    if (cls === 'on' && rec.cells.length) {
+    if (ACTIVE.has(rec.kind) && rec.cells.length) {
       const cells = rec.cells.map(id => g.cells.find(c => c.id === id));
       const bottom = Math.max(...cells.map(c => c.row)), left = Math.min(...cells.map(c => c.col));
       const text = `FOOTPRINT · ${rec.confidence || ''} · ${(rec.cells.length * (g.spacing_m / 1000) ** 2).toFixed(1)} km²`;
       const bw = text.length * 6.8 + 12;
       const bx = Math.max(4, Math.min(zx(OX + left * S), W - bw - 4));
-      const by = Math.min(zy(M + (bottom + 1) * S) + 6, H - 20);
-      label = `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="18" rx="4" fill="#0b1017" stroke="var(--alert)" stroke-width="1"/>`
-            + `<text class="fplabel" x="${(bx + 6).toFixed(1)}" y="${by + 13}">${text}</text>`;
+      const by = Math.min(Math.max(zy(M + (bottom + 1) * S) + 6, 4), H - 20);
+      label = `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="18" rx="4" fill="#0b1017" stroke="var(--alert)" stroke-width="1"/>`
+            + `<text class="fplabel" x="${(bx + 6).toFixed(1)}" y="${(by + 13).toFixed(1)}">${text}</text>`;
     }
     $('fplabel').innerHTML = label;
   }
@@ -1061,7 +1161,11 @@ TEMPLATE = r"""<!doctype html>
     $('zlvl').textContent = ZOOMS[zi] + '×';
     $('zin').disabled = zi === ZOOMS.length - 1;
     $('zout').disabled = zi === 0;
-    MAP = null;
+    // No rebuild: the scene is transformed, the unscaled layers are re-laid
+    // out, and the per-pass marks are refreshed at the new scale.
+    applyView();
+    drawLabels();
+    drawChrome();
     drawMap(cur().records[pass]);
   }
   $('zin').onclick = () => setZoom(zi + 1);
@@ -1088,35 +1192,42 @@ TEMPLATE = r"""<!doctype html>
     setZoom(zi + 1, ax, ay);
   });
 
-  // Dragging moves the element with a CSS transform, which costs nothing, and
-  // the map is rebuilt once at the end — a rebuild per frame would drop the
-  // playback to a slideshow on a map with eight thousand paths in it.
+  // Dragging is a pan: the scene's transform follows the pointer and the chrome
+  // is redrawn from a few dozen elements. Nothing is rebuilt, so there is
+  // nothing to wait for when the reader lets go.
   (() => {
     const svg = $('grid');
-    let from = null;
+    let from = null, pending = null;
     svg.addEventListener('pointerdown', e => {
       if (!MAP || e.button !== 0) return;
-      from = { x: e.clientX, y: e.clientY };
+      // Measured once, here: reading layout after every transform write is
+      // what makes a drag stutter, so the move handler never reads it at all.
+      const r = svg.getBoundingClientRect();
+      from = { x: e.clientX, y: e.clientY, tx: TX, ty: TY, k: r.width ? MAP.W / r.width : 1 };
       svg.classList.add('dragging');
       svg.setPointerCapture(e.pointerId);
     });
     svg.addEventListener('pointermove', e => {
       if (!from) return;
-      svg.style.transform = `translate(${e.clientX - from.x}px, ${e.clientY - from.y}px)`;
+      pending = e;
+      if (pending.raf) return;
+      // One update per frame however fast the pointer reports.
+      pending.raf = requestAnimationFrame(() => {
+        const ev = pending; pending = null;
+        if (!from) return;
+        TX = from.tx + (ev.clientX - from.x) * from.k;
+        TY = from.ty + (ev.clientY - from.y) * from.k;
+        clampPan();
+        applyView();
+        drawChrome();
+        drawFootprintLabel(cur().records[pass]);
+      });
     });
-    const end = e => {
+    const end = () => {
       if (!from) return;
-      const r = svg.getBoundingClientRect();
-      const k = r.width ? MAP.W / r.width : 1;
-      const dx = e.clientX - from.x, dy = e.clientY - from.y;
       from = null;
       svg.classList.remove('dragging');
-      svg.style.transform = '';
-      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;   // a click, not a drag
-      TX += dx * k; TY += dy * k;
-      clampPan();
-      MAP = null;
-      drawMap(cur().records[pass]);
+      drawLabels();                       // names may have slid under the margin
     };
     svg.addEventListener('pointerup', end);
     svg.addEventListener('pointercancel', end);
