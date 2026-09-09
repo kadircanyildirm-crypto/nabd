@@ -72,18 +72,22 @@
   .iso.major { stroke-width: 1.9; opacity: .72; }
   .rupture { fill: none; stroke: #eaf2f9; stroke-width: 2.2; stroke-dasharray: 7 5; opacity: .75; }
   .isokey { font-family: var(--mono); font-size: 9.5px; fill: #0b1017; font-weight: 700; }
-  /* The readings are a field, not tiles: each cell eases into its new colour and
-     the layer is softened, so a pass reads as the network changing rather than a
-     chessboard being repainted. */
-  .cell { stroke: none; transition: fill .55s cubic-bezier(.4,0,.2,1); }
-  .c-low { fill: #2f6d9e33; } .c-medium { fill: #b8892242; } .c-high { fill: #e08a2e5c; }
+  /* Every state is drawn so that it cannot blend with another: load is a hatch
+     (it never occludes the map and never turns brown over it), dark is solid,
+     and normal is nothing at all — the map itself is the sign that all is well. */
+  .cell { stroke: none; }
+  .c-low { fill: none; }
+  .c-medium { fill: url(#hatch-medium); }
+  .c-high { fill: url(#hatch-high); }
   .c-unmon { fill: #141a2226; }
-  .c-dark { fill: #01030699; }
-  .c-clear { fill: #00000000; }
+  .c-dark { fill: #04070de6; }
+  .c-clear { fill: none; }
+  /* With the measured event on, the shaking is the subject and the load steps back. */
+  #grid.detail #cells { opacity: .3; }
   .fpfill { fill: var(--alert); fill-opacity: 0; transition: fill-opacity .55s cubic-bezier(.4,0,.2,1); }
   .fpfill.on { fill-opacity: .10; }
   .fpfill.cand { fill: var(--cand); fill-opacity: .12; }
-  .fpfill.held { fill: var(--held); fill-opacity: .09; }
+  .fpfill.held { fill: var(--held); fill-opacity: .03; }
   .dot, .halo { transition: opacity .45s ease; }
   .scale { stroke: #7f8f9f; stroke-width: 1.4; fill: none; }
   .scaletxt, .compass { font-family: var(--mono); font-size: 10px; fill: #9fb3c6; }
@@ -95,7 +99,7 @@
   .lbl { fill: var(--dim); font-family: var(--mono); font-size: 10px; }
   .fplabel { fill: var(--alert); font-family: var(--mono); font-size: 11px; font-weight: 700; }
   .dot { fill: #fff; stroke: var(--alert); stroke-width: 1.5; }
-  .halo { fill: var(--alert); fill-opacity: .07; stroke: var(--alert); stroke-opacity: .3; stroke-width: 1; }
+  .halo { fill: none; stroke: var(--alert); stroke-opacity: .45; stroke-width: 1; stroke-dasharray: 3 3; }
   .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; color: var(--muted); font-size: 12px; }
   /* The measured event is a second reading of the same map, not the map itself. */
   /* Map controls belong on the map, not in the key underneath it. */
@@ -134,7 +138,12 @@
   .scale td.w { color: var(--muted); }
   .scale p { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
   .scale b { color: var(--text); font-weight: 600; }
-  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; }
+  .legend i { display: inline-block; width: 13px; height: 13px; border-radius: 2px; vertical-align: -2px; margin-right: 6px;
+              box-sizing: border-box; }
+  .legend i.sw-low { border: 1px solid #2b3c4e; }
+  .legend i.sw-medium { background: repeating-linear-gradient(-45deg, #c9922e 0 1px, transparent 1px 5px); border: 1px solid #2b3c4e; }
+  .legend i.sw-high { background: repeating-linear-gradient(-45deg, #e08a2e 0 1.4px, transparent 1.4px 3.6px); border: 1px solid #2b3c4e; }
+  .legend i.sw-dark { background: #04070d; border: 1px solid #3a1a1a; }
   /* The column is exactly as tall as the screen. The verdict and the brief are
      always visible; everything else lives behind a tab, so a reader is told what
      is there rather than left to guess that scrolling would reveal it. */
@@ -237,10 +246,10 @@
       </div>
     </div>
     <div class="legend">
-      <span><i style="background:var(--low)"></i>Low</span>
-      <span><i style="background:var(--medium)"></i>Medium</span>
-      <span><i style="background:var(--high)"></i>High congestion</span>
-      <span><i style="background:var(--dark);border:1px solid #3a1a1a"></i>Sentinel unreachable</span>
+      <span><i class="sw-low"></i>Normal</span>
+      <span><i class="sw-medium"></i>Medium load</span>
+      <span><i class="sw-high"></i>High congestion</span>
+      <span><i class="sw-dark"></i>Sentinel unreachable</span>
       <span><i style="border:2px solid var(--alert)"></i>Declared footprint</span>
       <span><i style="border:2px dashed var(--cand)"></i>Candidate</span>
       <span><i style="border:2px dashed var(--held)"></i>Explained, held</span>
@@ -377,8 +386,12 @@
       + `<stop offset="0" stop-color="#0c1420"/><stop offset="1" stop-color="#080d14"/></linearGradient>`
       + `<clipPath id="viewclip"><rect x="0" y="0" width="${W.toFixed(1)}" height="${H}"/></clipPath>`
       + `<clipPath id="winclip"><rect x="${zx(x0).toFixed(1)}" y="${zy(y0).toFixed(1)}" width="${(w * ZOOM).toFixed(1)}" height="${(h * ZOOM).toFixed(1)}"/></clipPath>`
-      + `<filter id="soften" x="-10%" y="-10%" width="120%" height="120%">`
-      + `<feGaussianBlur stdDeviation="${(SZ * 0.045).toFixed(2)}"/></filter>`
+      // Hatches in user units, so the texture stays the same weight at every zoom
+      // while the cells under it grow.
+      + `<pattern id="hatch-high" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">`
+      + `<line x1="0" y1="0" x2="0" y2="5" stroke="#e08a2e" stroke-width="1.4" stroke-opacity=".8"/></pattern>`
+      + `<pattern id="hatch-medium" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(45)">`
+      + `<line x1="0" y1="0" x2="0" y2="9" stroke="#c9922e" stroke-width="1" stroke-opacity=".55"/></pattern>`
       + `<filter id="glow" x="-30%" y="-30%" width="160%" height="160%">`
       + `<feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/>`
       + `<feMergeNode in="SourceGraphic"/></feMerge></filter>`
@@ -410,16 +423,13 @@
     out.push('</g>');
 
     const field = (id, cls) => {
-      out.push(`<g clip-path="url(#winclip)" filter="url(#soften)"><g id="${id}">`);
+      out.push(`<g clip-path="url(#winclip)"><g id="${id}">`);
       g.cells.forEach(c => out.push(
         `<rect class="cell ${cls}" data-k="${c.row * g.cols + c.col}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"><title>${c.id} · ${c.lat.toFixed(4)}N ${c.lon.toFixed(4)}E</title></rect>`));
       out.push('</g></g>');
     };
 
-    // -- how loaded the network is: a wash under the streets it describes ----
-    field('cells', 'c-unmon');
-
-    // -- the streets, over the wash -----------------------------------------
+    // -- the streets ---------------------------------------------------------
     out.push('<g clip-path="url(#viewclip)">');
     if (isCity) {
       layer(MS.city, 'roads.local', 'rd-local');
@@ -440,10 +450,13 @@
     }
     out.push('</g>');
 
+    // -- how loaded the network is: a hatch over the streets, never a wash ---
+    field('cells', 'c-unmon');
+
     // -- what has gone dark, over everything: it is an absence, not a tint ---
     field('dark', 'c-clear');
 
-    out.push('<g clip-path="url(#winclip)" filter="url(#soften)"><g id="fpfills">');
+    out.push('<g clip-path="url(#winclip)"><g id="fpfills">');
     g.cells.forEach(c => out.push(
       `<rect class="fpfill" data-id="${c.id}" x="${zx(OX + c.col * S).toFixed(1)}" y="${zy(M + c.row * S).toFixed(1)}" width="${SZ.toFixed(1)}" height="${SZ.toFixed(1)}"/>`));
     out.push('</g></g>');
@@ -924,6 +937,7 @@
   $('detail').onclick = () => {
     detail = !detail;
     $('detail').classList.toggle('on', detail);
+    $('grid').classList.toggle('detail', detail);
     MAP = null;
     drawMap(cur().records[pass]);
   };
