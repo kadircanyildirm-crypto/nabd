@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 """Clip a street-level base map for the city-scale scenes.
 
-    python nabd/data/extract_city.py osm-city.json
+    python nabd/data/extract_city.py osm-city.json   basemap-city.json    5
+    python nabd/data/extract_city.py osm-region.json basemap-region.json 16
 
-Four of the five scenes watch a 6.7 km square over Kahramanmaraş. Natural Earth
-carries two roads and one dot at that scale, which is not a map — it is a dark
-rectangle with squares on it. OpenStreetMap carries the streets, the water and
-the neighbourhood names, and that is what makes the city-scale scenes legible.
+The third argument is the thinning step in SCALE units. A 15 km view resolves
+about 15 m to the pixel and a 150 km view about 150 m, so the region is thinned
+ten times harder than the city for the same apparent detail — and stays small.
+
+Both windows are drawn from the same source, so the scenes look like each other:
+the four city scenes watch a 6.7 km square over Kahramanmaraş, and the real-event
+scene watches 100 km of the rupture. Natural Earth carries two roads and one dot
+across the city square, which is not a map — it is a dark rectangle with squares
+on it. OpenStreetMap carries the streets, the water and the place names at both
+scales, and that is what makes either of them legible.
 
 Source: OpenStreetMap contributors, via the Overpass API. ODbL; credited in the
 extract and in the console's footer.
@@ -25,17 +32,17 @@ from datetime import date
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-OUT = HERE / "basemap-city.json"
+OUT = HERE / "basemap-city.json"  # overridden by argv[2]
 
 SCALE = 10000  # ten-thousandths of a degree, ~11 m
-MIN_STEP = 5   # in those units, ~55 m: finer than a 15 km map can show
+MIN_STEP = 5   # in those units, ~55 m; overridden by argv[3]
 
 MAJOR = {"motorway", "trunk", "primary", "secondary"}
 MINOR = {"tertiary", "unclassified"}
 LOCAL = {"residential"}
 
 
-def encode(points: list[tuple[float, float]]) -> list[int] | None:
+def encode(points: list[tuple[float, float]], step: int = MIN_STEP) -> list[int] | None:
     """Delta-encoded [lon0, lat0, dlon, dlat, ...] in SCALE units."""
     out: list[int] = []
     last: tuple[int, int] | None = None
@@ -44,7 +51,7 @@ def encode(points: list[tuple[float, float]]) -> list[int] | None:
         if last is None:
             out += [x, y]
             last = (x, y)
-        elif abs(x - last[0]) + abs(y - last[1]) >= MIN_STEP:
+        elif abs(x - last[0]) + abs(y - last[1]) >= step:
             out += [x - last[0], y - last[1]]
             last = (x, y)
     return out if len(out) >= 4 else None
@@ -54,6 +61,8 @@ def main(argv: list[str]) -> int:
     if len(argv) < 2:
         print(__doc__)
         return 2
+    out_path = HERE / argv[2] if len(argv) > 2 else OUT
+    step = int(argv[3]) if len(argv) > 3 else MIN_STEP
     elements = json.loads(Path(argv[1]).read_text(encoding="utf-8"))["elements"]
 
     roads: dict[str, list] = {"major": [], "minor": [], "local": []}
@@ -77,7 +86,7 @@ def main(argv: list[str]) -> int:
         geom = [(p["lon"], p["lat"]) for p in e.get("geometry", [])]
         if len(geom) < 2:
             continue
-        line = encode(geom)
+        line = encode(geom, step)
         if line is None:
             continue
         highway = tags.get("highway")
@@ -111,10 +120,10 @@ def main(argv: list[str]) -> int:
         "rail": rail,
         "places": places,
     }
-    OUT.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"wrote {OUT.name}: {len(roads['major'])} major / {len(roads['minor'])} minor / "
+    out_path.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"wrote {out_path.name}: {len(roads['major'])} major / {len(roads['minor'])} minor / "
           f"{len(roads['local'])} local roads, {len(water)} water, {len(streams)} stream(s), "
-          f"{len(rail)} rail, {len(places)} places, {OUT.stat().st_size // 1024} KB")
+          f"{len(rail)} rail, {len(places)} places, {out_path.stat().st_size // 1024} KB")
     return 0
 
 

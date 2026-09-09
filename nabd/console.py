@@ -54,7 +54,22 @@ def basemap() -> dict | None:
     if not path.exists():
         return None
     raw = json.loads(path.read_text(encoding="utf-8"))
-    return {k: raw[k] for k in ("towns", "lakes", "rivers", "borders", "roads", "source")}
+    # Roads, water and places come from OpenStreetMap at both scales now; the one
+    # thing Natural Earth still supplies is the provincial boundary.
+    return {"borders": raw["borders"], "source": raw["source"]}
+
+
+def region_basemap() -> dict | None:
+    """The same street data as the city scenes, thinned for a 150 km view.
+
+    Drawing the real-event scene from Natural Earth while the others came from
+    OpenStreetMap made it the odd one out — a sparser map for the one scene that
+    matters most. Both windows come from the same source now.
+    """
+    path = Path(__file__).resolve().parent / "data" / "basemap-region.json"
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def city_basemap() -> dict | None:
@@ -120,6 +135,7 @@ def build_console(names: tuple[str, ...] = tuple(BUILDERS), out: Path = OUT) -> 
         "scenes": [scene_payload(n) for n in names],
         "base": basemap(),
         "cityBase": city_basemap(),
+        "regionBase": region_basemap(),
     }
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.replace("__DATA__", data)
@@ -223,7 +239,14 @@ TEMPLATE = r"""<!doctype html>
   .fplabel { fill: var(--alert); font-family: var(--mono); font-size: 11px; font-weight: 700; }
   .dot { fill: #fff; stroke: var(--alert); stroke-width: 1.5; }
   .halo { fill: var(--alert); fill-opacity: .07; stroke: var(--alert); stroke-opacity: .3; stroke-width: 1; }
-  .legend { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: 12px; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; color: var(--muted); font-size: 12px; }
+  /* The measured event is a second reading of the same map, not the map itself. */
+  #detail { margin-left: auto; background: transparent; color: var(--muted); font: inherit;
+            font-size: 11.5px; border: 1px solid var(--line); border-radius: 6px;
+            padding: 4px 11px; cursor: pointer; white-space: nowrap; }
+  #detail:hover { color: var(--text); }
+  #detail.on { color: var(--text); border-color: var(--high); background: #1a2330; }
+  #detail.hidden { display: none; }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; }
   /* The column is exactly as tall as the screen. The verdict and the brief are
      always visible; everything else lives behind a tab, so a reader is told what
@@ -329,6 +352,7 @@ TEMPLATE = r"""<!doctype html>
       <span><i style="border:2px dashed var(--cand)"></i>Candidate</span>
       <span><i style="border:2px dashed var(--held)"></i>Explained, held</span>
       <span><i style="background:#fff;border-radius:50%"></i>Last-seen position</span>
+      <button id="detail" class="hidden" title="measured intensity contours and the fault rupture">Measured intensity</button>
     </div>
   </section>
   <aside>
@@ -391,6 +415,7 @@ TEMPLATE = r"""<!doctype html>
     [...nav.children].forEach((b, k) => b.classList.toggle('on', k === i));
     $('scrub').max = cur().records.length - 1;
     $('evidence').textContent = `nabd-scene-${cur().name}.jsonl`;
+    $('detail').classList.toggle('hidden', !cur().geo);
     show(0);
   }
 
@@ -408,6 +433,7 @@ TEMPLATE = r"""<!doctype html>
   // from one still to the next. Now the cells own a CSS transition and the pass
   // is something you watch happen.
   let MAP = null;
+  let detail = false;   // the measured-event overlay, off unless asked for
 
   function mapGeometry(g, svg) {
     const rect = svg.getBoundingClientRect();
@@ -446,10 +472,11 @@ TEMPLATE = r"""<!doctype html>
     out.push(`<rect class="ground" x="0" y="0" width="${W.toFixed(1)}" height="${H}"/>`);
 
     // -- the region, or the city ---------------------------------------------
-    const geo = cur().geo;
-    const city = cur().city ? DATA.cityBase : null;
-    const base = city ? null : DATA.base;
+    const geo = detail ? cur().geo : null;
+    const city = cur().city ? DATA.cityBase : DATA.regionBase;
+    const base = DATA.base;
     out.push('<g clip-path="url(#viewclip)">');
+    if (base) base.borders.forEach(l => out.push(`<path class="border" d="${line(l)}"/>`));
     if (city) {
       // Delta-encoded integers: cheap to store, cheap to walk back out.
       const k = city.scale;
@@ -465,11 +492,6 @@ TEMPLATE = r"""<!doctype html>
       city.roads.major.forEach(l => out.push(`<path class="rd-major" d="${line(decode(l))}"/>`));
       city.streams.forEach(l => out.push(`<path class="river" d="${line(decode(l))}"/>`));
       city.rail.forEach(l => out.push(`<path class="rail" d="${line(decode(l))}"/>`));
-    } else if (base) {
-      base.borders.forEach(l => out.push(`<path class="border" d="${line(l)}"/>`));
-      base.roads.forEach(l => out.push(`<path class="road" d="${line(l)}"/>`));
-      base.rivers.forEach(l => out.push(`<path class="river" d="${line(l)}"/>`));
-      base.lakes.forEach(l => out.push(`<path class="lake" d="${line(l)}Z"/>`));
     }
     out.push('</g>');
 
@@ -502,22 +524,18 @@ TEMPLATE = r"""<!doctype html>
     // -- place names, on top so they stay readable ---------------------------
     if (city) {
       out.push('<g clip-path="url(#viewclip)">');
+      // Places are ranked, so when two labels want the same spot the more
+      // important one keeps it and the other loses its text but keeps its dot.
+      const placed = [];
       city.places.forEach(t => {
         const [x, y] = project(t.lat, t.lon, g);
         if (x < 4 || x > W - 4 || y < 4 || y > H - 4) return;
         const big = t.rank <= 2;
         out.push(`<circle class="town${big ? ' major' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${big ? 3.4 : 1.8}"/>`);
+        const wide = t.name.length * (big ? 6.6 : 4.6) + 10, tall = big ? 13 : 10;
+        if (placed.some(p => Math.abs(p.x - x) < (p.w + wide) / 2 && Math.abs(p.y - y) < (p.h + tall) / 2)) return;
+        placed.push({ x, y, w: wide, h: tall });
         out.push(`<text class="placelbl${big ? ' big' : ''}" x="${(x + (big ? 7 : 4)).toFixed(1)}" y="${(y + 3).toFixed(1)}">${t.name}</text>`);
-      });
-      out.push('</g>');
-    } else if (base) {
-      out.push('<g clip-path="url(#viewclip)">');
-      base.towns.forEach(t => {
-        const [x, y] = project(t.lat, t.lon, g);
-        if (x < 4 || x > W - 4 || y < 4 || y > H - 4) return;
-        const major = t.pop >= 100000;
-        out.push(`<circle class="town${major ? ' major' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${major ? 3.6 : 2.2}"/>`);
-        out.push(`<text class="townlbl${major ? ' major' : ''}" x="${(x + (major ? 7 : 5)).toFixed(1)}" y="${(y + 3.5).toFixed(1)}">${t.name}</text>`);
       });
       out.push('</g>');
     }
@@ -773,6 +791,13 @@ TEMPLATE = r"""<!doctype html>
     [...$('tabs').children].forEach(b => b.classList.toggle('on', b === button));
     ['zones', 'registry', 'brief', 'log'].forEach(id => $(id).classList.toggle('on', id === button.dataset.pane));
   });
+
+  $('detail').onclick = () => {
+    detail = !detail;
+    $('detail').classList.toggle('on', detail);
+    MAP = null;
+    drawMap(cur().records[pass]);
+  };
 
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;

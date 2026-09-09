@@ -161,7 +161,11 @@ def test_console_is_a_view_over_the_evidence():
     assert all(len(r["grid"]) == 100 for r in quake["records"]), "every pass carries the full grid"
     declared = next(r for r in quake["records"] if r["kind"] == "DECLARE")
     assert declared["grid"].count("D") == 9 and declared["grid"].count("H") >= 16
-    assert out.stat().st_size < 1_500_000
+    # A ceiling, not a target. The console carries its own base map — six thousand
+    # streets of Kahramanmaraş and the trunk network of the region — because it has
+    # to open with no network at all. Two megabytes is the budget for that; if a
+    # change pushes past it, the question is what got added, not where the limit is.
+    assert out.stat().st_size < 2_000_000, f"{out.stat().st_size:,} bytes"
     print(f"        {out.stat().st_size // 1024} KB, {sum(len(s['records']) for s in data['scenes'])} passes inlined")
 
 
