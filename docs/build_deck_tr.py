@@ -34,6 +34,7 @@ GRID_DECL, GRID_CROWD, GRID_MAINT, GRID_FAULT = _en.GRID_DECL, _en.GRID_CROWD, _
 GRID_HELD, GRID_BOTH = _en.GRID_HELD, _en.GRID_BOTH
 GRID_MARAS_1, GRID_MARAS_2 = _en.GRID_MARAS_1, _en.GRID_MARAS_2
 DECL, top3 = _en.DECL, _en.top3
+ATLAS_FIRST, ATLAS_LATE, ATLAS_UPDATES, ATLAS_PEAK = _en.ATLAS_FIRST, _en.ATLAS_LATE, _en.ATLAS_UPDATES, _en.ATLAS_PEAK
 
 slides = []
 
@@ -229,15 +230,16 @@ slides.append("""
       <tr><td class="mono">detector</td><td>ilişkilendir → ayıkla → ilan et; adlandırılmış sinyaller olarak kapılar ve destekleyiciler, saf fonksiyonlar, framework import'u yok</td></tr>
       <tr><td class="mono">triage · brief</td><td>yalnızca etki alanı içinde erişilebilirlik ve son görülme; komuta merkezi cümlesi</td></tr>
       <tr><td class="mono">graph · loop</td><td>LangGraph koşucusu ve düz koşucu — aynı kanıt, bayt bayt</td></tr>
-      <tr><td class="mono">shakemap · data</td><td>6 Şubat 2023 için USGS şiddet alanı, indirgenmiş ve künyesiyle commit edilmiş</td></tr>
-      <tr><td class="mono">scene · console · parity</td><td>beş sahne; kanıttan üretilen kendi kendine yeten konsol; arka uç parite düzeneği</td></tr>
+      <tr><td class="mono">shakemap · data</td><td>iki USGS şiddet alanı — Kahramanmaraş 2023 ve Al Haouz 2023 — indirgenmiş ve künyesiyle commit edilmiş</td></tr>
+      <tr><td class="mono">llm</td><td>brifingin yazıcısı, tek istemciyle Groq / Gemini / OpenRouter / Ollama'ya bağlı — ve modelin uydurduğu her sayıyı reddeden bir bekçi</td></tr>
+      <tr><td class="mono">scene · console · parity</td><td>altı sahne; kanıttan üretilen kendi kendine yeten konsol; arka uç parite düzeneği</td></tr>
     </table>
     <div class="status">
       <div><b>Çıplak Python ile çalışır</b><span>hesap yok, sunucu yok, CDN yok — demo odada çökemez</span></div>
       <div><b>Aynı ajan, canlıda</b><span><code>--backend live</code> aynı üç çağrıyı Nokia SDK üzerinden yapar ve ham alışverişleri kaydeder</span></div>
       <div><b>Tek ajan, kanıtlanmış</b><span><code>python -m nabd.parity</code> — ajan yığını SDK import etmiyor, ağı tek fonksiyon seçiyor, her sahne canlı ayrıştırıcılardan birebir geri oynatılıyor</span></div>
-      <div><b>Gerçek olaya karşı denetlendi</b><span>6 Şubat 2023 ShakeMap verisi bir sahneyi sürüyor; ilan edilen etki alanı, ölçülen sarsıntının tanımladığı çökme bandının içinde kalmak zorunda</span></div>
-      <div><b>83 / 83 test, 10 paket</b><span>fuzz değişmezleri dahil: bitişik blok olmadan etki alanı yok; etki alanı dışında kişisel cihaz çağrısı yok</span></div>
+      <div><b>İki gerçek olaya karşı denetlendi</b><span>Kahramanmaraş bir sahneyi sürüyor, Al Haouz aynı eşiklerle bir diğerini; ölçülen sarsıntının esirgediği hiçbir hücre adlandırılmıyor</span></div>
+      <div><b>102 / 102 test, 13 paket</b><span>fuzz değişmezleri, modelin bekçisi ve %1–3 rastgele nöbetçi kopmasında 90 sıradan sabahın 0'ında ilan dahil</span></div>
     </div>
   </div>
 </section>""")
@@ -322,6 +324,31 @@ slides.append(f"""
 # ---------- 13 CAMARA
 slides.append("""
 <section class="slide" id="slide-13">
+  <div class="kicker">Kanıt — ikinci bir olay, hiçbir şey yeniden ayarlanmadı</div>
+  <h2>Sonra onu hiç ayarlanmadığı yerde koşturduk.</h2>
+  <div class="two">
+    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_FIRST["grid"], 112, labels=False)}</div>
+      <div class="lbl">+25 sn · ilk karar bir ret</div>
+      <p><b>Merkez üssünde iki sessiz hücre, üç hücrelik tabanın altında.</b> 19 km derinlikteki bir M6.8 bir bloğu birden yıkmaz; ajan ilan etmek yerine bunu söylüyor. İlan <b>+235 sn'de, ORTA</b> güvenle geliyor — başlangıç gerçekten kademeliydi ve kanıt nedenini yazıyor.</p>
+      <b>ÇEKİMSER → İLAN</b></div>
+    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_LATE["grid"], 112, labels=False)}</div>
+      <div class="lbl">+9 dk · aküler üzerinden geldi</div>
+      <p><b>{len(ATLAS_LATE["cells"])} hücre, ~{len(ATLAS_LATE["cells"]) * 100:,} km², hâlâ ORTA</b> — tam olarak ölçülen alanın güç eşiğinin üstüne koyduğu küme. Kuzeyde 6,4 şiddetindeki <b>Marrakeş</b> baştan sona cevap verdi ve <b>hiç adlandırılmadı</b>. Zirvede {ATLAS_PEAK} kayıtlı kişiye ulaşılamıyor.</p>
+      <b>GÜNCELLEME ×{ATLAS_UPDATES}</b></div>
+  </div>
+  <table class="apit cmp">
+    <tr><th></th><th>Kahramanmaraş · 6 Şub 2023</th><th>Al Haouz · 8 Eyl 2023</th></tr>
+    <tr><td class="api">ShakeMap</td><td>us6000jllz v19 · M7.8 · <b>262</b> istasyon</td><td>us7000kufc v14 · M6.8 · <b>3</b> istasyon</td></tr>
+    <tr><td class="api">Eşikler</td><td>Turkcell'in "yarıdan fazlası devre dışı" raporuna göre ayarlandı</td><td><b>aynı sayılar, dokunulmadı</b> — bir test bunu doğruluyor</td></tr>
+    <tr><td class="api">İlk karar</td><td>+55 sn'de İLAN · 21 hücre · YÜKSEK</td><td>+25 sn'de ÇEKİMSER · tabanın altında</td></tr>
+    <tr><td class="api">İlan</td><td>+55 sn · YÜKSEK · başlangıç eşzamanlı</td><td>+235 sn · ORTA · başlangıç kademeli</td></tr>
+    <tr><td class="api">Cevap veren bir şehir</td><td>—</td><td><b>Marrakeş</b> — neyin sarsıldığını gösteren harita onu sahiplenirdi; neyin sustuğunu gösteren sahiplenmiyor</td></tr>
+  </table>
+</section>""")
+
+# ---------- 14 CAMARA
+slides.append("""
+<section class="slide" id="slide-14">
   <div class="kicker">Nokia Network-as-Code üzerinde CAMARA</div>
   <h2>Ağ API'lerini çıkarın, hiçbir şey çalışmaz. Sensör ağın kendisidir.</h2>
   <div class="two apis">
@@ -344,13 +371,13 @@ slides.append("""
 
 # ---------- 14 dürüst sınırlar
 slides.append("""
-<section class="slide" id="slide-14">
+<section class="slide" id="slide-15">
   <div class="kicker">Dürüst sınırlar</div>
   <h2>Olabildiği yerde canlı. Olması gerektiği yerde simüle. Tasarımdan gizli.</h2>
   <div class="three cols">
     <div class="col"><div class="lbl">Canlı ve simüle — ve aradaki dikiş</div>
-      <p>Kum havuzu bir afeti sahneleyemez. Bu yüzden iki iddia ayrıldı: <b>canlı platform entegrasyonu kanıtlar</b>, gerçek kaydedilmiş çağrılarla; <b>simülatör senaryoyu kanıtlar</b>, 2023 Kahramanmaraş kesintisinin kamuya açık kaydına göre şekillenmiş.</p>
-      <p>Risk simülatör değil — iki yol arasında sezilen bir kopukluktur. O yüzden <code>nabd.parity</code> bunu ölçer: ajan yığını SDK import etmez ve arka uç adı geçirmez; ağı <b>tek bir fonksiyon</b> seçer; ve her sahne <b>canlı yanıt ayrıştırıcılarından kaydedilip geri oynatılır</b>, kanıt satır satır aynı.</p></div>
+      <p>Kum havuzu bir afeti sahneleyemez; o yüzden iki iddia ayrıldı: <b>canlı platform entegrasyonu kanıtlar</b>, <b>simülatör senaryoyu</b>.</p>
+      <p>Risk aradaki dikiştir, o yüzden <code>nabd.parity</code> onu ölçer: ajan yığınında SDK yok, ağı <b>tek fonksiyon</b> seçer, her sahne <b>canlı ayrıştırıcılardan birebir geri oynatılır</b>. Canlı kontrol bir anahtar koşana kadar <b>beklemede</b> yazar — asla geçti değil.</p></div>
     <div class="col"><div class="lbl">Gizlilik</div>
       <p>Tespit yalnızca <b>şehrin veya operatörün sahip olduğu nöbetçi cihazları</b> okur — asla halkı.</p>
       <p>Çıktısı <b>alan seviyesindedir</b>: hücreler ve bir etki alanı, insanlar değil. Kamera yok, mesaj içeriği yok, takip yok.</p></div>
@@ -358,11 +385,12 @@ slides.append("""
       <p>Önceliklendirme bir bireye ancak o kişi korunmayı <b>kendi seçmişse</b> dokunur.</p>
       <p>Kayıt defterini kurum tutar; operatör buna uyar. Kimlikler takma adlıdır ve <b>ilan edilmiş bir etki alanının dışında asla konum çağrısı yapılmaz</b>.</p></div>
   </div>
+  <div class="roadmap"><span class="lbl">Model, gözetim altında</span> yalnızca brifingi yazar; bir bekçi cümlesini olgulara karşı geri okur — <b>uydurulmuş bir sayı cümleyi çöpe gönderir</b>. &nbsp;·&nbsp; <span class="lbl">Yanlış alarm, ölçülmüş</span> %1–3 rastgele nöbetçi kopmasında <b>90 sıradan sabahın 0'ı</b> ilan edildi; %5 civarındaki sınır yazılı bir kurulum gereksinimi.</div>
 </section>""")
 
 # ---------- 15 etki, ölçek, iş modeli
 slides.append("""
-<section class="slide" id="slide-15">
+<section class="slide" id="slide-16">
   <div class="kicker">Etki · ölçek · iş modeli</div>
   <h2>Tek motor, çok tehlike. Saatler değil, dakikalar.</h2>
   <div class="three cols">
@@ -370,8 +398,8 @@ slides.append("""
       <p>Deprem, sel, fırtına, kitlesel kesinti — ağ için her biri kararan bir alandır, dolayısıyla tek motor hepsini kapsar.</p>
       <p>İlk sevk kararı <b>saatlerden dakikalara</b> iner ve en kırılgan olanlara önce ulaşılır.</p></div>
     <div class="col"><div class="lbl">Ölçek</div>
-      <p>Nöbetçi ızgarası <b>hücre sayısıyla</b> ölçeklenir; SIM'ler belediyeye veya operatöre aittir, dolayısıyla ulusal yaygınlaştırma bir davranış değişikliği değil, bir tedarik meselesidir.</p>
-      <p>Open Gateway aynı ajanı bölgedeki operatörler ve ülkeler arasında taşınabilir kılar.</p></div>
+      <p>Nöbetçi ızgarası nüfusla değil <b>hücre sayısıyla</b> ölçeklenir: <b>Türkiye'nin tamamı 7.836 SIM</b>, Fas'ın tamamı 4.466 — beş dakikalık nöbette saatte 188 bin ve 107 bin CAMARA çağrısı, bir şey olduğunda 30 saniyeye sıkışır.</p>
+      <p>Nöbetçiler zaten var: sayaçlardaki, trafik ışıklarındaki, pompalardaki sabit SIM'ler, sahipleri tarafından katılmış — bir tedarik meselesi, davranış değişikliği değil.</p></div>
     <div class="col"><div class="lbl">İş modeli</div>
       <p><b>Alıcılar:</b> sivil savunma kurumları (AFAD), Kızılay teşkilatları, belediyeler, hastane ağları.</p>
       <p><b>Satıcı:</b> operatör, bir Open Gateway <b>etki akışı ürünü</b> olarak — ızgara için sürekli abonelik, üstüne olay başına önceliklendirme.</p></div>
@@ -381,7 +409,7 @@ slides.append("""
 
 # ---------- 16 kapanış
 slides.append(f"""
-<section class="slide cover close" id="slide-16">
+<section class="slide cover close" id="slide-17">
   <div class="kicker">Nabd · نبض &nbsp;·&nbsp; Tema 6 &nbsp;·&nbsp; Prototip Aşaması</div>
   <h2 class="huge2">Ağ zaten biliyor.<br>Nabd ona bunu söyletiyor — ilk dakikada.</h2>
   <div class="next">

@@ -30,6 +30,16 @@ assert MARAS_LATE["kind"] == "UPDATE", MARAS_LATE["kind"]
 GRID_MARAS_1 = MARAS_DECL["grid"]
 GRID_MARAS_2 = MARAS_LATE["grid"]
 
+atlas = [json.loads(l) for l in (ROOT / "nac/evidence/nabd-scene-atlas.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+ATLAS_FIRST = atlas[5]
+assert ATLAS_FIRST["kind"] == "ABSTAIN", ATLAS_FIRST["kind"]
+ATLAS_DECL = atlas[12]
+assert ATLAS_DECL["kind"] == "DECLARE" and ATLAS_DECL["confidence"] == "MEDIUM", ATLAS_DECL
+ATLAS_LATE = atlas[22]
+assert ATLAS_LATE["kind"] == "UPDATE", ATLAS_LATE["kind"]
+ATLAS_UPDATES = sum(r["kind"] == "UPDATE" for r in atlas)
+ATLAS_PEAK = max(r["triage"]["unreachable"] for r in atlas if r.get("triage"))
+
 degraded = [json.loads(l) for l in (ROOT / "nac/evidence/nabd-scene-degraded.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 HELD = degraded[11]
 assert HELD["kind"] == "ABSTAIN" and "local baseline" in HELD["reason"], HELD["kind"]
@@ -340,15 +350,16 @@ slides.append("""
       <tr><td class="mono">detector</td><td>correlate → exclude → declare; gates and corroborations as named signals, pure functions, no framework import</td></tr>
       <tr><td class="mono">triage · brief</td><td>reachability and last-seen inside the footprint only; the command-centre sentence</td></tr>
       <tr><td class="mono">graph · loop</td><td>the LangGraph runner and the plain runner — same evidence, byte for byte</td></tr>
-      <tr><td class="mono">shakemap · data</td><td>the USGS intensity field for 6 Feb 2023, reduced and committed with its provenance</td></tr>
-      <tr><td class="mono">scene · console · parity</td><td>five scenes; a self-contained console generated from the evidence; the backend-parity harness</td></tr>
+      <tr><td class="mono">shakemap · data</td><td>two USGS intensity fields — Kahramanmaraş 2023 and Al Haouz 2023 — reduced and committed with their provenance</td></tr>
+      <tr><td class="mono">llm</td><td>the brief's composer, bound to Groq / Gemini / OpenRouter / Ollama with one client — and a guard that rejects any number the model invents</td></tr>
+      <tr><td class="mono">scene · console · parity</td><td>six scenes; a self-contained console generated from the evidence; the backend-parity harness</td></tr>
     </table>
     <div class="status">
       <div><b>Runs on bare Python</b><span>no account, no server, no CDN — the demo cannot fail in the room</span></div>
       <div><b>Same agent, live</b><span><code>--backend live</code> makes the identical three calls through the Nokia SDK and records the raw exchanges</span></div>
       <div><b>One agent, proven</b><span><code>python -m nabd.parity</code> — the agent stack imports no SDK, one function picks the network, every scene replays through the live parsers identically</span></div>
-      <div><b>Checked against the real event</b><span>the 6 Feb 2023 ShakeMap drives one scene; the declared footprint must stay inside the collapse band the measured shaking defines</span></div>
-      <div><b>83 / 83 tests, 10 suites</b><span>incl. fuzzed invariants: no footprint without a contiguous block; no personal-device call outside a footprint</span></div>
+      <div><b>Checked against two real events</b><span>Kahramanmaraş drives one scene, Al Haouz another on the same thresholds untouched; nothing named that the measured shaking spared</span></div>
+      <div><b>102 / 102 tests, 13 suites</b><span>incl. fuzzed invariants, the model's guard, and 0 of 90 ordinary mornings declared under up to 3% random sentinel dropout</span></div>
     </div>
   </div>
 </section>""")
@@ -426,9 +437,34 @@ slides.append(f"""
   <p class="lead">The coloured lines are the measured isoseismals and the dashed one is the fault rupture, so the footprint can be checked against the shaking that caused it by eye. Geometry and intensity are the <b>USGS ShakeMap for the M7.8 Pazarcık earthquake</b>, 6 Feb 2023 — 262 seismic stations, 1,459 intensity observations. Ours is only the rule turning shaking into silence, calibrated to Turkcell's <b>“more than half of local base stations inoperative”</b> — our window ends 63% dark.</p>
 </section>""")
 
-# ---------- 13 CAMARA
-slides.append("""
+# ---------- 13 the second event
+slides.append(f"""
 <section class="slide" id="slide-13">
+  <div class="kicker">Evidence — a second event, nothing retuned</div>
+  <h2>Then we ran it where it was never tuned.</h2>
+  <div class="two">
+    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_FIRST["grid"], 112, labels=False)}</div>
+      <div class="lbl">+25 s · the first verdict is a refusal</div>
+      <p><b>Two silent cells at the epicentre, below the three-cell floor.</b> An M6.8 at 19 km does not flatten a block, and the agent says so instead of declaring. It declares at <b>+235 s, MEDIUM</b> — the onset genuinely was staggered, and the evidence says why.</p>
+      <b>ABSTAIN → DECLARE</b></div>
+    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_LATE["grid"], 112, labels=False)}</div>
+      <div class="lbl">+9 min · arrived through the batteries</div>
+      <p><b>{len(ATLAS_LATE["cells"])} cells, ~{len(ATLAS_LATE["cells"]) * 100:,} km², still MEDIUM</b> — exactly the set the measured field puts at or above the power threshold. <b>Marrakesh</b>, at intensity 6.4 in the north, answered throughout and is <b>never named</b>. {ATLAS_PEAK} registered people unreachable at peak.</p>
+      <b>UPDATE ×{ATLAS_UPDATES}</b></div>
+  </div>
+  <table class="apit cmp">
+    <tr><th></th><th>Kahramanmaraş · 6 Feb 2023</th><th>Al Haouz · 8 Sep 2023</th></tr>
+    <tr><td class="api">ShakeMap</td><td>us6000jllz v19 · M7.8 · <b>262</b> stations</td><td>us7000kufc v14 · M6.8 · <b>3</b> stations</td></tr>
+    <tr><td class="api">Thresholds</td><td>calibrated to Turkcell's “more than half inoperative”</td><td><b>the same numbers, untouched</b> — asserted by a test</td></tr>
+    <tr><td class="api">First verdict</td><td>DECLARE at +55 s · 21 cells · HIGH</td><td>ABSTAIN at +25 s · below the floor</td></tr>
+    <tr><td class="api">Declaration</td><td>+55 s · HIGH · onset synchronised</td><td>+235 s · MEDIUM · onset staggered</td></tr>
+    <tr><td class="api">A city that answered</td><td>—</td><td><b>Marrakesh</b> — a map of what was shaken would have claimed it; a map of what went silent does not</td></tr>
+  </table>
+</section>""")
+
+# ---------- 14 CAMARA
+slides.append("""
+<section class="slide" id="slide-14">
   <div class="kicker">CAMARA on Nokia Network-as-Code</div>
   <h2>Remove the network APIs and nothing works. The network is the sensor.</h2>
   <div class="two apis">
@@ -451,13 +487,13 @@ slides.append("""
 
 # ---------- 14 live vs simulated, privacy, consent
 slides.append("""
-<section class="slide" id="slide-14">
+<section class="slide" id="slide-15">
   <div class="kicker">Honest boundaries</div>
   <h2>Live where it can be. Simulated where it must be. Private by design.</h2>
   <div class="three cols">
     <div class="col"><div class="lbl">Live vs simulated — and the seam between them</div>
-      <p>The sandbox cannot stage a disaster. So the two claims are separated: the <b>live platform proves the integration</b> with real recorded calls; the <b>simulator proves the scenario</b>, shaped on the public record of the 2023 Kahramanmaraş outage.</p>
-      <p>The risk is not the simulator — it is a suspected discontinuity between the paths. So <code>nabd.parity</code> measures it: the agent stack imports no SDK and names no backend; <b>one function</b> picks the network; and every scene is <b>recorded and replayed through the live response parsers</b>, evidence identical line for line.</p></div>
+      <p>The sandbox cannot stage a disaster, so the two claims are separated: the <b>live platform proves the integration</b>; the <b>simulator proves the scenario</b>.</p>
+      <p>The risk is the seam between them, so <code>nabd.parity</code> measures it: no SDK in the agent stack, <b>one function</b> picks the network, every scene <b>replayed through the live parsers</b> identically. The live check reports <b>pending</b> until a key runs it — never pass.</p></div>
     <div class="col"><div class="lbl">Privacy</div>
       <p>Detection reads only <b>sentinel devices the city or operator owns</b> — never the public.</p>
       <p>Its output is <b>area-level</b>: cells and a footprint, not people. No cameras, no message content, no tracking.</p></div>
@@ -465,11 +501,12 @@ slides.append("""
       <p>Triage touches an individual only if they <b>opted in</b> to be protected.</p>
       <p>The agency holds the registry; the operator honours it. IDs are pseudonymous, and <b>no location call is ever made outside a declared footprint</b>.</p></div>
   </div>
+  <div class="roadmap"><span class="lbl">The model, watched</span> it phrases the brief and nothing else; a guard reads its sentence back against the facts — <b>an invented number throws the sentence away</b>. &nbsp;·&nbsp; <span class="lbl">False alarms, measured</span> <b>0 of 90</b> ordinary mornings declared under 1–3% random sentinel dropout; the edge near 5% is a written deployment requirement.</div>
 </section>""")
 
 # ---------- 15 impact, scale, business
 slides.append("""
-<section class="slide" id="slide-15">
+<section class="slide" id="slide-16">
   <div class="kicker">Impact · scale · business</div>
   <h2>One engine, many hazards. Minutes, not hours.</h2>
   <div class="three cols">
@@ -477,8 +514,8 @@ slides.append("""
       <p>Earthquake, flood, storm, mass outage — to the network each is an area going dark, so one engine covers them all.</p>
       <p>The first dispatch decision moves from <b>hours to minutes</b>, and the most vulnerable are reached first.</p></div>
     <div class="col"><div class="lbl">Scale</div>
-      <p>A sentinel grid scales by <b>cell count</b>; SIMs are municipal or operator-owned, so a national rollout is a procurement, not a behaviour change.</p>
-      <p>Open Gateway makes the same agent portable across operators and countries in the region.</p></div>
+      <p>A sentinel grid scales by <b>cell count</b>, not population: <b>7,836 SIMs watch all of Türkiye</b>, 4,466 all of Morocco — 188 k and 107 k CAMARA calls an hour at a five-minute watch that tightens to 30 s where something happens.</p>
+      <p>The sentinels already exist: fixed SIMs in meters, traffic lights, pumps and site monitors, opted in by their owners — a procurement, not a behaviour change.</p></div>
     <div class="col"><div class="lbl">Business</div>
       <p><b>Buyers:</b> civil-defence agencies (AFAD), Red Crescent societies, municipalities, hospital networks.</p>
       <p><b>Seller:</b> the operator, as an Open Gateway <b>impact-feed product</b> — a standing subscription for the grid, per-event triage on top.</p></div>
@@ -488,11 +525,11 @@ slides.append("""
 
 # ---------- 14 close
 slides.append(f"""
-<section class="slide cover close" id="slide-16">
+<section class="slide cover close" id="slide-17">
   <div class="kicker">Nabd · نبض &nbsp;·&nbsp; Theme 6 &nbsp;·&nbsp; Prototype Phase</div>
   <h2 class="huge2">The network already knows.<br>Nabd makes it say so — in the first minute.</h2>
   <div class="next">
-    <div><div class="lbl">Next</div><p>Live contract run on Network-as-Code devices · pilot with one civil-defence agency on one city's sentinel grid · Population Density upgrade when published</p></div>
+    <div><div class="lbl">Next</div><p>Live contract run on Network-as-Code devices · a third real event, a flood, on the same thresholds · pilot with one civil-defence agency on one city's sentinel grid</p></div>
     <div><div class="lbl">Team</div><p>Kadir Can Yıldırım — Kadir's Team, solo builder, Türkiye. Code, evidence logs and the command-centre console are in the submission links.</p></div>
   </div>
   <p class="doha">See you in Doha — MWC Doha, November 2026.</p>
@@ -572,11 +609,11 @@ CSS = f"""
   .agent-text b{{font-family:var(--sans)}}
   .built{{display:grid;grid-template-columns:1.25fr 1fr;gap:36px;align-items:start}}
   table{{border-collapse:collapse;width:100%}}
-  .mods td{{font-family:var(--sans);font-size:17px;padding:10px 10px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--soft);line-height:1.35}}
-  .mods td.mono{{font-family:var(--mono);color:var(--acc);font-weight:700;white-space:nowrap;font-size:16px}}
-  .status div{{background:var(--surf);border-radius:10px;padding:14px 18px;margin-bottom:12px}}
-  .status b{{display:block;font-family:var(--sans);font-size:20px;margin-bottom:3px}}
-  .status span{{font-family:var(--sans);font-size:15px;color:var(--soft);line-height:1.35}}
+  .mods td{{font-family:var(--sans);font-size:15px;padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--soft);line-height:1.35}}
+  .mods td.mono{{font-family:var(--mono);color:var(--acc);font-weight:700;white-space:nowrap;font-size:14.5px}}
+  .status div{{background:var(--surf);border-radius:10px;padding:10px 16px;margin-bottom:9px}}
+  .status b{{display:block;font-family:var(--sans);font-size:18px;margin-bottom:2px}}
+  .status span{{font-family:var(--sans);font-size:14px;color:var(--soft);line-height:1.3}}
   code{{font-family:var(--mono);background:#e6ede9;padding:1px 6px;border-radius:4px;font-size:.92em}}
   .console{{background:#0b1017;color:#d7e1ea;border-radius:12px;padding:16px 20px;font-family:var(--sans);border:1px solid #1e2a37}}
   .c-head{{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #1e2a37;padding-bottom:10px;margin-bottom:12px}}
@@ -617,13 +654,22 @@ CSS = f"""
   .why{{background:var(--surf);border-radius:10px;padding:20px 24px}}
   .why p{{font-size:20px;line-height:1.4;margin:0 0 12px}}
   .cols .col{{background:var(--surf);border-radius:10px;padding:20px 22px;min-height:360px}}
-  .cols .col p{{font-size:19.5px;line-height:1.4;margin:0 0 12px}}
-  .roadmap{{margin-top:22px;font-family:var(--sans);font-size:16px;color:var(--soft);background:#eef6f2;border-radius:10px;padding:12px 18px}}
+  .cols .col p{{font-size:18px;line-height:1.38;margin:0 0 10px}}
+  .roadmap{{margin-top:16px;font-family:var(--sans);font-size:15px;color:var(--soft);background:#eef6f2;border-radius:10px;padding:12px 18px}}
   .roadmap .lbl{{display:inline;margin-right:12px}}
   .close h2{{margin-top:70px}}
   .next{{display:grid;grid-template-columns:1fr 1fr;gap:36px;max-width:900px}}
   .next p{{font-size:20px;line-height:1.4;margin:0;color:var(--soft)}}
   .doha{{font-family:var(--sans);font-size:24px;color:var(--acc);font-weight:600;margin:44px 0 0}}
+"""
+
+CSS += """
+  .cmp { margin-top: 8px; font-size: 12px; line-height: 1.25; }
+  .cmp th { text-align: left; font-weight: 600; color: #41504a; padding: 2px 10px 4px 0; border-bottom: 1px solid #d7ded9; }
+  .cmp td { padding: 3px 10px 3px 0; border-bottom: 1px solid #eef2f0; vertical-align: top; }
+  .wolf.tight p { font-size: 12.5px; line-height: 1.35; margin: 4px 0; }
+  .wolf.tight .wgrid { margin-bottom: 2px; }
+  .cmp td.api { font-weight: 600; white-space: nowrap; }
 """
 
 SCRIPT = r"""<script>

@@ -76,11 +76,11 @@
   .agent-text b{font-family:var(--sans)}
   .built{display:grid;grid-template-columns:1.25fr 1fr;gap:36px;align-items:start}
   table{border-collapse:collapse;width:100%}
-  .mods td{font-family:var(--sans);font-size:17px;padding:10px 10px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--soft);line-height:1.35}
-  .mods td.mono{font-family:var(--mono);color:var(--acc);font-weight:700;white-space:nowrap;font-size:16px}
-  .status div{background:var(--surf);border-radius:10px;padding:14px 18px;margin-bottom:12px}
-  .status b{display:block;font-family:var(--sans);font-size:20px;margin-bottom:3px}
-  .status span{font-family:var(--sans);font-size:15px;color:var(--soft);line-height:1.35}
+  .mods td{font-family:var(--sans);font-size:15px;padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--soft);line-height:1.35}
+  .mods td.mono{font-family:var(--mono);color:var(--acc);font-weight:700;white-space:nowrap;font-size:14.5px}
+  .status div{background:var(--surf);border-radius:10px;padding:10px 16px;margin-bottom:9px}
+  .status b{display:block;font-family:var(--sans);font-size:18px;margin-bottom:2px}
+  .status span{font-family:var(--sans);font-size:14px;color:var(--soft);line-height:1.3}
   code{font-family:var(--mono);background:#e6ede9;padding:1px 6px;border-radius:4px;font-size:.92em}
   .console{background:#0b1017;color:#d7e1ea;border-radius:12px;padding:16px 20px;font-family:var(--sans);border:1px solid #1e2a37}
   .c-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #1e2a37;padding-bottom:10px;margin-bottom:12px}
@@ -121,18 +121,25 @@
   .why{background:var(--surf);border-radius:10px;padding:20px 24px}
   .why p{font-size:20px;line-height:1.4;margin:0 0 12px}
   .cols .col{background:var(--surf);border-radius:10px;padding:20px 22px;min-height:360px}
-  .cols .col p{font-size:19.5px;line-height:1.4;margin:0 0 12px}
-  .roadmap{margin-top:22px;font-family:var(--sans);font-size:16px;color:var(--soft);background:#eef6f2;border-radius:10px;padding:12px 18px}
+  .cols .col p{font-size:18px;line-height:1.38;margin:0 0 10px}
+  .roadmap{margin-top:16px;font-family:var(--sans);font-size:15px;color:var(--soft);background:#eef6f2;border-radius:10px;padding:12px 18px}
   .roadmap .lbl{display:inline;margin-right:12px}
   .close h2{margin-top:70px}
   .next{display:grid;grid-template-columns:1fr 1fr;gap:36px;max-width:900px}
   .next p{font-size:20px;line-height:1.4;margin:0;color:var(--soft)}
   .doha{font-family:var(--sans);font-size:24px;color:var(--acc);font-weight:600;margin:44px 0 0}
+
+  .cmp { margin-top: 8px; font-size: 12px; line-height: 1.25; }
+  .cmp th { text-align: left; font-weight: 600; color: #41504a; padding: 2px 10px 4px 0; border-bottom: 1px solid #d7ded9; }
+  .cmp td { padding: 3px 10px 3px 0; border-bottom: 1px solid #eef2f0; vertical-align: top; }
+  .wolf.tight p { font-size: 12.5px; line-height: 1.35; margin: 4px 0; }
+  .wolf.tight .wgrid { margin-bottom: 2px; }
+  .cmp td.api { font-weight: 600; white-space: nowrap; }
 </style>
 </head>
 <body>
 
-<section data-n="1 / 16" class="slide cover" id="slide-1">
+<section data-n="1 / 17" class="slide cover" id="slide-1">
   <div class="kicker">GSMA MENA Ignite Open Gateway Hackathon 2026 &nbsp;·&nbsp; Prototype Phase</div>
   <h1>Nabd <span class="ar">· نبض</span></h1>
   <p class="tag">Read where the network goes silent.</p>
@@ -248,7 +255,7 @@
 <rect x="90.0" y="120.0" width="90.0" height="90.0" fill="none" stroke="#7a1f17" stroke-width="2.7" stroke-dasharray="10 6" rx="4"/>
 </svg></div>
 </section>
-<section data-n="2 / 16" class="slide" id="slide-2">
+<section data-n="2 / 17" class="slide" id="slide-2">
   <div class="kicker">The wound</div>
   <h2>The first hours decide who is found alive.</h2>
   <div class="stats3">
@@ -260,7 +267,7 @@
   Which neighbourhoods had lost their people — that map arrived hours late.</p>
   <p class="note" style="font-size:20px;margin-top:22px">2024: Dubai and Oman floods. Same region, a different hazard, the same missing map.</p>
 </section>
-<section data-n="3 / 16" class="slide" id="slide-3">
+<section data-n="3 / 17" class="slide" id="slide-3">
   <div class="kicker">The gap</div>
   <h2>Detection is solved. Impact is not.</h2>
   <div class="two">
@@ -279,7 +286,7 @@
     <div class="yes"><div class="lbl">Nabd is</div><p>the <b>impact map in the first minute</b>, and <b>triage across the first 72 hours</b> — who is cut off, and where.</p></div>
   </div>
 </section>
-<section data-n="4 / 16" class="slide" id="slide-4">
+<section data-n="4 / 17" class="slide" id="slide-4">
   <div class="kicker">The insight</div>
   <h2 class="huge">Silence is a sensor.</h2>
   <p class="lead wide">When a whole block of cells goes dark at the same moment, the network already knows
@@ -291,7 +298,7 @@
   </div>
   <p class="note">Disaster-agnostic: earthquake, flood, storm, mass power outage — to the network they are the same thing, an area going silent.</p>
 </section>
-<section data-n="5 / 16" class="slide" id="slide-5">
+<section data-n="5 / 17" class="slide" id="slide-5">
   <div class="kicker">Architecture</div>
   <h2>Two layers. Detection is aggregate; triage is consented.</h2>
   <svg class="diagram" viewBox="0 0 1152 470" xmlns="http://www.w3.org/2000/svg">
@@ -349,7 +356,7 @@
     <text x="576" y="464" class="gs" text-anchor="middle">declared footprint</text>
   </svg>
 </section>
-<section data-n="6 / 16" class="slide" id="slide-6">
+<section data-n="6 / 17" class="slide" id="slide-6">
   <div class="kicker">The first-minute signature</div>
   <h2>A block goes silent. The ring around it goes hot.</h2>
   <div class="sig">
@@ -485,7 +492,7 @@
   </div>
   <p class="note" style="margin-top:8px">The grid is drawn from the evidence record of the declaring pass, not illustrated.</p>
 </section>
-<section data-n="7 / 16" class="slide" id="slide-7">
+<section data-n="7 / 17" class="slide" id="slide-7">
   <div class="kicker">The agent — the mandatory component, on LangGraph</div>
   <h2>One signal never declares alone.</h2>
   <div class="agent">
@@ -518,7 +525,7 @@
     </div>
   </div>
 </section>
-<section data-n="8 / 16" class="slide" id="slide-8">
+<section data-n="8 / 17" class="slide" id="slide-8">
   <div class="kicker">What we built — prototype status</div>
   <h2>A working agent, offline and live through one surface.</h2>
   <div class="built">
@@ -528,19 +535,20 @@
       <tr><td class="mono">detector</td><td>correlate → exclude → declare; gates and corroborations as named signals, pure functions, no framework import</td></tr>
       <tr><td class="mono">triage · brief</td><td>reachability and last-seen inside the footprint only; the command-centre sentence</td></tr>
       <tr><td class="mono">graph · loop</td><td>the LangGraph runner and the plain runner — same evidence, byte for byte</td></tr>
-      <tr><td class="mono">shakemap · data</td><td>the USGS intensity field for 6 Feb 2023, reduced and committed with its provenance</td></tr>
-      <tr><td class="mono">scene · console · parity</td><td>five scenes; a self-contained console generated from the evidence; the backend-parity harness</td></tr>
+      <tr><td class="mono">shakemap · data</td><td>two USGS intensity fields — Kahramanmaraş 2023 and Al Haouz 2023 — reduced and committed with their provenance</td></tr>
+      <tr><td class="mono">llm</td><td>the brief's composer, bound to Groq / Gemini / OpenRouter / Ollama with one client — and a guard that rejects any number the model invents</td></tr>
+      <tr><td class="mono">scene · console · parity</td><td>six scenes; a self-contained console generated from the evidence; the backend-parity harness</td></tr>
     </table>
     <div class="status">
       <div><b>Runs on bare Python</b><span>no account, no server, no CDN — the demo cannot fail in the room</span></div>
       <div><b>Same agent, live</b><span><code>--backend live</code> makes the identical three calls through the Nokia SDK and records the raw exchanges</span></div>
       <div><b>One agent, proven</b><span><code>python -m nabd.parity</code> — the agent stack imports no SDK, one function picks the network, every scene replays through the live parsers identically</span></div>
-      <div><b>Checked against the real event</b><span>the 6 Feb 2023 ShakeMap drives one scene; the declared footprint must stay inside the collapse band the measured shaking defines</span></div>
-      <div><b>83 / 83 tests, 10 suites</b><span>incl. fuzzed invariants: no footprint without a contiguous block; no personal-device call outside a footprint</span></div>
+      <div><b>Checked against two real events</b><span>Kahramanmaraş drives one scene, Al Haouz another on the same thresholds untouched; nothing named that the measured shaking spared</span></div>
+      <div><b>102 / 102 tests, 13 suites</b><span>incl. fuzzed invariants, the model's guard, and 0 of 90 ordinary mornings declared under up to 3% random sentinel dropout</span></div>
     </div>
   </div>
 </section>
-<section data-n="9 / 16" class="slide" id="slide-9">
+<section data-n="9 / 17" class="slide" id="slide-9">
   <div class="kicker">Evidence — the earthquake scene</div>
   <h2>Declared 55 seconds after onset. Six people to reach first.</h2>
   <div class="console">
@@ -651,7 +659,7 @@
 </svg></div>
       <div class="c-verdict">
         <div class="c-kind"><span class="badge">DECLARE</span><span class="conf">HIGH</span> 9 cells · ~4.0 km² · centred 37.5828N 36.9333E</div>
-        <ul class="c-signals"><li>Device Reachability: 9 contiguous cells unreachable (~4.0 km²)</li><li>Congestion Insights: no reading from 9/9 of those cells</li><li>no local baseline yet (6 passes observed) — not enough history to call this normal</li><li>onset synchronised: all 9 cells went dark within 0s</li><li>hot ring: 16/16 neighbouring cells at High congestion</li></ul>
+        <ul class="c-signals"><li>Device Reachability: 9 contiguous cells unreachable (~4.0 km²)</li><li>Congestion Insights: no reading from 9/9 of those cells</li><li>no local baseline yet (5 ordinary passes observed) — not enough history to call this normal</li><li>onset synchronised: all 9 cells went dark within 0s</li><li>hot ring: 16/16 neighbouring cells at High congestion</li></ul>
         <div class="c-triage"><span class="c-lbl">registry</span> 13 opted-in people inside · <b>6 unreachable</b></div>
         <table class="c-list"><tr><td class="mono">R-010</td><td>elderly</td><td class="mono">F5</td><td>last seen 2 min ago · within 1301 m</td></tr><tr><td class="mono">R-022</td><td>elderly</td><td class="mono">G6</td><td>last seen 2 min ago · within 1474 m</td></tr><tr><td class="mono">R-007</td><td>pilgrim-group</td><td class="mono">E6</td><td>last seen 2 min ago · within 994 m</td></tr></table>
       </div>
@@ -660,7 +668,7 @@
   </div>
   <p class="note">Later passes: footprint held; the list updates 6 → 4 as people answer again. Every element on the console is redrawn from the evidence log — the screen is a view over the record, never a second source of truth.</p>
 </section>
-<section data-n="10 / 16" class="slide" id="slide-10">
+<section data-n="10 / 17" class="slide" id="slide-10">
   <div class="kicker">Evidence — the look-alikes</div>
   <h2>The agent does not cry wolf.</h2>
   <div class="three">
@@ -973,7 +981,7 @@
   </div>
   <p class="lead">Noise scene: 21 passes, three abstentions, <b>zero declarations</b> — each refusal with its reason in the log. The quiet scene stays quiet. Written reasons are what make a false alarm auditable and a true alarm trusted.</p>
 </section>
-<section data-n="11 / 16" class="slide" id="slide-11">
+<section data-n="11 / 17" class="slide" id="slide-11">
   <div class="kicker">Evidence — the hardest look-alike</div>
   <h2>Where silence is normal, silence is not news.</h2>
   <div class="two">
@@ -1193,7 +1201,7 @@
   </div>
   <p class="lead">The real question is not whether an outage can be seen — it is whether a <b>disaster footprint can be told apart from every other reason cells go quiet.</b> The refusal is measured, not assumed; the declaration in the same run is what shows it is not blindness.</p>
 </section>
-<section data-n="12 / 16" class="slide" id="slide-12">
+<section data-n="12 / 17" class="slide" id="slide-12">
   <div class="kicker">Evidence — the event itself</div>
   <h2>Then we stopped drawing the disaster.</h2>
   <div class="two">
@@ -1438,7 +1446,231 @@
   </div>
   <p class="lead">The coloured lines are the measured isoseismals and the dashed one is the fault rupture, so the footprint can be checked against the shaking that caused it by eye. Geometry and intensity are the <b>USGS ShakeMap for the M7.8 Pazarcık earthquake</b>, 6 Feb 2023 — 262 seismic stations, 1,459 intensity observations. Ours is only the rule turning shaking into silence, calibrated to Turkcell's <b>“more than half of local base stations inoperative”</b> — our window ends 63% dark.</p>
 </section>
-<section data-n="13 / 16" class="slide" id="slide-13">
+<section data-n="13 / 17" class="slide" id="slide-13">
+  <div class="kicker">Evidence — a second event, nothing retuned</div>
+  <h2>Then we ran it where it was never tuned.</h2>
+  <div class="two">
+    <div class="wolf tight"><div class="wgrid"><svg viewBox="0 0 112 112" width="112" height="112" xmlns="http://www.w3.org/2000/svg" font-family="Consolas, Segoe UI, monospace">
+<rect x="1.0" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="45.8" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="57.0" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+</svg></div>
+      <div class="lbl">+25 s · the first verdict is a refusal</div>
+      <p><b>Two silent cells at the epicentre, below the three-cell floor.</b> An M6.8 at 19 km does not flatten a block, and the agent says so instead of declaring. It declares at <b>+235 s, MEDIUM</b> — the onset genuinely was staggered, and the evidence says why.</p>
+      <b>ABSTAIN → DECLARE</b></div>
+    <div class="wolf tight"><div class="wgrid"><svg viewBox="0 0 112 112" width="112" height="112" xmlns="http://www.w3.org/2000/svg" font-family="Consolas, Segoe UI, monospace">
+<rect x="1.0" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="1.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="12.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="34.6" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="45.8" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="23.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="23.4" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="34.6" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="45.8" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="57.0" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="68.2" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="34.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="12.2" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="23.4" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="34.6" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="45.8" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="57.0" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="68.2" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="79.4" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="45.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="12.2" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="23.4" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="34.6" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="45.8" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="57.0" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="68.2" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="79.4" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="90.6" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="57.0" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="23.4" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="34.6" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="45.8" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="57.0" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="68.2" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="79.4" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="68.2" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="23.4" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="34.6" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="45.8" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="57.0" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="68.2" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="79.4" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="79.4" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="34.6" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="45.8" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="57.0" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="68.2" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="79.4" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="90.6" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="1.0" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="12.2" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="23.4" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="34.6" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="45.8" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="57.0" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#d1463a" stroke="#7a1f17" stroke-width="1.2"/>
+<rect x="68.2" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="79.4" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="90.6" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+<rect x="101.8" y="101.8" width="9.2" height="9.2" rx="1.3" fill="#e08a2e"/>
+</svg></div>
+      <div class="lbl">+9 min · arrived through the batteries</div>
+      <p><b>39 cells, ~3,900 km², still MEDIUM</b> — exactly the set the measured field puts at or above the power threshold. <b>Marrakesh</b>, at intensity 6.4 in the north, answered throughout and is <b>never named</b>. 19 registered people unreachable at peak.</p>
+      <b>UPDATE ×10</b></div>
+  </div>
+  <table class="apit cmp">
+    <tr><th></th><th>Kahramanmaraş · 6 Feb 2023</th><th>Al Haouz · 8 Sep 2023</th></tr>
+    <tr><td class="api">ShakeMap</td><td>us6000jllz v19 · M7.8 · <b>262</b> stations</td><td>us7000kufc v14 · M6.8 · <b>3</b> stations</td></tr>
+    <tr><td class="api">Thresholds</td><td>calibrated to Turkcell's “more than half inoperative”</td><td><b>the same numbers, untouched</b> — asserted by a test</td></tr>
+    <tr><td class="api">First verdict</td><td>DECLARE at +55 s · 21 cells · HIGH</td><td>ABSTAIN at +25 s · below the floor</td></tr>
+    <tr><td class="api">Declaration</td><td>+55 s · HIGH · onset synchronised</td><td>+235 s · MEDIUM · onset staggered</td></tr>
+    <tr><td class="api">A city that answered</td><td>—</td><td><b>Marrakesh</b> — a map of what was shaken would have claimed it; a map of what went silent does not</td></tr>
+  </table>
+</section>
+<section data-n="14 / 17" class="slide" id="slide-14">
   <div class="kicker">CAMARA on Nokia Network-as-Code</div>
   <h2>Remove the network APIs and nothing works. The network is the sensor.</h2>
   <div class="two apis">
@@ -1458,13 +1690,13 @@
     </div>
   </div>
 </section>
-<section data-n="14 / 16" class="slide" id="slide-14">
+<section data-n="15 / 17" class="slide" id="slide-15">
   <div class="kicker">Honest boundaries</div>
   <h2>Live where it can be. Simulated where it must be. Private by design.</h2>
   <div class="three cols">
     <div class="col"><div class="lbl">Live vs simulated — and the seam between them</div>
-      <p>The sandbox cannot stage a disaster. So the two claims are separated: the <b>live platform proves the integration</b> with real recorded calls; the <b>simulator proves the scenario</b>, shaped on the public record of the 2023 Kahramanmaraş outage.</p>
-      <p>The risk is not the simulator — it is a suspected discontinuity between the paths. So <code>nabd.parity</code> measures it: the agent stack imports no SDK and names no backend; <b>one function</b> picks the network; and every scene is <b>recorded and replayed through the live response parsers</b>, evidence identical line for line.</p></div>
+      <p>The sandbox cannot stage a disaster, so the two claims are separated: the <b>live platform proves the integration</b>; the <b>simulator proves the scenario</b>.</p>
+      <p>The risk is the seam between them, so <code>nabd.parity</code> measures it: no SDK in the agent stack, <b>one function</b> picks the network, every scene <b>replayed through the live parsers</b> identically. The live check reports <b>pending</b> until a key runs it — never pass.</p></div>
     <div class="col"><div class="lbl">Privacy</div>
       <p>Detection reads only <b>sentinel devices the city or operator owns</b> — never the public.</p>
       <p>Its output is <b>area-level</b>: cells and a footprint, not people. No cameras, no message content, no tracking.</p></div>
@@ -1472,8 +1704,9 @@
       <p>Triage touches an individual only if they <b>opted in</b> to be protected.</p>
       <p>The agency holds the registry; the operator honours it. IDs are pseudonymous, and <b>no location call is ever made outside a declared footprint</b>.</p></div>
   </div>
+  <div class="roadmap"><span class="lbl">The model, watched</span> it phrases the brief and nothing else; a guard reads its sentence back against the facts — <b>an invented number throws the sentence away</b>. &nbsp;·&nbsp; <span class="lbl">False alarms, measured</span> <b>0 of 90</b> ordinary mornings declared under 1–3% random sentinel dropout; the edge near 5% is a written deployment requirement.</div>
 </section>
-<section data-n="15 / 16" class="slide" id="slide-15">
+<section data-n="16 / 17" class="slide" id="slide-16">
   <div class="kicker">Impact · scale · business</div>
   <h2>One engine, many hazards. Minutes, not hours.</h2>
   <div class="three cols">
@@ -1481,19 +1714,19 @@
       <p>Earthquake, flood, storm, mass outage — to the network each is an area going dark, so one engine covers them all.</p>
       <p>The first dispatch decision moves from <b>hours to minutes</b>, and the most vulnerable are reached first.</p></div>
     <div class="col"><div class="lbl">Scale</div>
-      <p>A sentinel grid scales by <b>cell count</b>; SIMs are municipal or operator-owned, so a national rollout is a procurement, not a behaviour change.</p>
-      <p>Open Gateway makes the same agent portable across operators and countries in the region.</p></div>
+      <p>A sentinel grid scales by <b>cell count</b>, not population: <b>7,836 SIMs watch all of Türkiye</b>, 4,466 all of Morocco — 188 k and 107 k CAMARA calls an hour at a five-minute watch that tightens to 30 s where something happens.</p>
+      <p>The sentinels already exist: fixed SIMs in meters, traffic lights, pumps and site monitors, opted in by their owners — a procurement, not a behaviour change.</p></div>
     <div class="col"><div class="lbl">Business</div>
       <p><b>Buyers:</b> civil-defence agencies (AFAD), Red Crescent societies, municipalities, hospital networks.</p>
       <p><b>Seller:</b> the operator, as an Open Gateway <b>impact-feed product</b> — a standing subscription for the grid, per-event triage on top.</p></div>
   </div>
   <div class="roadmap"><span class="lbl">Roadmap</span> Population Density Data as the detection upgrade once published on NaC &nbsp;·&nbsp; Geofencing for boundary events &nbsp;·&nbsp; QoD priority for responders inside the footprint &nbsp;·&nbsp; multi-operator fusion</div>
 </section>
-<section data-n="16 / 16" class="slide cover close" id="slide-16">
+<section data-n="17 / 17" class="slide cover close" id="slide-17">
   <div class="kicker">Nabd · نبض &nbsp;·&nbsp; Theme 6 &nbsp;·&nbsp; Prototype Phase</div>
   <h2 class="huge2">The network already knows.<br>Nabd makes it say so — in the first minute.</h2>
   <div class="next">
-    <div><div class="lbl">Next</div><p>Live contract run on Network-as-Code devices · pilot with one civil-defence agency on one city's sentinel grid · Population Density upgrade when published</p></div>
+    <div><div class="lbl">Next</div><p>Live contract run on Network-as-Code devices · a third real event, a flood, on the same thresholds · pilot with one civil-defence agency on one city's sentinel grid</p></div>
     <div><div class="lbl">Team</div><p>Kadir Can Yıldırım — Kadir's Team, solo builder, Türkiye. Code, evidence logs and the command-centre console are in the submission links.</p></div>
   </div>
   <p class="doha">See you in Doha — MWC Doha, November 2026.</p>
@@ -1613,7 +1846,7 @@
   addEventListener('beforeprint',function(){document.querySelectorAll('.slide').forEach(function(s){s.style.display='';});});
   addEventListener('keydown',function(e){
     var m=(location.hash||'').match(/^#slide-(\d+)$/); var n=m?+m[1]:1;
-    if(e.key==='ArrowRight'||e.key===' '){ n=Math.min(16,n+1); location.hash='#slide-'+n; }
+    if(e.key==='ArrowRight'||e.key===' '){ n=Math.min(17,n+1); location.hash='#slide-'+n; }
     if(e.key==='ArrowLeft'){ n=Math.max(1,n-1); location.hash='#slide-'+n; }
   });
 })();

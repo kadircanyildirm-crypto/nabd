@@ -76,11 +76,11 @@
   .agent-text b{font-family:var(--sans)}
   .built{display:grid;grid-template-columns:1.25fr 1fr;gap:36px;align-items:start}
   table{border-collapse:collapse;width:100%}
-  .mods td{font-family:var(--sans);font-size:17px;padding:10px 10px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--soft);line-height:1.35}
-  .mods td.mono{font-family:var(--mono);color:var(--acc);font-weight:700;white-space:nowrap;font-size:16px}
-  .status div{background:var(--surf);border-radius:10px;padding:14px 18px;margin-bottom:12px}
-  .status b{display:block;font-family:var(--sans);font-size:20px;margin-bottom:3px}
-  .status span{font-family:var(--sans);font-size:15px;color:var(--soft);line-height:1.35}
+  .mods td{font-family:var(--sans);font-size:15px;padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--soft);line-height:1.35}
+  .mods td.mono{font-family:var(--mono);color:var(--acc);font-weight:700;white-space:nowrap;font-size:14.5px}
+  .status div{background:var(--surf);border-radius:10px;padding:10px 16px;margin-bottom:9px}
+  .status b{display:block;font-family:var(--sans);font-size:18px;margin-bottom:2px}
+  .status span{font-family:var(--sans);font-size:14px;color:var(--soft);line-height:1.3}
   code{font-family:var(--mono);background:#e6ede9;padding:1px 6px;border-radius:4px;font-size:.92em}
   .console{background:#0b1017;color:#d7e1ea;border-radius:12px;padding:16px 20px;font-family:var(--sans);border:1px solid #1e2a37}
   .c-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #1e2a37;padding-bottom:10px;margin-bottom:12px}
@@ -121,18 +121,25 @@
   .why{background:var(--surf);border-radius:10px;padding:20px 24px}
   .why p{font-size:20px;line-height:1.4;margin:0 0 12px}
   .cols .col{background:var(--surf);border-radius:10px;padding:20px 22px;min-height:360px}
-  .cols .col p{font-size:19.5px;line-height:1.4;margin:0 0 12px}
-  .roadmap{margin-top:22px;font-family:var(--sans);font-size:16px;color:var(--soft);background:#eef6f2;border-radius:10px;padding:12px 18px}
+  .cols .col p{font-size:18px;line-height:1.38;margin:0 0 10px}
+  .roadmap{margin-top:16px;font-family:var(--sans);font-size:15px;color:var(--soft);background:#eef6f2;border-radius:10px;padding:12px 18px}
   .roadmap .lbl{display:inline;margin-right:12px}
   .close h2{margin-top:70px}
   .next{display:grid;grid-template-columns:1fr 1fr;gap:36px;max-width:900px}
   .next p{font-size:20px;line-height:1.4;margin:0;color:var(--soft)}
   .doha{font-family:var(--sans);font-size:24px;color:var(--acc);font-weight:600;margin:44px 0 0}
+
+  .cmp { margin-top: 8px; font-size: 12px; line-height: 1.25; }
+  .cmp th { text-align: left; font-weight: 600; color: #41504a; padding: 2px 10px 4px 0; border-bottom: 1px solid #d7ded9; }
+  .cmp td { padding: 3px 10px 3px 0; border-bottom: 1px solid #eef2f0; vertical-align: top; }
+  .wolf.tight p { font-size: 12.5px; line-height: 1.35; margin: 4px 0; }
+  .wolf.tight .wgrid { margin-bottom: 2px; }
+  .cmp td.api { font-weight: 600; white-space: nowrap; }
 </style>
 </head>
 <body>
 
-<section data-n="1 / 16" class="slide cover" id="slide-1">
+<section data-n="1 / 17" class="slide cover" id="slide-1">
   <div class="kicker">GSMA MENA Ignite Open Gateway Hackathon 2026 &nbsp;·&nbsp; Prototip Aşaması</div>
   <h1>Nabd <span class="ar">· نبض</span></h1>
   <p class="tag">Ağın sustuğu yeri okuyun.</p>
@@ -248,7 +255,7 @@
 <rect x="90.0" y="120.0" width="90.0" height="90.0" fill="none" stroke="#7a1f17" stroke-width="2.7" stroke-dasharray="10 6" rx="4"/>
 </svg></div>
 </section>
-<section data-n="2 / 16" class="slide" id="slide-2">
+<section data-n="2 / 17" class="slide" id="slide-2">
   <div class="kicker">Yara</div>
   <h2>Kimin sağ bulunacağına ilk saatler karar verir.</h2>
   <div class="stats3">
@@ -260,7 +267,7 @@
   içinde doğruladı. Hangi mahallelerin insanını kaybettiğini gösteren harita ise saatler sonra geldi.</p>
   <p class="note" style="font-size:20px;margin-top:22px">2024: Dubai ve Umman selleri. Aynı bölge, farklı bir tehlike, aynı eksik harita.</p>
 </section>
-<section data-n="3 / 16" class="slide" id="slide-3">
+<section data-n="3 / 17" class="slide" id="slide-3">
   <div class="kicker">Boşluk</div>
   <h2>Tespit çözüldü. Etki çözülmedi.</h2>
   <div class="two">
@@ -279,7 +286,7 @@
     <div class="yes"><div class="lbl">Nabd şudur</div><p><b>ilk dakikada etki haritası</b> ve <b>ilk 72 saatte önceliklendirme</b> — kim dışarıda kaldı, nerede.</p></div>
   </div>
 </section>
-<section data-n="4 / 16" class="slide" id="slide-4">
+<section data-n="4 / 17" class="slide" id="slide-4">
   <div class="kicker">Fikir</div>
   <h2 class="huge">Sessizlik bir sensördür.</h2>
   <p class="lead wide">Koca bir hücre bloğu aynı anda karardığında, ağ afetin nereye vurduğunu zaten
@@ -291,7 +298,7 @@
   </div>
   <p class="note">Afetten bağımsız: deprem, sel, fırtına, kitlesel elektrik kesintisi — ağ için hepsi aynı şeydir, susan bir alan.</p>
 </section>
-<section data-n="5 / 16" class="slide" id="slide-5">
+<section data-n="5 / 17" class="slide" id="slide-5">
   <div class="kicker">Mimari</div>
   <h2>İki katman. Tespit toplu düzeyde; önceliklendirme rızaya dayalı.</h2>
   <svg class="diagram" viewBox="0 0 1152 470" xmlns="http://www.w3.org/2000/svg">
@@ -346,7 +353,7 @@
     <text x="576" y="464" class="gs" text-anchor="middle">bir etki alanı içinde</text>
   </svg>
 </section>
-<section data-n="6 / 16" class="slide" id="slide-6">
+<section data-n="6 / 17" class="slide" id="slide-6">
   <div class="kicker">İlk dakikanın imzası</div>
   <h2>Bir blok susar. Etrafındaki halka ısınır.</h2>
   <div class="sig">
@@ -482,7 +489,7 @@
   </div>
   <p class="note" style="margin-top:8px">Izgara, ilan geçişinin kanıt kaydından çiziliyor; çizim değil.</p>
 </section>
-<section data-n="7 / 16" class="slide" id="slide-7">
+<section data-n="7 / 17" class="slide" id="slide-7">
   <div class="kicker">Ajan — zorunlu bileşen, LangGraph üzerinde</div>
   <h2>Tek bir sinyal asla tek başına ilan ettirmez.</h2>
   <div class="agent">
@@ -515,7 +522,7 @@
     </div>
   </div>
 </section>
-<section data-n="8 / 16" class="slide" id="slide-8">
+<section data-n="8 / 17" class="slide" id="slide-8">
   <div class="kicker">Ne inşa ettik — prototip durumu</div>
   <h2>Çalışan bir ajan; tek bir yüzey üzerinden çevrimdışı ve canlı.</h2>
   <div class="built">
@@ -525,19 +532,20 @@
       <tr><td class="mono">detector</td><td>ilişkilendir → ayıkla → ilan et; adlandırılmış sinyaller olarak kapılar ve destekleyiciler, saf fonksiyonlar, framework import'u yok</td></tr>
       <tr><td class="mono">triage · brief</td><td>yalnızca etki alanı içinde erişilebilirlik ve son görülme; komuta merkezi cümlesi</td></tr>
       <tr><td class="mono">graph · loop</td><td>LangGraph koşucusu ve düz koşucu — aynı kanıt, bayt bayt</td></tr>
-      <tr><td class="mono">shakemap · data</td><td>6 Şubat 2023 için USGS şiddet alanı, indirgenmiş ve künyesiyle commit edilmiş</td></tr>
-      <tr><td class="mono">scene · console · parity</td><td>beş sahne; kanıttan üretilen kendi kendine yeten konsol; arka uç parite düzeneği</td></tr>
+      <tr><td class="mono">shakemap · data</td><td>iki USGS şiddet alanı — Kahramanmaraş 2023 ve Al Haouz 2023 — indirgenmiş ve künyesiyle commit edilmiş</td></tr>
+      <tr><td class="mono">llm</td><td>brifingin yazıcısı, tek istemciyle Groq / Gemini / OpenRouter / Ollama'ya bağlı — ve modelin uydurduğu her sayıyı reddeden bir bekçi</td></tr>
+      <tr><td class="mono">scene · console · parity</td><td>altı sahne; kanıttan üretilen kendi kendine yeten konsol; arka uç parite düzeneği</td></tr>
     </table>
     <div class="status">
       <div><b>Çıplak Python ile çalışır</b><span>hesap yok, sunucu yok, CDN yok — demo odada çökemez</span></div>
       <div><b>Aynı ajan, canlıda</b><span><code>--backend live</code> aynı üç çağrıyı Nokia SDK üzerinden yapar ve ham alışverişleri kaydeder</span></div>
       <div><b>Tek ajan, kanıtlanmış</b><span><code>python -m nabd.parity</code> — ajan yığını SDK import etmiyor, ağı tek fonksiyon seçiyor, her sahne canlı ayrıştırıcılardan birebir geri oynatılıyor</span></div>
-      <div><b>Gerçek olaya karşı denetlendi</b><span>6 Şubat 2023 ShakeMap verisi bir sahneyi sürüyor; ilan edilen etki alanı, ölçülen sarsıntının tanımladığı çökme bandının içinde kalmak zorunda</span></div>
-      <div><b>83 / 83 test, 10 paket</b><span>fuzz değişmezleri dahil: bitişik blok olmadan etki alanı yok; etki alanı dışında kişisel cihaz çağrısı yok</span></div>
+      <div><b>İki gerçek olaya karşı denetlendi</b><span>Kahramanmaraş bir sahneyi sürüyor, Al Haouz aynı eşiklerle bir diğerini; ölçülen sarsıntının esirgediği hiçbir hücre adlandırılmıyor</span></div>
+      <div><b>102 / 102 test, 13 paket</b><span>fuzz değişmezleri, modelin bekçisi ve %1–3 rastgele nöbetçi kopmasında 90 sıradan sabahın 0'ında ilan dahil</span></div>
     </div>
   </div>
 </section>
-<section data-n="9 / 16" class="slide" id="slide-9">
+<section data-n="9 / 17" class="slide" id="slide-9">
   <div class="kicker">Kanıt — deprem sahnesi</div>
   <h2>Sarsıntıdan 55 saniye sonra ilan. Önce ulaşılacak altı kişi.</h2>
   <div class="console">
@@ -648,7 +656,7 @@
 </svg></div>
       <div class="c-verdict">
         <div class="c-kind"><span class="badge">DECLARE</span><span class="conf">HIGH</span> 9 cells · ~4.0 km² · centred 37.5828N 36.9333E</div>
-        <ul class="c-signals"><li>Device Reachability: 9 contiguous cells unreachable (~4.0 km²)</li><li>Congestion Insights: no reading from 9/9 of those cells</li><li>no local baseline yet (6 passes observed) — not enough history to call this normal</li><li>onset synchronised: all 9 cells went dark within 0s</li><li>hot ring: 16/16 neighbouring cells at High congestion</li></ul>
+        <ul class="c-signals"><li>Device Reachability: 9 contiguous cells unreachable (~4.0 km²)</li><li>Congestion Insights: no reading from 9/9 of those cells</li><li>no local baseline yet (5 ordinary passes observed) — not enough history to call this normal</li><li>onset synchronised: all 9 cells went dark within 0s</li><li>hot ring: 16/16 neighbouring cells at High congestion</li></ul>
         <div class="c-triage"><span class="c-lbl">registry</span> 13 opted-in people inside · <b>6 unreachable</b></div>
         <table class="c-list"><tr><td class="mono">R-010</td><td>elderly</td><td class="mono">F5</td><td>last seen 2 min ago · within 1301 m</td></tr><tr><td class="mono">R-022</td><td>elderly</td><td class="mono">G6</td><td>last seen 2 min ago · within 1474 m</td></tr><tr><td class="mono">R-007</td><td>pilgrim-group</td><td class="mono">E6</td><td>last seen 2 min ago · within 994 m</td></tr></table>
       </div>
@@ -658,7 +666,7 @@
   <p class="note">Ekran ürünün kendi arayüzüdür ve İngilizcedir; üzerindeki her satır kanıt kaydından yeniden çizilir.
   Sonraki geçişler: etki alanı korunur, insanlar yeniden cevap verdikçe liste 6 → 4 olur. Ekran kaydın bir görünümüdür, asla ikinci bir doğruluk kaynağı değil.</p>
 </section>
-<section data-n="10 / 16" class="slide" id="slide-10">
+<section data-n="10 / 17" class="slide" id="slide-10">
   <div class="kicker">Kanıt — benzer vakalar</div>
   <h2>Ajan boşa alarm vermez.</h2>
   <div class="three">
@@ -972,7 +980,7 @@
   <p class="lead">Gürültü sahnesi: 21 geçiş, üç çekimser karar, <b>sıfır ilan</b> — her ret gerekçesiyle birlikte kayıtta.
   Sessiz sahne sessiz kalıyor. Yazılı gerekçeler, yanlış alarmı denetlenebilir ve doğru alarmı güvenilir kılan şeydir.</p>
 </section>
-<section data-n="11 / 16" class="slide" id="slide-11">
+<section data-n="11 / 17" class="slide" id="slide-11">
   <div class="kicker">Kanıt — en zor benzer vaka</div>
   <h2>Sessizliğin normal olduğu yerde, sessizlik haber değildir.</h2>
   <div class="two">
@@ -1193,7 +1201,7 @@
   <p class="lead">Asıl soru bir kesintinin görülüp görülemeyeceği değil — bir <b>afet izinin, hücrelerin susmasının
   diğer bütün nedenlerinden ayırt edilip edilemeyeceğidir.</b> Ret varsayılmıyor, ölçülüyor; aynı koşudaki ilan da onun körlük olmadığını gösteriyor.</p>
 </section>
-<section data-n="12 / 16" class="slide" id="slide-12">
+<section data-n="12 / 17" class="slide" id="slide-12">
   <div class="kicker">Kanıt — olayın kendisi</div>
   <h2>Sonra afeti çizmeyi bıraktık.</h2>
   <div class="two">
@@ -1439,7 +1447,29 @@
   <p class="lead">Renkli çizgiler ölçülmüş eş-şiddet eğrileri, kesikli olan fay yırtılması; yani etki alanı, ona sebep olan sarsıntıyla gözle karşılaştırılabiliyor. Coğrafya ve şiddet, 6 Şubat 2023 tarihli <b>M7.8 Pazarcık depreminin USGS ShakeMap
   verisidir</b> — 262 sismik istasyon, 1.459 şiddet gözlemi. Bize ait olan yalnızca sarsıntıyı sessizliğe çeviren kural; eşikler de Turkcell'in <b>“yerel baz istasyonlarının yarısından fazlası devre dışı”</b> beyanına kalibre edildi — pencerimiz %63 karanlıkta bitiyor.</p>
 </section>
-<section data-n="13 / 16" class="slide" id="slide-13">
+<section data-n="13 / 17" class="slide" id="slide-13">
+  <div class="kicker">Kanıt — ikinci bir olay, hiçbir şey yeniden ayarlanmadı</div>
+  <h2>Sonra onu hiç ayarlanmadığı yerde koşturduk.</h2>
+  <div class="two">
+    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_FIRST["grid"], 112, labels=False)}</div>
+      <div class="lbl">+25 sn · ilk karar bir ret</div>
+      <p><b>Merkez üssünde iki sessiz hücre, üç hücrelik tabanın altında.</b> 19 km derinlikteki bir M6.8 bir bloğu birden yıkmaz; ajan ilan etmek yerine bunu söylüyor. İlan <b>+235 sn'de, ORTA</b> güvenle geliyor — başlangıç gerçekten kademeliydi ve kanıt nedenini yazıyor.</p>
+      <b>ÇEKİMSER → İLAN</b></div>
+    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_LATE["grid"], 112, labels=False)}</div>
+      <div class="lbl">+9 dk · aküler üzerinden geldi</div>
+      <p><b>{len(ATLAS_LATE["cells"])} hücre, ~{len(ATLAS_LATE["cells"]) * 100:,} km², hâlâ ORTA</b> — tam olarak ölçülen alanın güç eşiğinin üstüne koyduğu küme. Kuzeyde 6,4 şiddetindeki <b>Marrakeş</b> baştan sona cevap verdi ve <b>hiç adlandırılmadı</b>. Zirvede {ATLAS_PEAK} kayıtlı kişiye ulaşılamıyor.</p>
+      <b>GÜNCELLEME ×{ATLAS_UPDATES}</b></div>
+  </div>
+  <table class="apit cmp">
+    <tr><th></th><th>Kahramanmaraş · 6 Şub 2023</th><th>Al Haouz · 8 Eyl 2023</th></tr>
+    <tr><td class="api">ShakeMap</td><td>us6000jllz v19 · M7.8 · <b>262</b> istasyon</td><td>us7000kufc v14 · M6.8 · <b>3</b> istasyon</td></tr>
+    <tr><td class="api">Eşikler</td><td>Turkcell'in "yarıdan fazlası devre dışı" raporuna göre ayarlandı</td><td><b>aynı sayılar, dokunulmadı</b> — bir test bunu doğruluyor</td></tr>
+    <tr><td class="api">İlk karar</td><td>+55 sn'de İLAN · 21 hücre · YÜKSEK</td><td>+25 sn'de ÇEKİMSER · tabanın altında</td></tr>
+    <tr><td class="api">İlan</td><td>+55 sn · YÜKSEK · başlangıç eşzamanlı</td><td>+235 sn · ORTA · başlangıç kademeli</td></tr>
+    <tr><td class="api">Cevap veren bir şehir</td><td>—</td><td><b>Marrakeş</b> — neyin sarsıldığını gösteren harita onu sahiplenirdi; neyin sustuğunu gösteren sahiplenmiyor</td></tr>
+  </table>
+</section>
+<section data-n="14 / 17" class="slide" id="slide-14">
   <div class="kicker">Nokia Network-as-Code üzerinde CAMARA</div>
   <h2>Ağ API'lerini çıkarın, hiçbir şey çalışmaz. Sensör ağın kendisidir.</h2>
   <div class="two apis">
@@ -1459,13 +1489,13 @@
     </div>
   </div>
 </section>
-<section data-n="14 / 16" class="slide" id="slide-14">
+<section data-n="15 / 17" class="slide" id="slide-15">
   <div class="kicker">Dürüst sınırlar</div>
   <h2>Olabildiği yerde canlı. Olması gerektiği yerde simüle. Tasarımdan gizli.</h2>
   <div class="three cols">
     <div class="col"><div class="lbl">Canlı ve simüle — ve aradaki dikiş</div>
-      <p>Kum havuzu bir afeti sahneleyemez. Bu yüzden iki iddia ayrıldı: <b>canlı platform entegrasyonu kanıtlar</b>, gerçek kaydedilmiş çağrılarla; <b>simülatör senaryoyu kanıtlar</b>, 2023 Kahramanmaraş kesintisinin kamuya açık kaydına göre şekillenmiş.</p>
-      <p>Risk simülatör değil — iki yol arasında sezilen bir kopukluktur. O yüzden <code>nabd.parity</code> bunu ölçer: ajan yığını SDK import etmez ve arka uç adı geçirmez; ağı <b>tek bir fonksiyon</b> seçer; ve her sahne <b>canlı yanıt ayrıştırıcılarından kaydedilip geri oynatılır</b>, kanıt satır satır aynı.</p></div>
+      <p>Kum havuzu bir afeti sahneleyemez; o yüzden iki iddia ayrıldı: <b>canlı platform entegrasyonu kanıtlar</b>, <b>simülatör senaryoyu</b>.</p>
+      <p>Risk aradaki dikiştir, o yüzden <code>nabd.parity</code> onu ölçer: ajan yığınında SDK yok, ağı <b>tek fonksiyon</b> seçer, her sahne <b>canlı ayrıştırıcılardan birebir geri oynatılır</b>. Canlı kontrol bir anahtar koşana kadar <b>beklemede</b> yazar — asla geçti değil.</p></div>
     <div class="col"><div class="lbl">Gizlilik</div>
       <p>Tespit yalnızca <b>şehrin veya operatörün sahip olduğu nöbetçi cihazları</b> okur — asla halkı.</p>
       <p>Çıktısı <b>alan seviyesindedir</b>: hücreler ve bir etki alanı, insanlar değil. Kamera yok, mesaj içeriği yok, takip yok.</p></div>
@@ -1473,8 +1503,9 @@
       <p>Önceliklendirme bir bireye ancak o kişi korunmayı <b>kendi seçmişse</b> dokunur.</p>
       <p>Kayıt defterini kurum tutar; operatör buna uyar. Kimlikler takma adlıdır ve <b>ilan edilmiş bir etki alanının dışında asla konum çağrısı yapılmaz</b>.</p></div>
   </div>
+  <div class="roadmap"><span class="lbl">Model, gözetim altında</span> yalnızca brifingi yazar; bir bekçi cümlesini olgulara karşı geri okur — <b>uydurulmuş bir sayı cümleyi çöpe gönderir</b>. &nbsp;·&nbsp; <span class="lbl">Yanlış alarm, ölçülmüş</span> %1–3 rastgele nöbetçi kopmasında <b>90 sıradan sabahın 0'ı</b> ilan edildi; %5 civarındaki sınır yazılı bir kurulum gereksinimi.</div>
 </section>
-<section data-n="15 / 16" class="slide" id="slide-15">
+<section data-n="16 / 17" class="slide" id="slide-16">
   <div class="kicker">Etki · ölçek · iş modeli</div>
   <h2>Tek motor, çok tehlike. Saatler değil, dakikalar.</h2>
   <div class="three cols">
@@ -1482,15 +1513,15 @@
       <p>Deprem, sel, fırtına, kitlesel kesinti — ağ için her biri kararan bir alandır, dolayısıyla tek motor hepsini kapsar.</p>
       <p>İlk sevk kararı <b>saatlerden dakikalara</b> iner ve en kırılgan olanlara önce ulaşılır.</p></div>
     <div class="col"><div class="lbl">Ölçek</div>
-      <p>Nöbetçi ızgarası <b>hücre sayısıyla</b> ölçeklenir; SIM'ler belediyeye veya operatöre aittir, dolayısıyla ulusal yaygınlaştırma bir davranış değişikliği değil, bir tedarik meselesidir.</p>
-      <p>Open Gateway aynı ajanı bölgedeki operatörler ve ülkeler arasında taşınabilir kılar.</p></div>
+      <p>Nöbetçi ızgarası nüfusla değil <b>hücre sayısıyla</b> ölçeklenir: <b>Türkiye'nin tamamı 7.836 SIM</b>, Fas'ın tamamı 4.466 — beş dakikalık nöbette saatte 188 bin ve 107 bin CAMARA çağrısı, bir şey olduğunda 30 saniyeye sıkışır.</p>
+      <p>Nöbetçiler zaten var: sayaçlardaki, trafik ışıklarındaki, pompalardaki sabit SIM'ler, sahipleri tarafından katılmış — bir tedarik meselesi, davranış değişikliği değil.</p></div>
     <div class="col"><div class="lbl">İş modeli</div>
       <p><b>Alıcılar:</b> sivil savunma kurumları (AFAD), Kızılay teşkilatları, belediyeler, hastane ağları.</p>
       <p><b>Satıcı:</b> operatör, bir Open Gateway <b>etki akışı ürünü</b> olarak — ızgara için sürekli abonelik, üstüne olay başına önceliklendirme.</p></div>
   </div>
   <div class="roadmap"><span class="lbl">Yol haritası</span> NaC üzerinde yayınlandığında tespit yükseltmesi olarak Population Density Data &nbsp;·&nbsp; sınır olayları için Geofencing &nbsp;·&nbsp; etki alanı içindeki ekiplere QoD önceliği &nbsp;·&nbsp; çoklu operatör füzyonu</div>
 </section>
-<section data-n="16 / 16" class="slide cover close" id="slide-16">
+<section data-n="17 / 17" class="slide cover close" id="slide-17">
   <div class="kicker">Nabd · نبض &nbsp;·&nbsp; Tema 6 &nbsp;·&nbsp; Prototip Aşaması</div>
   <h2 class="huge2">Ağ zaten biliyor.<br>Nabd ona bunu söyletiyor — ilk dakikada.</h2>
   <div class="next">
@@ -1614,7 +1645,7 @@
   addEventListener('beforeprint',function(){document.querySelectorAll('.slide').forEach(function(s){s.style.display='';});});
   addEventListener('keydown',function(e){
     var m=(location.hash||'').match(/^#slide-(\d+)$/); var n=m?+m[1]:1;
-    if(e.key==='ArrowRight'||e.key===' '){ n=Math.min(16,n+1); location.hash='#slide-'+n; }
+    if(e.key==='ArrowRight'||e.key===' '){ n=Math.min(17,n+1); location.hash='#slide-'+n; }
     if(e.key==='ArrowLeft'){ n=Math.max(1,n-1); location.hash='#slide-'+n; }
   });
 })();
