@@ -152,21 +152,23 @@ SEGMENTS = [
     ),
     Segment(
         "02-problem", card="c02-problem",
-        text="On the sixth of February, twenty twenty-three, a seismometer confirmed within seconds "
-             "that an earthquake had struck Kahramanmaraş. It was hours before anyone knew which "
-             "streets to dig in, and more than fifty-three thousand people died. The rescue was held "
-             "back not by machines or by people, but by not knowing where to send them — and the "
-             "picture that would have answered that was being assembled from emergency calls, at "
-             "the moment the network was too overloaded to carry them.",
+        text="On the sixth of February, twenty twenty-three, at seventeen minutes past four in the "
+             "morning, the seismometers knew. Within seconds they had the magnitude, the depth and "
+             "the epicentre. What they could not say was which street. That answer took hours — and "
+             "under the rubble a clock had already started, because after seventy-two hours almost "
+             "nobody is pulled out alive. More than fifty-three thousand people died. What held the "
+             "rescue back was not machines and not people; it was not knowing where to send them, "
+             "and the picture that would have answered that was being assembled from emergency "
+             "calls, at the exact moment the network was too overloaded to carry them.",
     ),
     Segment(
         "03-insight", card="c03-insight",
         text="But there was something nobody was reading. When the ground moves, the network does "
              "something a disaster cannot hide: a connected block of cells stops answering in the "
              "same second, while the ring around it saturates, because everyone still standing is "
-             "calling at once. Nabd reads that shape through standard CAMARA APIs, in two layers: "
-             "detection is aggregate, one sentinel SIM to a cell, never a member of the public, and "
-             "triage is consented, only ever inside an area the agent has already declared.",
+             "calling at once. Nabd reads that shape through standard CAMARA APIs, in two layers — "
+             "detection is aggregate and never touches the public, and triage is consented, only "
+             "ever inside an area already declared.",
     ),
     Segment(
         "04-quiet", frames=[("quiet", 2), ("quiet", 6), ("quiet", 9)],
@@ -185,14 +187,18 @@ SEGMENTS = [
         text="Fifty-five seconds after the shaking, it declares nine cells, about four square "
              "kilometres, at high confidence. Two gates have passed, because the block is connected "
              "and this silence is abnormal here, and two corroborations agree, because the onset was "
-             "synchronised and all sixteen cells around it are saturated.",
+             "synchronised and all sixteen cells around it are saturated. That ring is everyone who "
+             "survived, calling at once. Fifty-five seconds — against the hours it took in twenty "
+             "twenty-three.",
     ),
     Segment(
         "07-triage", frames=[("quake", 6), ("quake", 7)], tab="registry",
         text="Only now does the agent touch a personal device. Thirteen people inside that footprint "
-             "are on the opt-in registry, and six are not answering, ranked by need, with the last "
-             "place the network saw them. Every line of the evidence records how many personal calls "
-             "were made, and on an ordinary morning that number is zero.",
+             "are on the opt-in registry, and six of them are not answering. The list is ranked by "
+             "need, so the first line is not a cell, it is a person: R zero one zero, elderly, in "
+             "F five, last seen within thirteen hundred metres. That is something a command centre "
+             "can act on. And every line of the evidence records how many personal calls were made, "
+             "which on an ordinary morning is zero.",
     ),
     Segment(
         "08-update", frames=[("quake", 14), ("quake", 16)], tab="registry",
@@ -201,11 +207,12 @@ SEGMENTS = [
     ),
     Segment(
         "09-lookalikes", frames=[("noise", 2), ("noise", 6), ("noise", 10)], tab="log",
-        text="Anything can be built to fire. The work is in what it refuses. One cell silent while "
-             "its neighbours are normal is a base station fault. Four silent together, matching a "
-             "ticket on the operator's maintenance calendar, is expected work. Nine saturated while "
-             "every sentinel answers is a football crowd. Three abstentions, three written reasons, "
-             "no alarm.",
+        text="Anything can be built to fire. But a map that cries wolf is a map nobody moves for, "
+             "and the one time it is real, they hesitate. So the work is in what it refuses. One "
+             "cell silent while its neighbours are normal is a base station fault. Four silent "
+             "together, matching a ticket on the operator's maintenance calendar, is expected work. "
+             "Nine saturated while every sentinel answers is a football crowd. Three abstentions, "
+             "three written reasons, no alarm.",
     ),
     Segment(
         "10-degraded", frames=[("degraded", 11), ("degraded", 21)], tab="log",
@@ -223,48 +230,48 @@ SEGMENTS = [
              "the rule that turns shaking into silence is ours. Fifty-five seconds after onset it "
              "declares twenty-one cells, every one of them above the collapse threshold in the "
              "measured field, so it invents no damage. Then it grows to six thousand three hundred "
-             "square kilometres, as the surviving masts run their batteries flat.",
+             "square kilometres as the surviving masts run their batteries flat, with twenty-two "
+             "registered people unreachable at the peak, medical-dependent first.",
     ),
     Segment(
         "11b-atlas", frames=[("atlas", 5), ("atlas", 12), ("atlas", 22)],
-        text="A detector tested on the one event it was tuned for has not really been tested. So "
-             "we ran it again over the magnitude six point eight Al Haouz earthquake in Morocco, and "
-             "changed nothing: the same thresholds, the same code. An earthquake that size, nineteen "
-             "kilometres down, does not flatten a block, so the first verdict here is a refusal. It "
+        text="A detector tested on the one event it was tuned for has not been tested. So we ran it "
+             "again over the magnitude six point eight Al Haouz earthquake in Morocco, and changed "
+             "nothing: the same thresholds, the same code. An earthquake that size, nineteen "
+             "kilometres down, does not flatten a block, so the first verdict is a refusal. It "
              "declares almost four minutes later, at medium confidence, and it says why: the onset "
              "genuinely was staggered, because the footprint arrived as mountain villages drained "
              "their batteries. And Marrakesh, shaken hard enough to lead the news everywhere, "
              "answered throughout, and is never named. A map of what was shaken would have claimed "
              "Marrakesh. A map of what went silent does not. That ShakeMap had three seismic "
-             "stations behind it, against two hundred and sixty-two for Kahramanmaraş. Where the "
+             "stations behind it, against two hundred and sixty-two for Kahramanmaraş — where the "
              "instruments are thinnest, the network is still talking.",
     ),
     Segment(
         "12-hood", card="c10-hood",
         text="Under the hood the agent is a LangGraph graph, and the privacy claim lives in the "
-             "topology rather than in a promise, because the node that queries a personal device can "
-             "only be reached from a verdict with an active footprint. Detection stays deterministic "
-             "and replayable, while the language model writes the duty officer's brief and nothing "
-             "else. Both runners produce byte-identical evidence, under ninety-three tests.",
+             "topology rather than in a promise: the node that queries a personal device can only be "
+             "reached from a verdict with an active footprint. Detection stays deterministic and "
+             "replayable, and the language model writes the duty officer's brief and nothing else.",
     ),
     Segment(
         "13-parity", card="c11-parity",
         text="The sandbox cannot stage a disaster, so we separated the two claims: the live platform "
-             "proves the integration, and the simulator proves the scenario. The risk was a gap "
-             "between them, so the gap is what we measure. Every scene is recorded and replayed "
+             "proves the integration, the simulator proves the scenario. The risk was the gap "
+             "between them, so the gap is what we measure — every scene recorded and replayed "
              "through the same parsing functions the live gateway uses, and the evidence has to "
-             "come out identical, line for line. One check needs a live key, and until it runs it "
-             "reports pending. It never reports pass.",
+             "come out identical, line for line. One check needs a live key. Until it runs it "
+             "reports pending, and it never reports pass.",
     ),
     Segment(
         "14-close", card="c12-close",
         text="To the network, an earthquake, a flood, a storm and a mass outage are the same thing: "
              "an area going dark. Watching the whole of Türkiye takes seven thousand eight hundred "
-             "sentinel SIMs, not eighty-five million subscribers, so the bill scales with land area "
-             "rather than population, and the operator sells it through Open Gateway to the agency "
-             "that already carries the duty of care. The network already knows. Nabd only "
-             "makes it say so, in the first minute. Kadir's Team, Türkiye, for MENA Ignite twenty "
-             "twenty-six.",
+             "sentinel SIMs, not eighty-five million subscribers — the bill scales with land area, "
+             "not population, and the operator sells it through Open Gateway to the agency that "
+             "already carries the duty of care. Kadir's Team, Türkiye, for MENA Ignite twenty "
+             "twenty-six. The network already knew where the damage was, the whole time. Nabd is "
+             "what makes it say so — in the first minute, while it still matters.",
     ),
 ]
 
@@ -278,18 +285,19 @@ TURKISH = {
         "ağın koca bir mahallesi aynı saniyede cevap vermeyi kesiyor. Nabd bu sessizliği okuyor "
         "ve onu, hasarın nerede olduğunun haritasına çeviriyor.",
     "02-problem":
-        "Altı Şubat iki bin yirmi üçte bir sismometre, Kahramanmaraş'ta depremin olduğunu "
-        "saniyeler içinde doğruladı. Hangi sokakta kazılacağını öğrenmek ise saatler aldı ve elli "
-        "üç binden fazla insan hayatını kaybetti. Kurtarmayı geciktiren makine ya da insan "
-        "değildi; nereye gönderileceğinin bilinmemesiydi. O soruyu cevaplayacak tablo ise acil "
-        "çağrılardan toplanıyordu, tam da ağın o çağrıları taşıyamayacak kadar tıkalı olduğu anda.",
+        "Altı Şubat iki bin yirmi üçte, sabaha karşı dördü on yedi geçe, sismometreler biliyordu. "
+        "Saniyeler içinde büyüklüğü, derinliği ve merkez üssünü çıkardılar. Söyleyemedikleri şey "
+        "hangi sokak olduğuydu. O cevap saatler aldı — ve enkazın altında bir saat çoktan işlemeye "
+        "başlamıştı, çünkü yetmiş iki saatten sonra neredeyse kimse canlı çıkarılamıyor. Elli üç "
+        "binden fazla insan hayatını kaybetti. Kurtarmayı geciktiren makine ya da insan değildi; "
+        "nereye gönderileceğinin bilinmemesiydi. O soruyu cevaplayacak tablo ise acil çağrılardan "
+        "toplanıyordu, tam da ağın o çağrıları taşıyamayacak kadar tıkalı olduğu anda.",
     "03-insight":
         "Ama kimsenin okumadığı bir şey vardı. Yer sarsıldığında ağ, bir afetin saklayamayacağı "
         "bir şey yapar: bitişik bir hücre bloğu aynı saniyede susar, etrafındaki halka ise doyar, "
         "çünkü ayakta kalan herkes aynı anda arıyordur. Nabd bu deseni standart CAMARA API'leri "
-        "üzerinden iki katmanda okuyor: tespit toplu düzeydedir, hücre başına bir nöbetçi SIM, "
-        "asla halktan biri değil; triyaj ise rızaya dayalıdır ve yalnızca ajanın önceden ilan "
-        "ettiği bir alanın içinde çalışır.",
+        "üzerinden iki katmanda okuyor: tespit toplu düzeydedir ve halka asla dokunmaz; triyaj "
+        "ise rızaya dayalıdır ve yalnızca önceden ilan edilmiş bir alanın içinde çalışır.",
     "04-quiet":
         "Karşınızdaki komuta merkezi; her kare, içinde tek bir nöbetçi cihaz bulunan bir hücre. "
         "Sıradan bir sabahta hepsi cevap verir, dolayısıyla ajanın bildirecek bir şeyi olmaz ve "
@@ -302,17 +310,22 @@ TURKISH = {
         "Sarsıntıdan elli beş saniye sonra ilan ediyor: dokuz hücre, yaklaşık dört kilometrekare, "
         "yüksek güvenle. İki kapı geçildi, çünkü blok bitişik ve bu sessizlik burada anormal; iki "
         "destekleyici kanıt da hemfikir, çünkü başlangıç eşzamanlıydı ve çevresindeki on altı "
-        "hücrenin on altısı doygun.",
+        "hücrenin on altısı doygun. O halka, ayakta kalan herkesin aynı anda araması. Elli beş "
+        "saniye — iki bin yirmi üçte saatler süren şeyin karşısında.",
     "07-triage":
         "Ajan kişisel bir cihaza ancak şimdi dokunuyor. O etki alanının içinde on üç kişi gönüllü "
-        "kayıt listesinde ve altısına ulaşılamıyor; ihtiyaca göre sıralanmış, her biri ağın onu en "
-        "son gördüğü konumla birlikte. Kanıt dosyasının her satırı kaç kişisel çağrı yapıldığını "
-        "da yazıyor ve sıradan bir sabahta bu sayı sıfır.",
+        "kayıt listesinde ve altısına ulaşılamıyor. Liste ihtiyaca göre sıralı, dolayısıyla ilk "
+        "satır bir hücre değil, bir insan: R sıfır bir sıfır, yaşlı, F beşte, en son bin üç yüz "
+        "metre yarıçapı içinde görülmüş. Bir komuta merkezinin üzerine hareket edebileceği şey "
+        "budur. Kanıt dosyasının her satırı da kaç kişisel çağrı yapıldığını yazıyor; sıradan bir "
+        "sabahta bu sayı sıfır.",
     "08-update":
         "Harita bir anlık görüntü de değil. Dört dakika sonra o altı kişiden ikisi yeniden cevap "
         "veriyor ve liste, kimse hiçbir şeye dokunmadan altıdan dörde iniyor.",
     "09-lookalikes":
-        "Ateş eden bir şeyi herkes yapabilir; asıl iş, neyi reddettiğindedir. Komşuları normalken "
+        "Ateş eden bir şeyi herkes yapabilir. Ama kurt masalı anlatan bir harita, kimsenin "
+        "kalkmadığı bir haritadır; gerçek olduğu tek seferde de tereddüt edilir. Asıl iş, neyi "
+        "reddettiğindedir. Komşuları normalken "
         "susan tek bir hücre, baz istasyonu arızasıdır. Birlikte susan ve operatörün bakım "
         "takvimindeki bir kayıtla eşleşen dört hücre, beklenen bir iştir. Her nöbetçi cevap "
         "verirken doyan dokuz hücre ise bir stadyumdur. Üç çekimser karar, üç yazılı gerekçe, "
@@ -330,7 +343,8 @@ TURKISH = {
         "şey, sarsıntıyı sessizliğe çeviren kural. Sarsıntıdan elli beş saniye sonra yirmi bir "
         "hücre ilan ediyor ve hepsi, ölçülen alanda çökme eşiğinin üstünde; yani hasar "
         "uydurmuyor. Sonra ayakta kalan direkler akülerini tüketirken etki alanı altı bin üç yüz "
-        "kilometrekareye büyüyor.",
+        "kilometrekareye büyüyor; zirvede yirmi iki kayıtlı kişiye ulaşılamıyor, önce tıbbi "
+        "bağımlılar.",
     "11b-atlas":
         "Ama yalnızca kendisine göre ayarlandığı olayda sınanan bir dedektör, gerçekte "
         "sınanmamıştır. Bu yüzden aynı ajanı bir kez de Fas'taki altı virgül sekiz büyüklüğündeki "
@@ -347,8 +361,7 @@ TURKISH = {
         "Kaputun altında ajan bir LangGraph grafiği ve gizlilik iddiası bir sözde değil, "
         "topolojide duruyor; çünkü kişisel cihaz sorgulayan düğüme yalnızca aktif etki alanı olan "
         "bir karardan ulaşılabiliyor. Tespit deterministik ve tekrar oynatılabilir kalırken, dil "
-        "modeli yalnızca nöbetçi subayın brifingini yazıyor. İki koşucu da doksan üç testin "
-        "altında bayt bayt aynı kanıtı üretiyor.",
+        "modeli yalnızca nöbetçi subayın brifingini yazıyor.",
     "13-parity":
         "Kum havuzu bir afeti sahneleyemez, o yüzden iki iddiayı ayırdık: canlı platform "
         "entegrasyonu kanıtlıyor, simülatör ise senaryoyu. Risk, bu iki yol arasındaki boşluktu; "
@@ -360,9 +373,10 @@ TURKISH = {
         "Ağ açısından deprem de sel de fırtına da kitlesel kesinti de aynı şeydir: kararan bir "
         "alan. Türkiye'nin tamamını izlemek yedi bin sekiz yüz nöbetçi SIM istiyor, seksen beş "
         "milyon abone değil; yani fatura nüfusa göre değil, yüzölçümüne göre büyüyor ve operatör "
-        "bunu Open Gateway üzerinden, sorumluluğu zaten taşıyan kuruma satıyor. Ağ zaten biliyor. "
-        "Nabd sadece ona bunu söyletiyor, ilk dakikada. Kadir'in Ekibi'nden, Türkiye'den, MENA "
-        "Ignite iki bin yirmi altı için.",
+        "bunu Open Gateway üzerinden, sorumluluğu zaten taşıyan kuruma satıyor. Kadir'in "
+        "Ekibi'nden, Türkiye'den, MENA Ignite iki bin yirmi altı için. Ağ, hasarın nerede olduğunu "
+        "en başından beri biliyordu. Nabd, ona bunu söyleten şey — ilk dakikada, hâlâ anlamı "
+        "varken.",
 }
 
 
