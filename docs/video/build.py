@@ -393,21 +393,54 @@ async def _edge(text: str, out: Path) -> None:
     await edge_tts.Communicate(text, cfg("voice"), rate=cfg("rate")).save(str(out))
 
 
-def _chatterbox(text: str, out: Path) -> None:
-    """One segment through the Chatterbox Space, converted to mp3 like the rest."""
-    from gradio_client import Client, handle_file
+#: The Space returns about fifteen seconds of speech and truncates the rest
+#: without a word, so a segment is spoken in pieces no longer than this.
+CHUNK_WORDS = 40
+#: What the voice actually speaks, measured over the pieces that came back
+#: whole. Used to catch a truncation rather than to schedule anything.
+CHATTERBOX_WPS = 3.5
 
-    token_file = Path(os.path.expanduser("~/.cache/huggingface/token"))
-    if not token_file.exists():
-        raise RuntimeError(
-            "No Hugging Face token at ~/.cache/huggingface/token. A free account's "
-            "read token lifts the Space's anonymous GPU allowance; without one, "
-            "re-run with --engine edge."
-        )
-    client = Client(
-        CHATTERBOX["space"], token=token_file.read_text().strip(), verbose=False,
-        httpx_kwargs={"timeout": CHATTERBOX["timeout_s"]},
-    )
+
+def _pieces(text: str, max_words: int = CHUNK_WORDS) -> list[str]:
+    """Split a segment where a reader would breathe, into speakable lengths."""
+    import re
+
+    def split(unit: str, seps: list[str]) -> list[str]:
+        if len(unit.split()) <= max_words or not seps:
+            return [unit]
+        parts, sep = [], seps[0]
+        buf = ""
+        for bit in unit.split(sep):
+            bit = bit.strip()
+            if not bit:
+                continue
+            candidate = f"{buf}{sep}{bit}" if buf else bit
+            if buf and len(candidate.split()) > max_words:
+                parts.append(buf)
+                buf = bit
+            else:
+                buf = candidate
+        if buf:
+            parts.append(buf)
+        return [p for part in parts for p in split(part, seps[1:])]
+
+    sentences = [x.strip() for x in re.findall(r"[^.!?]+[.!?]+|[^.!?]+$", text) if x.strip()]
+    out: list[str] = []
+    for sentence in sentences:
+        # Long sentences break at the marks that already carry a pause.
+        for piece in split(sentence, [" \u2014 ", "; ", ", "]):
+            piece = piece.strip()
+            if not piece:
+                continue
+            if out and len((out[-1] + " " + piece).split()) <= max_words:
+                out[-1] = out[-1] + " " + piece
+            else:
+                out.append(piece)
+    return out or [text]
+
+
+def _speak(client, handle_file, text: str, out: Path) -> None:
+    """One piece, spoken and written as mp3 — and checked for truncation."""
     try:
         wav = client.predict(
             text_input=text,
@@ -423,9 +456,56 @@ def _chatterbox(text: str, out: Path) -> None:
         if "ZeroGPU" in str(exc) or "quota" in str(exc).lower():
             raise QuotaSpent(str(exc)) from exc
         raise
-    subprocess.run(
-        ["ffmpeg", "-v", "error", "-i", wav, "-b:a", "160k", str(out), "-y"], check=True,
+    subprocess.run(["ffmpeg", "-v", "error", "-i", wav, "-b:a", "160k", str(out), "-y"], check=True)
+    spoken, expected = duration(out), len(text.split()) / CHATTERBOX_WPS
+    if spoken < expected * 0.78:
+        raise RuntimeError(
+            f"the Space returned {spoken:.1f}s for {len(text.split())} words "
+            f"(expected about {expected:.1f}s) — it truncated the text"
+        )
+
+
+def _chatterbox(text: str, out: Path) -> None:
+    """One segment through the Chatterbox Space, converted to mp3 like the rest.
+
+    Long segments are spoken in pieces and joined, because the Space cuts the
+    text off at about fifteen seconds without saying so.
+    """
+    from gradio_client import Client, handle_file
+
+    token_file = Path(os.path.expanduser("~/.cache/huggingface/token"))
+    if not token_file.exists():
+        raise RuntimeError(
+            "No Hugging Face token at ~/.cache/huggingface/token. A free account's "
+            "read token lifts the Space's anonymous GPU allowance; without one, "
+            "re-run with --engine edge."
+        )
+    client = Client(
+        CHATTERBOX["space"], token=token_file.read_text().strip(), verbose=False,
+        httpx_kwargs={"timeout": CHATTERBOX["timeout_s"]},
     )
+    pieces = _pieces(text)
+    if len(pieces) == 1:
+        _speak(client, handle_file, pieces[0], out)
+        return
+    # Pieces are kept beside the segment, so a run that runs out of GPU part of
+    # the way through a segment resumes at the piece it stopped on.
+    parts = []
+    for i, piece in enumerate(pieces):
+        part = out.with_name(f"{out.stem}.part{i:02d}.mp3")
+        if not part.exists():
+            print(f"        piece {i + 1}/{len(pieces)}  {len(piece.split())}w")
+            _speak(client, handle_file, piece, part)
+        parts.append(part)
+    listing = out.with_suffix(".parts.txt")
+    listing.write_text("\n".join(f"file '{p.as_posix()}'" for p in parts) + "\n", encoding="utf-8")
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(listing),
+         "-b:a", "160k", str(out), "-y"], check=True,
+    )
+    listing.unlink()
+    for part in parts:
+        part.unlink()
 
 
 def narrate(segments: list[Segment], skip: bool) -> None:
