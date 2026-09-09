@@ -250,21 +250,8 @@ slides.append(f"""
 <section class="slide" id="slide-9">
   <div class="kicker">Kanıt — deprem sahnesi</div>
   <h2>Sarsıntıdan 55 saniye sonra ilan. Önce ulaşılacak altı kişi.</h2>
-  <div class="console">
-    <div class="c-head"><span class="c-title">NABD · COMMAND CENTRE</span><span class="c-scene">scene: earthquake · pass 7 / 21 · 30 s cadence</span><span class="c-clock">09:03:00</span></div>
-    <div class="c-body">
-      <div class="c-map">{grid_svg(GRID_DECL, 250, labels=False, dark=True, ring=True)}</div>
-      <div class="c-verdict">
-        <div class="c-kind"><span class="badge">DECLARE</span><span class="conf">HIGH</span> 9 cells · ~4.0 km² · centred 37.5828N 36.9333E</div>
-        <ul class="c-signals">{''.join(f'<li>{s}</li>' for s in sig)}</ul>
-        <div class="c-triage"><span class="c-lbl">registry</span> 13 opted-in people inside · <b>6 unreachable</b></div>
-        <table class="c-list">{''.join(person_row(p) for p in top3)}</table>
-      </div>
-    </div>
-    <div class="c-foot"><span>declared 09:03:00 — 55 s after onset</span><span>13 inside · peak 6 unreachable</span><span>21 passes · 4,405 CAMARA calls</span><span>evidence: nabd-scene-quake.jsonl</span></div>
-  </div>
-  <p class="note">Ekran ürünün kendi arayüzüdür ve İngilizcedir; üzerindeki her satır kanıt kaydından yeniden çizilir.
-  Sonraki geçişler: etki alanı korunur, insanlar yeniden cevap verdikçe liste 6 → 4 olur. Ekran kaydın bir görünümüdür, asla ikinci bir doğruluk kaynağı değil.</p>
+  <div class="shot wide"><img src="snapshots/03-quake-triage.png" alt=""></div>
+  <p class="note"><b>İLAN · YÜKSEK</b> — 9 hücre, ~4,0 km², iki kapı geçildi ve iki destekleyici de mevcut; içeride 13 gönüllü kayıtlı kişi, <b>6'sına ulaşılamıyor</b>, ihtiyaca göre sıralı ve son görülme konumuyla. Sonraki geçişlerde etki alanı korunuyor, insanlar cevap verdikçe liste 6 → 4'e kendini düzeltiyor. Ekrandaki her öğe kanıt kaydından yeniden çiziliyor — konsol kaydın bir görünümüdür, ikinci bir gerçek kaynağı değil.</p>
 </section>""")
 
 # ---------- 10 kurt masalı anlatmaz
@@ -308,11 +295,11 @@ slides.append(f"""
   <div class="kicker">Kanıt — olayın kendisi</div>
   <h2>Sonra afeti çizmeyi bıraktık.</h2>
   <div class="two">
-    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_1, 165, labels=False, geo=True)}</div>
+    <div class="wolf"><div class="shot"><img src="snapshots/13-real-event-first-map-on-the-isoseismals.png" alt=""></div>
       <div class="lbl">+55 sn · ilk harita</div>
       <p><b>21 bitişik hücre, ~2.100 km², YÜKSEK.</b> İsimlendirdiği her hücre, ölçülen sarsıntının çökme eşiğinin üstüne koyduğu bir hücre — uydurulmuş hasar yok. İki tanesi daha, üç hücre tabanının altındaki izole bir cep, <b>bilerek iddia edilmiyor</b>.</p>
       <b>İLAN</b></div>
-    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_2, 165, labels=False, geo=True)}</div>
+    <div class="wolf"><div class="shot"><img src="snapshots/14-real-event-grown-on-the-isoseismals.png" alt=""></div>
       <div class="lbl">+9 dk · ağ ölmeye devam ediyor</div>
       <p><b>63 hücre, ~6.300 km², hâlâ YÜKSEK.</b> Sarsıntıdan kurtulan direkler şebeke elektriğini kaybedip akülerini tüketti, en sert sarsılan önce. Cep de katıldı. 22 kayıtlı kişiye ulaşılamıyor, önce tıbbi bağımlılar.</p>
       <b>GÜNCELLEME ×12</b></div>
@@ -327,11 +314,11 @@ slides.append("""
   <div class="kicker">Kanıt — ikinci bir olay, hiçbir şey yeniden ayarlanmadı</div>
   <h2>Sonra onu hiç ayarlanmadığı yerde koşturduk.</h2>
   <div class="two">
-    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_FIRST["grid"], 112, labels=False)}</div>
+    <div class="wolf tight"><div class="shot"><img src="snapshots/15-second-event-refusal-on-the-isoseismals.png" alt=""></div>
       <div class="lbl">+25 sn · ilk karar bir ret</div>
       <p><b>Merkez üssünde iki sessiz hücre, üç hücrelik tabanın altında.</b> 19 km derinlikteki bir M6.8 bir bloğu birden yıkmaz; ajan ilan etmek yerine bunu söylüyor. İlan <b>+235 sn'de, ORTA</b> güvenle geliyor — başlangıç gerçekten kademeliydi ve kanıt nedenini yazıyor.</p>
       <b>ÇEKİMSER → İLAN</b></div>
-    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_LATE["grid"], 112, labels=False)}</div>
+    <div class="wolf tight"><div class="shot"><img src="snapshots/16-second-event-grown-on-the-isoseismals.png" alt=""></div>
       <div class="lbl">+9 dk · aküler üzerinden geldi</div>
       <p><b>{len(ATLAS_LATE["cells"])} hücre, ~{len(ATLAS_LATE["cells"]) * 100:,} km², hâlâ ORTA</b> — tam olarak ölçülen alanın güç eşiğinin üstüne koyduğu küme. Kuzeyde 6,4 şiddetindeki <b>Marrakeş</b> baştan sona cevap verdi ve <b>hiç adlandırılmadı</b>. Zirvede {ATLAS_PEAK} kayıtlı kişiye ulaşılamıyor.</p>
       <b>GÜNCELLEME ×{ATLAS_UPDATES}</b></div>
@@ -342,7 +329,7 @@ slides.append("""
     <tr><td class="api">Eşikler</td><td>Turkcell'in "yarıdan fazlası devre dışı" raporuna göre ayarlandı</td><td><b>aynı sayılar, dokunulmadı</b> — bir test bunu doğruluyor</td></tr>
     <tr><td class="api">İlk karar</td><td>+55 sn'de İLAN · 21 hücre · YÜKSEK</td><td>+25 sn'de ÇEKİMSER · tabanın altında</td></tr>
     <tr><td class="api">İlan</td><td>+55 sn · YÜKSEK · başlangıç eşzamanlı</td><td>+235 sn · ORTA · başlangıç kademeli</td></tr>
-    <tr><td class="api">Cevap veren bir şehir</td><td>—</td><td><b>Marrakeş</b> — neyin sarsıldığını gösteren harita onu sahiplenirdi; neyin sustuğunu gösteren sahiplenmiyor</td></tr>
+    <tr><td class="api">Cevap veren bir şehir</td><td>—</td><td><b>Marrakeş</b> — sarsıldı, her televizyondaydı, hiç adlandırılmadı</td></tr>
   </table>
 </section>""")
 

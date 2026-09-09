@@ -452,18 +452,6 @@ def shoot(segments: list[Segment]) -> None:
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
 
-        # Cards are authored at 1920x1080 and shot at scale 1; the console is a
-        # 1600x900 layout scaled 1.2 to fill the same frame.
-        cards = [s for s in segments if s.card]
-        if cards:
-            page = browser.new_page(viewport={"width": 1920, "height": 1080}, device_scale_factor=1)
-            page.goto((HERE / cfg("cards")).as_uri())
-            page.wait_for_timeout(400)
-            for seg in cards:
-                print(f"  card  {seg.id}")
-                page.locator(f"#{seg.card}").screenshot(path=str(seg.stills()[0]))
-            page.close()
-
         shots = [s for s in segments if not s.card and not all(p.exists() for p in s.stills())]
         if shots:
             page = browser.new_page(viewport={"width": 1600, "height": 900}, device_scale_factor=1.2)
@@ -481,6 +469,19 @@ def shoot(segments: list[Segment]) -> None:
                     )
                     page.wait_for_timeout(180)
                     page.screenshot(path=str(seg.stills()[i]), clip={"x": 0, "y": 0, "width": 1600, "height": 900})
+
+        # Cards are authored at 1920x1080 and shot at scale 1; the console is a
+        # 1600x900 layout scaled 1.2 to fill the same frame. Cards come last
+        # because each sits on a console frame as its background.
+        cards = [s for s in segments if s.card]
+        if cards:
+            page = browser.new_page(viewport={"width": 1920, "height": 1080}, device_scale_factor=1)
+            page.goto((HERE / cfg("cards")).as_uri())
+            page.wait_for_timeout(900)
+            for seg in cards:
+                print(f"  card  {seg.id}")
+                page.locator(f"#{seg.card}").screenshot(path=str(seg.stills()[0]))
+            page.close()
         browser.close()
 
 

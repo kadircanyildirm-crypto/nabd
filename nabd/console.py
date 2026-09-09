@@ -348,7 +348,13 @@ TEMPLATE = r"""<!doctype html>
      else — the zones, the registry, the brief, the log — is one tab away. The
      brief used to sit in its own panel repeating the signals word for word,
      which is most of why this column looked busy. */
-  aside { display: grid; grid-template-rows: minmax(0, auto) minmax(0, 1fr); gap: 10px; min-height: 0; }
+  aside { display: grid; grid-template-rows: minmax(0, auto) minmax(0, 1fr) auto; gap: 10px; min-height: 0; }
+  /* The three numbers the commercial question turns on, on every frame. */
+  .card.strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px 14px; }
+  .strip div { min-width: 0; }
+  .strip b { display: block; font-family: var(--mono); font-size: 17px; color: var(--text); letter-spacing: -.01em; }
+  .strip span { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap;
+                overflow: hidden; text-overflow: ellipsis; }
   .card.status { max-height: 46vh; overflow: auto; }
   .tabbed { min-height: 220px; }
   .tabbed { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; padding: 0; overflow: hidden; }
@@ -471,6 +477,11 @@ TEMPLATE = r"""<!doctype html>
         <div id="log" class="pane log"></div>
         <div id="scale" class="pane scale"></div>
       </div>
+    </div>
+    <div class="card strip" id="strip">
+      <div><b id="s-pass">–</b><span>CAMARA calls, this pass</span></div>
+      <div><b id="s-hour">–</b><span>calls / hour, this window</span></div>
+      <div><b id="s-sims">–</b><span>SIMs to watch Türkiye</span></div>
     </div>
   </aside>
 </main>
@@ -1127,6 +1138,9 @@ TEMPLATE = r"""<!doctype html>
           + `the public, so there is no consent to buy — the personal line above is the only one that ever does, `
           + `and it is <b>zero on an ordinary morning</b>, on every pass, in the evidence file.</p>`;
     $('scale').innerHTML = html;
+    $('s-pass').textContent = total.toLocaleString('en-GB');
+    $('s-hour').textContent = human(perHour);
+    $('s-sims').textContent = Math.round(COUNTRIES[1].km2 / deployKm2).toLocaleString('en-GB');
   }
 
   $('tabs').addEventListener('click', e => {

@@ -370,20 +370,8 @@ slides.append(f"""
 <section class="slide" id="slide-9">
   <div class="kicker">Evidence — the earthquake scene</div>
   <h2>Declared 55 seconds after onset. Six people to reach first.</h2>
-  <div class="console">
-    <div class="c-head"><span class="c-title">NABD · COMMAND CENTRE</span><span class="c-scene">scene: earthquake · pass 7 / 21 · 30 s cadence</span><span class="c-clock">09:03:00</span></div>
-    <div class="c-body">
-      <div class="c-map">{grid_svg(GRID_DECL, 250, labels=False, dark=True, ring=True)}</div>
-      <div class="c-verdict">
-        <div class="c-kind"><span class="badge">DECLARE</span><span class="conf">HIGH</span> 9 cells · ~4.0 km² · centred 37.5828N 36.9333E</div>
-        <ul class="c-signals">{''.join(f'<li>{s}</li>' for s in sig)}</ul>
-        <div class="c-triage"><span class="c-lbl">registry</span> 13 opted-in people inside · <b>6 unreachable</b></div>
-        <table class="c-list">{''.join(person_row(p) for p in top3)}</table>
-      </div>
-    </div>
-    <div class="c-foot"><span>declared 09:03:00 — 55 s after onset</span><span>13 inside · peak 6 unreachable</span><span>21 passes · 4,405 CAMARA calls</span><span>evidence: nabd-scene-quake.jsonl</span></div>
-  </div>
-  <p class="note">Later passes: footprint held; the list updates 6 → 4 as people answer again. Every element on the console is redrawn from the evidence log — the screen is a view over the record, never a second source of truth.</p>
+  <div class="shot wide"><img src="snapshots/03-quake-triage.png" alt="the command centre at +55 s: nine cells declared, six registered people unreachable"></div>
+  <p class="note"><b>DECLARE · HIGH</b> — 9 cells, ~4.0 km², two gates passed and both corroborations present; 13 opted-in people inside, <b>6 unreachable</b>, ranked by need with a last-seen position. Later passes hold the footprint and the list corrects itself 6 → 4 as people answer. Every element on screen is redrawn from the evidence log — the console is a view over the record, never a second source of truth.</p>
 </section>""")
 
 # ---------- 10 does not cry wolf
@@ -425,11 +413,11 @@ slides.append(f"""
   <div class="kicker">Evidence — the event itself</div>
   <h2>Then we stopped drawing the disaster.</h2>
   <div class="two">
-    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_1, 165, labels=False, geo=True)}</div>
+    <div class="wolf"><div class="shot"><img src="snapshots/13-real-event-first-map-on-the-isoseismals.png" alt=""></div>
       <div class="lbl">+55 s · the first map</div>
       <p><b>21 contiguous cells, ~2,100 km², HIGH.</b> Every cell it names is one the measured shaking places above the collapse threshold — no invented damage. Two more, an isolated pocket below the three-cell floor, are <b>deliberately not claimed</b>.</p>
       <b>DECLARE</b></div>
-    <div class="wolf"><div class="wgrid">{grid_svg(GRID_MARAS_2, 165, labels=False, geo=True)}</div>
+    <div class="wolf"><div class="shot"><img src="snapshots/14-real-event-grown-on-the-isoseismals.png" alt=""></div>
       <div class="lbl">+9 min · the network keeps dying</div>
       <p><b>63 cells, ~6,300 km², still HIGH.</b> Masts that survived the shaking lost mains power and drained their batteries, worst-shaken first. The pocket has joined. 22 registered people unreachable, medical-dependent first.</p>
       <b>UPDATE ×12</b></div>
@@ -443,11 +431,11 @@ slides.append(f"""
   <div class="kicker">Evidence — a second event, nothing retuned</div>
   <h2>Then we ran it where it was never tuned.</h2>
   <div class="two">
-    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_FIRST["grid"], 112, labels=False)}</div>
+    <div class="wolf tight"><div class="shot"><img src="snapshots/15-second-event-refusal-on-the-isoseismals.png" alt=""></div>
       <div class="lbl">+25 s · the first verdict is a refusal</div>
       <p><b>Two silent cells at the epicentre, below the three-cell floor.</b> An M6.8 at 19 km does not flatten a block, and the agent says so instead of declaring. It declares at <b>+235 s, MEDIUM</b> — the onset genuinely was staggered, and the evidence says why.</p>
       <b>ABSTAIN → DECLARE</b></div>
-    <div class="wolf tight"><div class="wgrid">{grid_svg(ATLAS_LATE["grid"], 112, labels=False)}</div>
+    <div class="wolf tight"><div class="shot"><img src="snapshots/16-second-event-grown-on-the-isoseismals.png" alt=""></div>
       <div class="lbl">+9 min · arrived through the batteries</div>
       <p><b>{len(ATLAS_LATE["cells"])} cells, ~{len(ATLAS_LATE["cells"]) * 100:,} km², still MEDIUM</b> — exactly the set the measured field puts at or above the power threshold. <b>Marrakesh</b>, at intensity 6.4 in the north, answered throughout and is <b>never named</b>. {ATLAS_PEAK} registered people unreachable at peak.</p>
       <b>UPDATE ×{ATLAS_UPDATES}</b></div>
@@ -458,7 +446,7 @@ slides.append(f"""
     <tr><td class="api">Thresholds</td><td>calibrated to Turkcell's “more than half inoperative”</td><td><b>the same numbers, untouched</b> — asserted by a test</td></tr>
     <tr><td class="api">First verdict</td><td>DECLARE at +55 s · 21 cells · HIGH</td><td>ABSTAIN at +25 s · below the floor</td></tr>
     <tr><td class="api">Declaration</td><td>+55 s · HIGH · onset synchronised</td><td>+235 s · MEDIUM · onset staggered</td></tr>
-    <tr><td class="api">A city that answered</td><td>—</td><td><b>Marrakesh</b> — a map of what was shaken would have claimed it; a map of what went silent does not</td></tr>
+    <tr><td class="api">A city that answered</td><td>—</td><td><b>Marrakesh</b> — shaken, on every television, never named</td></tr>
   </table>
 </section>""")
 
@@ -664,10 +652,20 @@ CSS = f"""
 """
 
 CSS += """
+  /* Real frames of the console, cropped to the map. */
+  .shot { border-radius: 8px; overflow: hidden; background: #0b1017; height: 172px; margin-bottom: 8px; }
+  /* Cropped to the map: the frame is scaled so its map fills the box and the
+     side panel falls outside it. */
+  .shot img { width: 146%; max-width: none; height: auto; display: block; transform: translate(-1.5%, -28%); }
+  .wolf.tight .shot { height: 150px; }
+  .shot.wide { height: 392px; margin-bottom: 14px; }
+  .shot.wide img { width: 100%; transform: translate(0, -9%); }
   .cmp { margin-top: 8px; font-size: 12px; line-height: 1.25; }
   .cmp th { text-align: left; font-weight: 600; color: #41504a; padding: 2px 10px 4px 0; border-bottom: 1px solid #d7ded9; }
   .cmp td { padding: 3px 10px 3px 0; border-bottom: 1px solid #eef2f0; vertical-align: top; }
-  .wolf.tight p { font-size: 12.5px; line-height: 1.35; margin: 4px 0; }
+  .wolf.tight p { font-size: 12.5px; line-height: 1.32; margin: 3px 0; }
+  .wolf.tight { padding: 12px 16px; }
+  .wolf.tight b { margin-top: 8px; }
   .wolf.tight .wgrid { margin-bottom: 2px; }
   .cmp td.api { font-weight: 600; white-space: nowrap; }
 """
