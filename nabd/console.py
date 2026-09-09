@@ -228,7 +228,8 @@ TEMPLATE = r"""<!doctype html>
          display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; min-height: 0; overflow: hidden; }
   .mapview { position: relative; min-height: 0; display: grid; }
   .map svg { width: 100%; height: 100%; min-height: 0; }
-  .beat { min-height: 44px; padding: 10px 12px; border-left: 3px solid var(--high); background: var(--panel-2); border-radius: 6px; color: var(--text); }
+  .beat { min-height: 40px; padding: 8px 12px; border-left: 3px solid var(--high); background: var(--panel-2); border-radius: 6px;
+          color: #c9d6e2; font-size: 13px; line-height: 1.4; }
   .beat.empty { border-left-color: var(--line); color: var(--dim); }
   svg { width: 100%; height: auto; display: block; }
   /* --- the base map ------------------------------------------------------ */
@@ -295,8 +296,8 @@ TEMPLATE = r"""<!doctype html>
   .focus { fill: #05080d; opacity: .3; }
   .fplabel { fill: var(--alert); font-family: var(--mono); font-size: 11px; font-weight: 700; }
   .dot { fill: #fff; stroke: var(--alert); stroke-width: 1.5; }
-  .halo { fill: none; stroke: var(--alert); stroke-opacity: .45; stroke-width: 1; stroke-dasharray: 3 3; }
-  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; color: var(--muted); font-size: 12px; }
+  .halo { fill: none; stroke: var(--alert); stroke-opacity: .28; stroke-width: .8; stroke-dasharray: 3 3; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; color: var(--muted); font-size: 11.5px; }
   /* The key: a panel over the map, every symbol drawn as the map draws it. */
   #keybtn { background: transparent; color: var(--muted); font: inherit; font-size: 11.5px;
             border: 1px solid var(--line); border-radius: 6px; padding: 4px 11px; cursor: pointer; white-space: nowrap; }
@@ -328,7 +329,7 @@ TEMPLATE = r"""<!doctype html>
   /* The measured event is a second reading of the same map, not the map itself. */
   /* Map controls belong on the map, not in the key underneath it. */
   .mapctl { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; align-items: center;
-            gap: 8px; background: #0b1017cc; border-radius: 8px; padding: 4px; }
+            gap: 8px; background: #0b1017; border: 1px solid #16202b; border-radius: 8px; padding: 4px; }
   #detail { background: transparent; color: var(--muted); font: inherit;
             font-size: 11.5px; border: 1px solid var(--line); border-radius: 6px;
             padding: 4px 11px; cursor: pointer; white-space: nowrap; }
@@ -415,7 +416,16 @@ TEMPLATE = r"""<!doctype html>
   .stat { background: var(--panel-2); border-radius: 6px; padding: 8px 10px; }
   .stat b { display: block; font-family: var(--mono); font-size: 21px; font-variant-numeric: tabular-nums; line-height: 1.15; }
   .stat span { font-size: 10.5px; color: var(--muted); line-height: 1.25; display: block; margin-top: 3px; }
-  .signals { margin: 10px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+  /* The reasons fold away until asked for; the verdict itself is enough to read first. */
+  details.why { margin: 8px 0 0; border-top: 1px solid var(--line); }
+  details.why summary { cursor: pointer; list-style: none; padding: 7px 0 2px; font-size: 11.5px; color: var(--muted);
+                        display: flex; align-items: center; gap: 8px; user-select: none; }
+  details.why summary::-webkit-details-marker { display: none; }
+  details.why summary::before { content: "\25B8"; font-size: 10px; color: var(--dim); transition: transform .15s; }
+  details.why[open] summary::before { transform: rotate(90deg); }
+  details.why summary:hover { color: var(--text); }
+  details.why summary .n { font-family: var(--mono); color: var(--text); }
+  .signals { margin: 2px 0 0; padding: 0; list-style: none; }
   .signals li { margin: 0; padding: 5px 0 5px 15px; color: var(--muted); font-size: 12px;
                 line-height: 1.4; border-bottom: 1px solid #16202b; position: relative; }
   .signals li:last-child { border-bottom: 0; }
@@ -447,7 +457,7 @@ TEMPLATE = r"""<!doctype html>
   .entry ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
   .brief { font-size: 13px; line-height: 1.55; color: #c2d1de; }
   .brief.empty { color: var(--dim); }
-  footer { display: flex; flex-wrap: wrap; gap: 18px; padding: 10px 20px 18px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  footer { display: flex; flex-wrap: wrap; gap: 18px; padding: 8px 20px 14px; color: var(--dim); font-family: var(--mono); font-size: 11px; }
   footer b { color: var(--text); font-weight: 600; }
   /* ODbL asks for credit, and a map that shows its sources is a better map. */
   footer .credit { color: var(--dim); margin-left: auto; }
@@ -642,10 +652,10 @@ TEMPLATE = r"""<!doctype html>
       // Hatches in user units, so the texture stays the same weight at every zoom
       // while the cells under it grow.
       + `<pattern id="hatch-medium" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(45)">`
-      + `<line x1="0" y1="0" x2="0" y2="9" stroke="#d9b24d" stroke-width="1.1" stroke-opacity=".6"/></pattern>`
+      + `<line x1="0" y1="0" x2="0" y2="9" stroke="#d9b24d" stroke-width="1" stroke-opacity=".5"/></pattern>`
       + `<pattern id="hatch-high" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">`
-      + `<line x1="0" y1="0" x2="0" y2="6" stroke="#f07a2a" stroke-width="1.2" stroke-opacity=".8"/>`
-      + `<line x1="0" y1="3" x2="6" y2="3" stroke="#f07a2a" stroke-width="1.2" stroke-opacity=".8"/></pattern>`
+      + `<line x1="0" y1="0" x2="0" y2="6" stroke="#f07a2a" stroke-width="1" stroke-opacity=".62"/>`
+      + `<line x1="0" y1="3" x2="6" y2="3" stroke="#f07a2a" stroke-width="1" stroke-opacity=".62"/></pattern>`
       + `<filter id="glow" x="-30%" y="-30%" width="160%" height="160%">`
       + `<feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/>`
       + `<feMergeNode in="SourceGraphic"/></feMerge></filter>`
@@ -774,7 +784,11 @@ TEMPLATE = r"""<!doctype html>
       // Places are ranked, so when two labels want the same spot the more
       // important one keeps it and the other loses its text but keeps its dot.
       const placed = [];
+      // Cities and towns are always named. Villages and neighbourhoods wait for
+      // the zoom: at 1x they were most of what made the map hard to look at.
+      const rankCap = ZOOM >= 4 ? 9 : ZOOM >= 2 ? 3 : 2;
       places.places.forEach(t => {
+        if (t.rank > rankCap) return;
         const [bx, by] = project(t.lat, t.lon, g);
         const x = bx * ZOOM, y = by * ZOOM;               // in the translated layer
         const px = x + TX, py = y + TY;                    // on screen
@@ -958,6 +972,9 @@ TEMPLATE = r"""<!doctype html>
     return !/^no |staggered|not enough history|no local baseline/i.test(text);
   }
 
+  let WHY_OPEN = false;   // the reasons stay open once opened, across passes
+  document.addEventListener('toggle', e => { if (e.target.matches('details.why')) WHY_OPEN = e.target.open; }, true);
+
   function drawStatus(rec) {
     const sc = cur(), el = $('status');
     el.className = `card status k-${rec.kind}`;
@@ -991,13 +1008,15 @@ TEMPLATE = r"""<!doctype html>
                 : 'closed — the registry was not queried'}</span></div>`;
     }
     if (rec.signals.length && rec.kind !== 'SUSTAIN') {
-      html += `<ul class="signals">${rec.signals.map(sig => {
+      const fired = rec.signals.filter(signalFired).length;
+      html += `<details class="why"${WHY_OPEN ? ' open' : ''}><summary>Why \u00b7 <span class="n">${fired} of ${rec.signals.length}</span> signals present</summary>`
+        + `<ul class="signals">${rec.signals.map(sig => {
         const at = sig.indexOf(':');
         const body = at > 0 && at < 34
           ? `<b>${esc(sig.slice(0, at))}</b>${esc(sig.slice(at))}`
           : esc(sig);
         return `<li class="${signalFired(sig) ? 'yes' : 'no'}">${body}</li>`;
-      }).join('')}</ul>`;
+      }).join('')}</ul></details>`;
     }
 
     el.innerHTML = html;
