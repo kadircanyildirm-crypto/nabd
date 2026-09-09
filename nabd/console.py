@@ -159,7 +159,28 @@ def scene_payload(name: str) -> dict:
         "registry": len(scenario.world.registry),
         "maintenance": [{"ticket": m.ticket, "cells": list(m.cells), "start": m.start, "end": m.end} for m in scenario.calendar],
         "records": counted_calls(load(name)),
+        # For the cell inspector: how many registered people live in each cell
+        # (an aggregate, never a name), and the measured shaking per cell for
+        # the real events.
+        "registry_by_cell": registry_by_cell(scenario),
+        "mmi": cell_intensity(name),
     }
+
+
+def registry_by_cell(scenario) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for person in scenario.world.registry:
+        counts[person.home_cell] = counts.get(person.home_cell, 0) + 1
+    return counts
+
+
+def cell_intensity(name: str) -> dict[str, float] | None:
+    event = EVENT_OF.get(name)
+    if not event:
+        return None
+    from nabd import shakemap
+
+    return dict(shakemap.load(event).mmi)
 
 
 def build_console(names: tuple[str, ...] = tuple(BUILDERS), out: Path = OUT) -> Path:
@@ -293,6 +314,25 @@ TEMPLATE = r"""<!doctype html>
   .tick { stroke: #6b8299; stroke-width: 1; }
   .lbl { fill: #a9bccd; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .04em; }
   .win { fill: none; stroke: #6b8299; stroke-width: 1; opacity: .9; }
+  .pick { fill: #7dd3fc1a; stroke: #7dd3fc; stroke-width: 2; }
+  /* The cell inspector: one card, bottom left of the map, following the playback. */
+  #inspect { position: absolute; left: 26px; top: 26px; z-index: 3; width: 330px; background: #0b1017f2;
+             border: 1px solid #2b3c4e; border-left: 3px solid #7dd3fc; border-radius: 8px; padding: 10px 12px 9px;
+             font-size: 12px; line-height: 1.4; box-shadow: 0 10px 30px #00000088; }
+  #inspect.hidden { display: none; }
+  #inspect h5 { margin: 0 0 6px; font-size: 13px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; }
+  #inspect h5 .id { font-family: var(--mono); color: #7dd3fc; font-size: 15px; }
+  #inspect h5 .ll { font-family: var(--mono); color: var(--muted); font-size: 10.5px; font-weight: 400; margin-left: auto; }
+  #inspect .r { display: grid; grid-template-columns: 74px 1fr; gap: 8px; padding: 3px 0; border-top: 1px solid #1a2430; }
+  #inspect .r:first-of-type { border-top: 0; }
+  #inspect .k { color: var(--muted); font-size: 11px; padding-top: 1px; }
+  #inspect .v { color: var(--text); }
+  #inspect .v.muted { color: var(--muted); }
+  #inspect .v b { font-weight: 600; }
+  #inspect .v .mono { font-family: var(--mono); font-size: 11px; }
+  #inspect .close { position: absolute; top: 4px; right: 8px; background: none; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; }
+  #inspect .close:hover { color: var(--text); }
+  #inspect .hint { color: var(--dim); font-size: 10.5px; margin-top: 6px; }
   .focus { fill: #05080d; opacity: .3; }
   .fplabel { fill: var(--alert); font-family: var(--mono); font-size: 11px; font-weight: 700; }
   .dot { fill: #fff; stroke: var(--alert); stroke-width: 1.5; }
@@ -302,7 +342,7 @@ TEMPLATE = r"""<!doctype html>
   #keybtn { background: transparent; color: var(--muted); font: inherit; font-size: 11.5px;
             border: 1px solid var(--line); border-radius: 6px; padding: 4px 11px; cursor: pointer; white-space: nowrap; }
   #keybtn:hover, #keybtn.on { color: var(--text); border-color: var(--high); background: #1a2330; }
-  #mapkey { position: absolute; top: 44px; right: 8px; z-index: 3; width: min(1180px, calc(100% - 16px)); max-height: calc(100% - 52px);
+  #mapkey { position: absolute; top: 58px; right: 8px; z-index: 3; width: min(1180px, calc(100% - 16px)); max-height: calc(100% - 66px);
             columns: 3; column-gap: 22px; column-fill: balance;
             overflow: auto; background: #0b1017f2; border: 1px solid var(--line); border-radius: 10px;
             padding: 14px 16px 10px; box-shadow: 0 12px 40px #00000088; font-size: 12.5px; line-height: 1.45; }
@@ -328,7 +368,7 @@ TEMPLATE = r"""<!doctype html>
   #mapkey .iso-lbls { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); }
   /* The measured event is a second reading of the same map, not the map itself. */
   /* Map controls belong on the map, not in the key underneath it. */
-  .mapctl { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; align-items: center;
+  .mapctl { position: absolute; top: 22px; right: 8px; z-index: 2; display: flex; align-items: center;
             gap: 8px; background: #0b1017; border: 1px solid #16202b; border-radius: 8px; padding: 4px; }
   #detail { background: transparent; color: var(--muted); font: inherit;
             font-size: 11.5px; border: 1px solid var(--line); border-radius: 6px;
@@ -446,6 +486,11 @@ TEMPLATE = r"""<!doctype html>
   th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding: 2px 6px 6px 0; }
   td { padding: 4px 6px 4px 0; border-top: 1px solid var(--line); vertical-align: top; }
   td.mono, th.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  /* Rows that name a cell point at the map. */
+  tr[data-cell] { cursor: pointer; }
+  tr[data-cell]:hover td { background: #141d29; }
+  tr[data-cell].picked td { background: #12283a; }
+  tr[data-cell].picked td.mono:first-child { color: #7dd3fc; font-weight: 700; }
   .bar { height: 6px; background: var(--alert); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
   .empty { color: var(--dim); font-size: 13px; }
   .log { max-height: none; }
@@ -487,6 +532,7 @@ TEMPLATE = r"""<!doctype html>
         <span class="zoomer"><button id="zout" title="zoom out">−</button><button id="zlvl" title="back to the whole picture">1×</button><button id="zin" title="zoom in — drag the map to move, or roll the wheel over the spot you want">+</button></span>
       </div>
       <div id="mapkey" class="hidden"></div>
+      <div id="inspect" class="hidden"></div>
     </div>
     <div class="legend">
       <span><i class="sw-low"></i>Normal</span>
@@ -564,7 +610,7 @@ TEMPLATE = r"""<!doctype html>
 
   function setScene(i) {
     stop();
-    scene = i; pass = 0; MAP = null;
+    scene = i; pass = 0; MAP = null; PICK = null;
     [...nav.children].forEach((b, k) => b.classList.toggle('on', k === i));
     $('scrub').max = cur().records.length - 1;
     $('evidence').textContent = `nabd-scene-${cur().name}.jsonl`;
@@ -745,6 +791,7 @@ TEMPLATE = r"""<!doctype html>
     }
 
     out.push('<g id="edge" filter="url(#glow)"></g>');
+    out.push('<g id="pick"></g>');
     out.push('<g id="dots"></g>');
 
     out.push('</g></g>');                        // #scene, and its clip
@@ -774,11 +821,7 @@ TEMPLATE = r"""<!doctype html>
     const MS = DATA.maps[cur().maps] || {};
     const places = (isCity ? MS.city : MS.region);
     const x0 = OX, y0 = M, w = g.cols * S, h = g.rows * S;
-    const bX0 = zx(x0), bY0 = zy(y0), bX1 = bX0 + w * ZOOM, bY1 = bY0 + h * ZOOM;
-    const bty = Math.max(bY0 - BAND, 0), blx = Math.max(bX0 - BAND, 0);
-    const underBand = (x, y) =>
-      (y >= bty - 4 && y <= bty + BAND + 4 && x >= blx && x <= Math.min(bX1, W)) ||
-      (x >= blx - 4 && x <= blx + BAND + 4 && y >= bty && y <= Math.min(bY1, H));
+    const underBand = (x, y) => y < BAND + 6 || x < BAND + 6;
     const out = [];
     if (places) {
       // Places are ranked, so when two labels want the same spot the more
@@ -796,6 +839,7 @@ TEMPLATE = r"""<!doctype html>
         const big = t.rank <= 2;
         out.push(`<circle class="town${big ? ' major' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${big ? 3.4 : 1.8}"/>`);
         const wide = t.name.length * (big ? 6.6 : 4.6) + 10, tall = big ? 13 : 10;
+        if (px + wide > W - 6) return;                    // a name that would run off the sheet keeps its dot only
         if (placed.some(p => Math.abs(p.x - x) < (p.w + wide) / 2 && Math.abs(p.y - y) < (p.h + tall) / 2)) return;
         placed.push({ x, y, w: wide, h: tall });
         out.push(`<text class="placelbl${big ? ' big' : ''}" x="${(x + (big ? 7 : 4)).toFixed(1)}" y="${(y + 3).toFixed(1)}">${t.name}</text>`);
@@ -814,45 +858,41 @@ TEMPLATE = r"""<!doctype html>
     const X0 = zx(x0), Y0 = zy(y0), X1 = X0 + w * ZOOM, Y1 = Y0 + h * ZOOM;
     const f = n => n.toFixed(1);
 
-    // Everything outside the window steps back a little, so the watched area
-    // is plainly the stage and the rest is context.
-    out.push(`<rect class="focus" x="0" y="0" width="${f(W)}" height="${f(Math.max(0, Y0))}"/>`);
-    out.push(`<rect class="focus" x="0" y="${f(Y1)}" width="${f(W)}" height="${f(Math.max(0, H - Y1))}"/>`);
-    out.push(`<rect class="focus" x="0" y="${f(Math.max(0, Y0))}" width="${f(Math.max(0, X0))}" height="${f(Math.max(0, Math.min(Y1, H) - Math.max(0, Y0)))}"/>`);
-    out.push(`<rect class="focus" x="${f(X1)}" y="${f(Math.max(0, Y0))}" width="${f(Math.max(0, W - X1))}" height="${f(Math.max(0, Math.min(Y1, H) - Math.max(0, Y0)))}"/>`);
-    out.push(`<rect class="win" x="${f(X0)}" y="${f(Y0)}" width="${f(w * ZOOM)}" height="${f(h * ZOOM)}"/>`);
+    // No rectangle around the window and no dimming outside it: the margin's
+    // ticks are long and lettered where there are cells and short where there
+    // are none, which is how a map sheet says where its grid runs.
 
     // The grid reference, in a ruled margin along the top and the left. The
-    // margin hugs the window while the window's edge is on screen and hugs the
-    // view once it has been zoomed off, so a reader always knows this is F6.
+    // margin runs along the sheet's own top and left edges, the way a map
+    // sheet's does: ticks the whole way along at the cell pitch, and letters
+    // and numbers only where there are cells to name. It does not move with
+    // the window, so it never floats in the middle of the map.
     const TICK = 4;
-    const vx0 = Math.max(X0, 0), vx1 = Math.min(X1, W);
-    const vy0 = Math.max(Y0, 0), vy1 = Math.min(Y1, H);
-    const ty = Math.max(Y0 - BAND, 0);          // top band's upper edge
-    const lx = Math.max(X0 - BAND, 0);          // left band's left edge
-    out.push(`<rect class="ruler" x="${f(lx)}" y="${f(ty)}" width="${f(vx1 - lx)}" height="${BAND}"/>`);
-    out.push(`<rect class="ruler" x="${f(lx)}" y="${f(ty + BAND)}" width="${BAND}" height="${f(Math.max(0, vy1 - ty - BAND))}"/>`);
-    out.push(`<path class="ruler-edge" d="M${f(lx)} ${f(ty + BAND)}H${f(vx1)}M${f(lx + BAND)} ${f(ty + BAND)}V${f(vy1)}"/>`);
+    out.push(`<rect class="ruler" x="0" y="0" width="${f(W)}" height="${BAND}"/>`);
+    out.push(`<rect class="ruler" x="0" y="${BAND}" width="${BAND}" height="${f(H - BAND)}"/>`);
+    out.push(`<path class="ruler-edge" d="M0 ${BAND}H${f(W)}M${BAND} ${BAND}V${f(H)}"/>`);
     const letters = 'ABCDEFGHIJKLMNOPQRST';
-    for (let c = 0; c <= g.cols; c++) {
+    const c0 = Math.floor((BAND - zx(OX)) / SZ), c1 = Math.ceil((W - zx(OX)) / SZ);
+    for (let c = c0; c <= c1; c++) {
       const x = zx(OX + c * S);
-      if (x >= vx0 - .5 && x <= vx1 + .5) {
-        out.push(`<path class="tick" d="M${f(x)} ${f(ty + BAND - TICK)}V${f(ty + BAND)}"/>`);
-        if (Y1 < H) out.push(`<path class="tick" d="M${f(x)} ${f(Y1)}v${TICK}"/>`);
+      if (x < BAND || x > W) continue;
+      const named = c >= 0 && c <= g.cols;
+      out.push(`<path class="tick" d="M${f(x)} ${f(BAND - (named ? TICK : 2))}V${BAND}"/>`);
+      if (c >= 0 && c < g.cols) {
+        const mid = x + SZ / 2;
+        if (mid > BAND + 5 && mid < W - 5) out.push(`<text class="lbl" x="${f(mid)}" y="11.5" text-anchor="middle">${c + 1}</text>`);
       }
-      if (c === g.cols) break;
-      const mid = zx(OX + c * S + S / 2);
-      if (mid > vx0 + 5 && mid < vx1 - 5) out.push(`<text class="lbl" x="${f(mid)}" y="${f(ty + 11.5)}" text-anchor="middle">${c + 1}</text>`);
     }
-    for (let r = 0; r <= g.rows; r++) {
+    const r0 = Math.floor((BAND - zy(M)) / SZ), r1 = Math.ceil((H - zy(M)) / SZ);
+    for (let r = r0; r <= r1; r++) {
       const y = zy(M + r * S);
-      if (y >= vy0 - .5 && y <= vy1 + .5 && y >= ty + BAND) {
-        out.push(`<path class="tick" d="M${f(lx + BAND - TICK)} ${f(y)}H${f(lx + BAND)}"/>`);
-        if (X1 < W) out.push(`<path class="tick" d="M${f(X1)} ${f(y)}h${TICK}"/>`);
+      if (y < BAND || y > H) continue;
+      const named = r >= 0 && r <= g.rows;
+      out.push(`<path class="tick" d="M${f(BAND - (named ? TICK : 2))} ${f(y)}H${BAND}"/>`);
+      if (r >= 0 && r < g.rows) {
+        const mid = y + SZ / 2;
+        if (mid > BAND + 5 && mid < H - 5) out.push(`<text class="lbl" x="${BAND / 2}" y="${f(mid + 3.5)}" text-anchor="middle">${letters[r]}</text>`);
       }
-      if (r === g.rows) break;
-      const mid = zy(M + r * S + S / 2);
-      if (mid > Math.max(vy0, ty + BAND) + 5 && mid < vy1 - 5) out.push(`<text class="lbl" x="${f(lx + BAND / 2)}" y="${f(mid + 3.5)}" text-anchor="middle">${letters[r]}</text>`);
     }
 
     // A scale bar keeps its length and changes its number, the way a paper map
@@ -861,7 +901,7 @@ TEMPLATE = r"""<!doctype html>
     const LADDER = [.1, .2, .25, .5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 500];
     const want = (km >= 5 ? 50 : 2) / ZOOM;
     const span = LADDER.reduce((a, b) => Math.abs(b - want) < Math.abs(a - want) ? b : a);
-    const bar = (span / km) * SZ, bx = 14, by = H - 14;
+    const bar = (span / km) * SZ, bx = BAND + 14, by = H - 14;
     out.push(`<path class="scale" d="M${bx} ${by - 5}V${by}H${(bx + bar).toFixed(1)}V${by - 5}"/>`);
     out.push(`<text class="scaletxt" x="${bx}" y="${by - 9}">${span < 1 ? Math.round(span * 1000) + ' m' : span + ' km'}</text>`);
     const cx = W - 20, cy = H - 40;
@@ -941,6 +981,98 @@ TEMPLATE = r"""<!doctype html>
     $('dots').innerHTML = dots.join('');
 
     drawFootprintLabel(rec);
+    drawInspect(rec);
+  }
+
+  // -- the cell inspector -------------------------------------------------
+  // A click on a cell asks the map about that place. The card is rebuilt on
+  // every pass so it follows the playback, and the picked cell is outlined.
+  let PICK = null;   // cell id, or null
+
+  function pickCell(id) {
+    PICK = PICK === id ? null : id;
+    const rec = cur().records[pass];
+    drawInspect(rec);
+    drawZones(rec);
+    drawRegistry(rec);
+  }
+  ['zones', 'registry'].forEach(id => $(id).addEventListener('click', e => {
+    const row = e.target.closest('tr[data-cell]');
+    if (row) pickCell(row.dataset.cell);
+  }));
+
+  function pickAt(sx, sy) {
+    if (!MAP) return;
+    const g = cur().grid, { OX } = MAP;
+    const mx = (sx - TX) / ZOOM, my = (sy - TY) / ZOOM;
+    const col = Math.floor((mx - OX) / S), row = Math.floor((my - M) / S);
+    const cell = g.cells.find(c => c.col === col && c.row === row);
+    PICK = cell && PICK !== cell.id ? cell.id : null;
+    const rec = cur().records[pass];
+    drawInspect(rec);
+    drawZones(rec);
+    drawRegistry(rec);
+  }
+
+  function drawInspect(rec) {
+    const box = $('inspect'), g = cur().grid, sc = cur();
+    const cell = PICK && g.cells.find(c => c.id === PICK);
+    if (!cell) { box.classList.add('hidden'); $('pick').innerHTML = ''; return; }
+    const { OX } = MAP;
+    $('pick').innerHTML = `<rect class="pick" x="${(OX + cell.col * S).toFixed(1)}" y="${M + cell.row * S}" width="${S}" height="${S}"/>`;
+
+    const k = cell.row * g.cols + cell.col;
+    const ch = (rec.grid || '')[k] || 'x';
+    const STATE = { '.': ['Sentinel answers · load normal', ''], 'm': ['Sentinel answers · medium load', ''],
+                    'H': ['Sentinel answers · <b>high congestion</b>', ''], 'D': ['<b>Sentinel unreachable</b>', ''], 'x': ['Not monitored', 'muted'] };
+    // How long the current state has held, and how often the cell has been dark.
+    const upto = sc.records.slice(0, pass + 1);
+    let run = 0;
+    for (let i = upto.length - 1; i >= 0 && (upto[i].grid || '')[k] === ch; i--) run++;
+    const darkPasses = upto.filter(r => (r.grid || '')[k] === 'D').length;
+    const since = run > 1 ? ` — for ${run} passes (${Math.round((run - 1) * 30 / 60) || '<1'} min)` : '';
+    const history = darkPasses ? `dark in ${darkPasses} of ${upto.length} passes so far` : `never dark so far`;
+
+    // What the agent has said about this cell on this pass.
+    let agent = 'Not claimed.', agentCls = 'muted';
+    const inFp = rec.cells.includes(cell.id);
+    if (inFp && ACTIVE.has(rec.kind)) { agent = `Inside the <b>declared footprint</b> · ${rec.confidence || ''}`; agentCls = ''; }
+    else if (inFp && rec.kind === 'CANDIDATE') { agent = 'In the <b>candidate</b> block — held one more pass'; agentCls = ''; }
+    else if (inFp && rec.kind === 'ABSTAIN') { agent = `Held: ${esc(rec.reason)}`; agentCls = ''; }
+    const ticket = (sc.maintenance || []).find(m => m.cells.includes(cell.id) && rec.t >= m.start && rec.t < m.end);
+
+    // People: an aggregate count, and the unreachable already in the evidence.
+    const registered = (sc.registry_by_cell || {})[cell.id] || 0;
+    const unreachable = rec.triage ? rec.triage.top.filter(p => p.cell === cell.id) : [];
+    let people = registered ? `${registered} registered` : 'nobody on the registry';
+    if (unreachable.length) people += ` · <b>${unreachable.length} unreachable</b>: ` + unreachable.map(p =>
+      `<span class="mono">${p.person}</span> (${p.class}${p.last_seen ? `, ±${p.last_seen.radius_m} m` : ''})`).join(', ');
+    else if (registered && rec.triage && ACTIVE.has(rec.kind) && inFp) people += ' · all reachable';
+    else if (registered && !rec.triage) people += ' · not queried (no footprint)';
+
+    // Places inside the cell, and the measured shaking for the real events.
+    const MS = DATA.maps[sc.maps] || {};
+    const src = sc.city ? MS.city : MS.region;
+    const a = g.cells[0], b = g.cells[1], c2 = g.cells[g.cols];
+    const dlon = Math.abs(b.lon - a.lon), dlat = Math.abs(c2.lat - a.lat);
+    const places = src ? src.places.filter(p => Math.abs(p.lon - cell.lon) <= dlon / 2 && Math.abs(p.lat - cell.lat) <= dlat / 2)
+      .sort((p, q) => p.rank - q.rank).slice(0, 5).map(p => p.name) : [];
+    const mmi = sc.mmi && sc.mmi[cell.id];
+
+    const row = (kk, v, cls = '') => `<div class="r"><div class="k">${kk}</div><div class="v ${cls}">${v}</div></div>`;
+    let html = `<button class="close" title="close">×</button>`;
+    html += `<h5><span class="id">${cell.id}</span>${places[0] ? esc(places[0]) : 'cell'}<span class="ll">${cell.lat.toFixed(4)}N ${cell.lon.toFixed(4)}E</span></h5>`;
+    html += row('Network', STATE[ch][0] + since, STATE[ch][1]);
+    html += row('History', history, 'muted');
+    html += row('Agent', agent, agentCls);
+    if (ticket) html += row('Maintenance', `ticket <span class="mono">${esc(ticket.ticket)}</span> covers this cell`);
+    html += row('Registry', people, registered ? '' : 'muted');
+    if (mmi != null) html += row('Shaking', `MMI <b>${mmi.toFixed(1)}</b> · ${mmiWord(mmi)} — USGS ShakeMap ${cur().geo && cur().geo.source ? cur().geo.source.event : ''}`);
+    if (places.length) html += row('Places', places.map(esc).join(', '), 'muted');
+    html += `<div class="hint">click the cell again, or Esc, to close</div>`;
+    box.innerHTML = html;
+    box.classList.remove('hidden');
+    box.querySelector('.close').onclick = () => { PICK = null; drawInspect(rec); drawZones(rec); drawRegistry(rec); };
   }
 
   // The footprint's own label is chrome: placed in screen units against the
@@ -1050,7 +1182,7 @@ TEMPLATE = r"""<!doctype html>
     const rows = Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     const max = Math.max(1, ...rows.map(r => r[1]));
     el.innerHTML = `<table><tr><th class="mono">zone</th><th>unreachable registered</th></tr>` +
-      rows.map(([cell, n]) => `<tr><td class="mono">${cell}</td><td><span class="bar" style="width:${Math.round(n / max * 120)}px"></span>${n}</td></tr>`).join('') + '</table>';
+      rows.map(([cell, n]) => `<tr data-cell="${cell}"${cell === PICK ? ' class="picked"' : ''} title="show ${cell} on the map"><td class="mono">${cell}</td><td><span class="bar" style="width:${Math.round(n / max * 120)}px"></span>${n}</td></tr>`).join('') + '</table>';
   }
 
   function drawRegistry(rec) {
@@ -1058,7 +1190,7 @@ TEMPLATE = r"""<!doctype html>
     if (!rec.triage) { el.innerHTML = '<div class="empty">Not queried. No personal device is touched outside a declared footprint.</div>'; return; }
     if (!rec.triage.top.length) { el.innerHTML = '<div class="empty">Everyone registered inside the footprint is reachable.</div>'; return; }
     el.innerHTML = `<table><tr><th class="mono">id</th><th>class</th><th class="mono">cell</th><th>last seen</th></tr>` +
-      rec.triage.top.map(p => `<tr><td class="mono">${p.person}</td><td>${p.class}</td><td class="mono">${p.cell}</td><td>${p.last_seen ? `${age(p.last_seen.age_s)} ago · ±${p.last_seen.radius_m} m` : '–'}</td></tr>`).join('') + '</table>';
+      rec.triage.top.map(p => `<tr data-cell="${p.cell}"${p.cell === PICK ? ' class="picked"' : ''} title="show ${p.cell} on the map"><td class="mono">${p.person}</td><td>${p.class}</td><td class="mono">${p.cell}</td><td>${p.last_seen ? `${age(p.last_seen.age_s)} ago · ±${p.last_seen.radius_m} m` : '–'}</td></tr>`).join('') + '</table>';
   }
 
   function drawLog() {
@@ -1287,11 +1419,13 @@ TEMPLATE = r"""<!doctype html>
         drawFootprintLabel(cur().records[pass]);
       });
     });
-    const end = () => {
+    const end = e => {
       if (!from) return;
+      const moved = Math.hypot(e.clientX - from.x, e.clientY - from.y);
       from = null;
       svg.classList.remove('dragging');
       drawLabels();                       // names may have slid under the margin
+      if (moved < 3 && e.type === 'pointerup') { const [ax, ay] = atPointer(e); pickAt(ax, ay); }
     };
     svg.addEventListener('pointerup', end);
     svg.addEventListener('pointercancel', end);
@@ -1305,7 +1439,7 @@ TEMPLATE = r"""<!doctype html>
     const cell = cls => sw(`<rect x="6" y="3" width="46" height="28" fill="none" stroke="#2b3c4e"/><rect class="cell ${cls}" x="6" y="3" width="46" height="28"/>`);
     const row = (sym, name, text) => `<div class="row">${sym}<div><b>${name}</b><span>${text}</span></div></div>`;
     const streets = sw(`<path class="rd-local" d="M4 30 L22 10 L40 22 L56 6"/><path class="rd-major" d="M2 14 H56"/><path class="river" d="M6 4 C 20 18, 30 6, 54 30"/>`);
-    const win = sw(`<rect class="focus" x="0" y="0" width="58" height="34"/><rect x="12" y="6" width="34" height="22" fill="#0c1420"/><rect class="win" x="12" y="6" width="34" height="22"/>`);
+    const win = sw(`<rect class="ruler" x="0" y="4" width="58" height="12"/><path class="ruler-edge" d="M0 16 H58"/><path class="tick" d="M6 14 V16 M14 14 V16 M22 12 V16 M30 12 V16 M38 12 V16 M46 14 V16 M54 14 V16"/><text class="lbl" x="26" y="13" text-anchor="middle">1</text><text class="lbl" x="34" y="13" text-anchor="middle">2</text>`);
     const ruler = sw(`<rect class="ruler" x="4" y="4" width="50" height="12"/><path class="ruler-edge" d="M4 16 H54"/><path class="tick" d="M14 12 V16 M29 12 V16 M44 12 V16"/><text class="lbl" x="21.5" y="13" text-anchor="middle">6</text><text class="lbl" x="36.5" y="13" text-anchor="middle">7</text>`);
     const dot = sw(`<circle class="halo" cx="29" cy="17" r="13"/><circle class="dot" cx="29" cy="17" r="4"/>`);
     const fp = sw(`<path id="edge-key" class="fp" d="M8 6 H50 V28 H8 Z" style="stroke:var(--alert);stroke-width:3;fill:none"/>`);
@@ -1339,8 +1473,8 @@ TEMPLATE = r"""<!doctype html>
     html += row(rup, 'Fault rupture', 'White dashed line: the surface projection of the finite fault from the same ShakeMap. The reason a footprint is a band and not a circle.');
     html += `<h4>The map</h4>`;
     html += row(streets, 'Streets and water', 'Grey-blue lines are roads, thicker for the trunk network; blue lines are rivers and wadis; blue fills are lakes and reservoirs. OpenStreetMap.');
-    html += row(win, 'Monitored window', 'The thin rectangle is the area the sentinel grid watches. Outside it the map is context and is stepped back a little.');
-    html += row(ruler, 'Grid reference', 'The ruled margin names rows A\u2013J and columns 1\u201310, so a cell is F6. It follows the view when the window\u2019s own edge is zoomed off-screen.');
+    html += row(win, 'Monitored window', 'The sentinel grid watches the span the margin letters and numbers cover; the short unlettered ticks beyond it are the same pitch, with no cells. The rest of the map is context.');
+    html += row(ruler, 'Grid reference', 'The ruled margin along the top and the left names rows A\u2013J and columns 1\u201310, so a cell is F6. Click any cell for what the network, the agent and the survey say about it.');
     $('mapkey').innerHTML = html;
     $('mapkey').querySelector('.close').onclick = () => toggleKey(false);
   }
@@ -1368,6 +1502,7 @@ TEMPLATE = r"""<!doctype html>
 
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'Escape' && PICK) { PICK = null; const r = cur().records[pass]; drawInspect(r); drawZones(r); drawRegistry(r); return; }
     if (e.code === 'Space') { e.preventDefault(); play(); }
     else if (e.key === 'ArrowRight') { stop(); show(pass + 1); }
     else if (e.key === 'ArrowLeft') { stop(); show(pass - 1); }
