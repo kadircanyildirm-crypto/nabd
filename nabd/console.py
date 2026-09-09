@@ -309,6 +309,19 @@ TEMPLATE = r"""<!doctype html>
   #grid { cursor: grab; touch-action: none; }
   #grid.dragging { cursor: grabbing; }
   .mapview { overflow: hidden; }
+  /* The cost panel: rows of number-then-explanation, so it reads as arithmetic
+     rather than as a claim. */
+  .scale h4 { margin: 14px 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+              color: var(--muted); font-weight: 600; }
+  .scale h4:first-child { margin-top: 2px; }
+  .scale table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .scale td { padding: 3px 0; vertical-align: baseline; }
+  .scale td.n { font-family: var(--mono); color: var(--text); text-align: right;
+                white-space: nowrap; padding-right: 10px; width: 1%; }
+  .scale td.k { color: var(--text); white-space: nowrap; padding-right: 10px; }
+  .scale td.w { color: var(--muted); }
+  .scale p { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .scale b { color: var(--text); font-weight: 600; }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; }
   /* The column is exactly as tall as the screen. The verdict and the brief are
      always visible; everything else lives behind a tab, so a reader is told what
@@ -431,12 +444,14 @@ TEMPLATE = r"""<!doctype html>
         <button data-pane="registry">Registry</button>
         <button data-pane="brief">Brief</button>
         <button data-pane="log">Log</button>
+        <button data-pane="scale">Scale</button>
       </div>
       <div class="panes">
         <div id="zones" class="pane on"></div>
         <div id="registry" class="pane"></div>
         <div id="brief" class="pane brief empty"></div>
         <div id="log" class="pane log"></div>
+        <div id="scale" class="pane scale"></div>
       </div>
     </div>
   </aside>
@@ -446,7 +461,7 @@ TEMPLATE = r"""<!doctype html>
   <span>to date <b id="calls-total">0</b></span>
   <span>backend <b>offline simulator</b></span>
   <span>evidence <b id="evidence"></b></span>
-  <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd>–<kbd>5</kbd> scene</span>
+  <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd>–<kbd id="lastscene">5</kbd> scene</span>
   <span class="credit">map © OpenStreetMap contributors (ODbL) · Natural Earth · GeoNames (CC BY)<span id="intensity"></span></span>
 </footer>
 <script id="data" type="application/json">__DATA__</script>
@@ -469,6 +484,7 @@ TEMPLATE = r"""<!doctype html>
 
   // -- header -------------------------------------------------------------
   const nav = $('scenes');
+  $('lastscene').textContent = DATA.scenes.length;
   DATA.scenes.forEach((sc, i) => {
     const b = document.createElement('button');
     b.textContent = `${i + 1} · ${sc.title}`;
@@ -909,10 +925,10 @@ TEMPLATE = r"""<!doctype html>
     $('clock').textContent = clock(rec.t);
     const sc = cur();
     $('since').textContent = sc.onset != null && rec.t >= sc.onset ? `+${Math.round(rec.t - sc.onset)}s since onset` : `pass ${pass + 1} / ${recs.length}`;
-    drawBeat(rec); drawMap(rec); drawStatus(rec); drawBrief(rec); drawZones(rec); drawRegistry(rec); drawLog(); drawFooter(rec);
+    drawBeat(rec); drawMap(rec); drawStatus(rec); drawBrief(rec); drawZones(rec); drawRegistry(rec); drawLog(); drawScale(rec); drawFooter(rec);
     // Say how much is behind each tab, so the count is visible without opening it.
-    const counts = { zones: (rec.triage ? rec.triage.top.length : 0), registry: (rec.triage ? rec.triage.unreachable : 0), brief: null, log: null };
-    const names = { zones: 'Priority zones', registry: 'Registry', brief: 'Brief', log: 'Log' };
+    const counts = { zones: (rec.triage ? rec.triage.top.length : 0), registry: (rec.triage ? rec.triage.unreachable : 0), brief: null, log: null, scale: null };
+    const names = { zones: 'Priority zones', registry: 'Registry', brief: 'Brief', log: 'Log', scale: 'Scale' };
     [...$('tabs').children].forEach(b => {
       const n = counts[b.dataset.pane];
       b.textContent = n ? `${names[b.dataset.pane]} · ${n}` : names[b.dataset.pane];
@@ -933,11 +949,78 @@ TEMPLATE = r"""<!doctype html>
   $('next').onclick = () => { stop(); show(pass + 1); };
   $('scrub').oninput = e => { stop(); show(+e.target.value); };
   // Tabs: one panel at a time, so the column never runs off the bottom.
+  // -- what it costs to run ------------------------------------------------
+  // Everything below is arithmetic over two numbers the console already has:
+  // how many cells are being watched, and how many calls a pass made. Land
+  // areas are the published figures for the two countries the real scenes are
+  // set in; nothing here is priced, because the tariff is the operator's to set
+  // and inventing one would be the least credible number on the page.
+  const COUNTRIES = [
+    { name: 'Morocco', km2: 446550 },
+    { name: 'Türkiye', km2: 783562 },
+  ];
+  const WATCH_S = 300;   // a national baseline does not need a 30-second pass
+  const DEPLOY_KM = 10;  // the deployment cell; the city scenes are a 670 m zoom of one district
+
+  function human(n) {
+    if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + ' M';
+    if (n >= 1e4) return Math.round(n / 1e3) + ' k';
+    return n.toLocaleString('en-GB');
+  }
+
+  function drawScale(rec) {
+    const sc = cur(), g = sc.grid;
+    const cells = g.cells.length;
+    const cellKm2 = (g.spacing_m / 1000) ** 2;
+    const windowKm2 = cells * cellKm2;
+    // The personal count comes from the evidence's own privacy line rather than
+    // from guessing at endpoint names: it is the number the agent recorded, and
+    // it is the number the card above the panel shows.
+    const total = Object.values(rec.api_calls || {}).reduce((n, c) => n + c, 0);
+    const personal = rec.privacy ? rec.privacy.personal : 0;
+    const aggregate = total - personal;
+    const cadence = 30;                                  // the scenes run every 30 s
+    const perHour = aggregate * 3600 / cadence;
+
+    const row = (n, k, w) => `<tr><td class="n">${n}</td><td class="k">${k}</td><td class="w">${w}</td></tr>`;
+    let html = `<h4>This pass</h4><table>`
+      + row(aggregate, 'aggregate', `2 per cell × ${cells} cells — sentinel SIMs, never a member of the public`)
+      + row(personal, 'personal', personal
+          ? 'only inside the declared footprint, only opt-in registry members'
+          : 'the registry was not queried on this pass')
+      + `</table>`;
+
+    html += `<h4>This window, every ${cadence} s</h4><table>`
+      + row(human(perHour), 'calls / hour', `${cells} cells of ${(g.spacing_m / 1000).toFixed(g.spacing_m < 2000 ? 2 : 0)} km over ${human(windowKm2)} km²`)
+      + `</table>`;
+
+    // Always quoted at the deployment cell, whatever this scene is drawn at: a
+    // country is watched at 10 km, and extrapolating the city scenes' 670 m grid
+    // to a national footprint would be arithmetic nobody would ever deploy.
+    const deployKm2 = DEPLOY_KM * DEPLOY_KM;
+    html += `<h4>A national watch, ${DEPLOY_KM} km cells</h4><table>`;
+    COUNTRIES.forEach(c => {
+      const n = Math.round(c.km2 / deployKm2);
+      html += row(human(n), c.name, `cells over ${human(c.km2)} km² · ${human(n * 2 * 3600 / WATCH_S)} calls/h at a ${WATCH_S / 60}-minute watch`);
+    });
+    html += `</table>`;
+
+    html += `<p>One sentinel SIM per cell: <b>${human(Math.round(COUNTRIES[1].km2 / deployKm2))} SIMs to watch Türkiye</b>, `
+          + `not eighty-five million subscribers. The bill scales with land area and cadence, and the buyer `
+          + `chooses both — a national watch runs slow and tightens to ${cadence} s over one province the moment `
+          + `a seismic alert or a first block of silence arrives.</p>`;
+    html += `<p>The operator sells the impact feed as an Open Gateway product; the buyer is the civil-defence `
+          + `agency or the municipality that already carries the duty of care. Detection touches no member of `
+          + `the public, so there is no consent to buy — the personal line above is the only one that ever does, `
+          + `and it is <b>zero on an ordinary morning</b>, on every pass, in the evidence file.</p>`;
+    $('scale').innerHTML = html;
+  }
+
   $('tabs').addEventListener('click', e => {
     const button = e.target.closest('button[data-pane]');
     if (!button) return;
     [...$('tabs').children].forEach(b => b.classList.toggle('on', b === button));
-    ['zones', 'registry', 'brief', 'log'].forEach(id => $(id).classList.toggle('on', id === button.dataset.pane));
+    ['zones', 'registry', 'brief', 'log', 'scale'].forEach(id => $(id).classList.toggle('on', id === button.dataset.pane));
   });
 
   // Keep the watched window overlapping the middle of the view, so the map can
