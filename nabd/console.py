@@ -448,7 +448,7 @@ TEMPLATE = r"""<!doctype html>
   .legend i { display: inline-block; width: 13px; height: 13px; border-radius: 2px; vertical-align: -2px; margin-right: 6px;
               box-sizing: border-box; }
   .legend i.sw-low { border: 1px solid #2b3c4e; }
-  .legend i.sw-medium { background: repeating-linear-gradient(-45deg, #a78bfa 0 1.2px, transparent 1.2px 5px); border: 1px solid #2b3c4e; }
+  .legend i.sw-medium { background: repeating-linear-gradient(-45deg, #c4b5fd 0 1.6px, #a78bfa24 1.6px 5px); border: 1px solid #2b3c4e; }
   .legend i.sw-high { background: repeating-linear-gradient(-45deg, #e879f9 0 1.2px, transparent 1.2px 4px),
                                   repeating-linear-gradient(45deg, #e879f9 0 1.2px, transparent 1.2px 4px); border: 1px solid #2b3c4e; }
   .legend i.sw-dark { background: #04070d; border: 1px solid #3a1a1a; }
@@ -810,8 +810,9 @@ TEMPLATE = r"""<!doctype html>
       // Load is drawn in a hue family nothing else on the map uses — violet
       // for medium, magenta for high — so it never hides behind the red of a
       // footprint, the yellow of a candidate or the amber of the interface.
-      + `<pattern id="hatch-medium" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">`
-      + `<line x1="0" y1="0" x2="0" y2="8" stroke="#a78bfa" stroke-width="1.2" stroke-opacity=".75"/></pattern>`
+      + `<pattern id="hatch-medium" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">`
+      + `<rect width="7" height="7" fill="#a78bfa" fill-opacity=".14"/>`
+      + `<line x1="0" y1="0" x2="0" y2="7" stroke="#c4b5fd" stroke-width="1.6" stroke-opacity=".95"/></pattern>`
       + `<pattern id="hatch-high" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">`
       + `<line x1="0" y1="0" x2="0" y2="6" stroke="#e879f9" stroke-width="1.2" stroke-opacity=".9"/>`
       + `<line x1="0" y1="3" x2="6" y2="3" stroke="#e879f9" stroke-width="1.2" stroke-opacity=".9"/></pattern>`
