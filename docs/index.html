@@ -411,7 +411,10 @@
   });
 
   function setScene(i) {
-    if (!timer) stop();           // a run through the scenes keeps its own timer
+    // Changing scene while it plays seeks rather than stops — that is the run
+    // moving on at the end of a scene, and it is also a presenter clicking a
+    // tab to skip ahead, who would otherwise have to reach for play again.
+    if (!timer) stop();
     scene = i; pass = 0; MAP = null; PICK = null;
     [...nav.children].forEach((b, k) => b.classList.toggle('on', k === i));
     $('scrub').max = cur().records.length - 1;
