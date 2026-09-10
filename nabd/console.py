@@ -333,6 +333,8 @@ TEMPLATE = r"""<!doctype html>
   .c-high { fill: url(#hatch-high); }
   .c-unmon { fill: #141a2226; }
   .c-dark { fill: #04070de6; }
+  /* Zoomed in, a reader is asking where: the streets ghost through the dark. */
+  #grid.zoomed .c-dark { fill: #04070dc4; }
   .c-clear { fill: none; }
   /* With the measured event on, the shaking is the subject and the load steps back. */
   #grid.detail #cells { opacity: .3; }
@@ -354,7 +356,8 @@ TEMPLATE = r"""<!doctype html>
   .tick { stroke: #6b8299; stroke-width: 1; }
   .lbl { fill: #a9bccd; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .04em; }
   .win { fill: none; stroke: #6b8299; stroke-width: 1; opacity: .9; }
-  .pick { fill: #7dd3fc1a; stroke: #7dd3fc; stroke-width: 2; }
+  .pick { fill: none; stroke: #7dd3fc; stroke-width: 2; }
+  .pick.corner { stroke-width: 3.5; }
   /* The cell inspector: one card, bottom left of the map, following the playback. */
   #inspect { position: absolute; left: 26px; top: 26px; z-index: 3; width: 330px; background: #0b1017f2;
              border: 1px solid #2b3c4e; border-left: 3px solid #7dd3fc; border-radius: 8px; padding: 10px 12px 9px;
@@ -771,8 +774,11 @@ TEMPLATE = r"""<!doctype html>
   // is something you watch happen.
   let MAP = null;
   let detail = false;   // the measured-event overlay, off unless asked for
-  const ZOOMS = [1, 2, 4, 8];
-  let zi = 0;           // index into ZOOMS
+  // How far in a scene can go. A city scene has streets under a 1 km cell
+  // and goes to 8x; a region watches 10 km cells over a between-towns road
+  // net, and past 4x a single cell fills the view with nothing new in it.
+  const zooms = () => cur().city ? [1, 2, 4, 8] : [1, 2, 4];
+  let zi = 0;           // index into zooms()
   let ZOOM = 1, TX = 0, TY = 0;   // scale, and where the scaled map sits
 
   function mapGeometry(g, svg) {
@@ -1133,7 +1139,12 @@ TEMPLATE = r"""<!doctype html>
     const cell = PICK && g.cells.find(c => c.id === PICK);
     if (!cell) { box.classList.add('hidden'); $('pick').innerHTML = ''; return; }
     const { OX } = MAP;
-    $('pick').innerHTML = `<rect class="pick" x="${(OX + cell.col * S).toFixed(1)}" y="${M + cell.row * S}" width="${S}" height="${S}"/>`;
+    // A frame, not a wash: a picked cell is a place the reader is asking about,
+    // not an area being claimed — and on a region the cell is 10 km across.
+    const px = OX + cell.col * S, py = M + cell.row * S, t = S * 0.18;
+    $('pick').innerHTML = `<rect class="pick" x="${px.toFixed(1)}" y="${py}" width="${S}" height="${S}" stroke-opacity=".45"/>`
+      + [[px, py, 1, 1], [px + S, py, -1, 1], [px, py + S, 1, -1], [px + S, py + S, -1, -1]].map(([x, y, dx, dy]) =>
+          `<path class="pick corner" d="M${(x + dx * t).toFixed(1)} ${y.toFixed(1)} L${x.toFixed(1)} ${y.toFixed(1)} L${x.toFixed(1)} ${(y + dy * t).toFixed(1)}"/>`).join('');
 
     const k = cell.row * g.cols + cell.col;
     const ch = (rec.grid || '')[k] || 'x';
@@ -1175,7 +1186,8 @@ TEMPLATE = r"""<!doctype html>
 
     const row = (kk, v, cls = '') => `<div class="r"><div class="k">${kk}</div><div class="v ${cls}">${v}</div></div>`;
     let html = `<button class="close" title="close">×</button>`;
-    html += `<h5><span class="id">${cell.id}</span>${places[0] ? esc(places[0]) : 'cell'}<span class="ll">${cell.lat.toFixed(4)}N ${cell.lon.toFixed(4)}E</span></h5>`;
+    const km = g.spacing_m / 1000;
+    html += `<h5><span class="id">${cell.id}</span>${places[0] ? esc(places[0]) : 'cell'} <span class="ll">${km} × ${km} km · ${cell.lat.toFixed(4)}N ${cell.lon.toFixed(4)}E</span></h5>`;
     html += row('Network', STATE[ch][0] + since, STATE[ch][1]);
     html += row('History', history, 'muted');
     html += row('Agent', agent, agentCls);
@@ -1525,16 +1537,20 @@ TEMPLATE = r"""<!doctype html>
   // stays under it, which is the difference between choosing what to look at and
   // being handed whatever the middle happened to be.
   function setZoom(next, ax, ay) {
+    const ZOOMS = zooms();
     next = Math.max(0, Math.min(ZOOMS.length - 1, next));
     const z0 = ZOOM, z1 = ZOOMS[next];
     if (ax == null) { ax = (MAP ? MAP.W : 0) / 2; ay = (MAP ? MAP.H : 0) / 2; }
     TX = ax - (ax - TX) * (z1 / z0);
     TY = ay - (ay - TY) * (z1 / z0);
     zi = next; ZOOM = z1;
+    $('grid').classList.toggle('zoomed', ZOOM >= 2);
     if (zi === 0) { TX = 0; TY = 0; }        // 1× is always the whole picture
     clampPan();
     $('zlvl').textContent = ZOOMS[zi] + '×';
     $('zin').disabled = zi === ZOOMS.length - 1;
+    $('zin').title = $('zin').disabled && !cur().city ? `${ZOOMS[zi]}× is as close as a region goes — its cells are ${cur().grid.spacing_m / 1000} km, and nothing finer was read`
+                                                       : 'zoom in — drag the map to move, or roll the wheel over the spot you want';
     $('zout').disabled = zi === 0;
     // No rebuild: the scene is transformed, the unscaled layers are re-laid
     // out, and the per-pass marks are refreshed at the new scale.
