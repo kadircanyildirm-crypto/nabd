@@ -236,6 +236,15 @@ TEMPLATE = r"""<!doctype html>
   .controls { display: flex; align-items: center; gap: 8px; }
   .controls button { background: #1a2330; color: var(--text); border: 1px solid var(--line); border-radius: 6px; width: 34px; height: 32px; cursor: pointer; font-size: 14px; }
   .controls input[type=range] { width: 220px; accent-color: var(--high); }
+  /* Run the six scenes as one, at a pace the room has time for. */
+  .controls #all { width: auto; padding: 0 11px; font-size: 12px; }
+  .controls #all.on { color: var(--text); border-color: var(--high); background: #1a2330; }
+  .speeds { display: flex; margin-left: 2px; }
+  .speeds button { width: auto; padding: 0 9px; font-size: 12px; font-family: var(--mono); border-radius: 0; }
+  .speeds button:first-child { border-radius: 6px 0 0 6px; }
+  .speeds button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+  .speeds button + button { border-left: 0; }
+  .speeds button.on { color: var(--text); border-color: var(--high); background: #1a2330; }
   /* The whole console is one screen. Nothing that matters may sit below a fold
      nobody knows is there, so main fills the viewport and the only thing that
      ever scrolls is a panel that visibly can. */
@@ -519,6 +528,8 @@ TEMPLATE = r"""<!doctype html>
     <button id="play" title="play / pause (space)">▶</button>
     <button id="next" title="next pass (→)">›</button>
     <input type="range" id="scrub" min="0" max="0" value="0">
+    <button id="all" title="play every scene in order, without stopping">All</button>
+    <span class="speeds" id="speeds"></span>
   </div>
 </header>
 <main>
@@ -609,7 +620,7 @@ TEMPLATE = r"""<!doctype html>
   });
 
   function setScene(i) {
-    stop();
+    if (!timer) stop();           // a run through the scenes keeps its own timer
     scene = i; pass = 0; MAP = null; PICK = null;
     [...nav.children].forEach((b, k) => b.classList.toggle('on', k === i));
     $('scrub').max = cur().records.length - 1;
@@ -1242,15 +1253,54 @@ TEMPLATE = r"""<!doctype html>
   }
 
   // -- playback ---------------------------------------------------------------
+  // A pass every 900 ms at 1×; the divisor is what the speed buttons change.
+  const STEP_MS = 900;
+  const SPEEDS = [1, 1.5, 2];
+  let speed = 1;
+  let playAll = false;   // run through every scene rather than stopping at the end
+
+  function tick() {
+    if (pass < cur().records.length - 1) return show(pass + 1);
+    // End of a scene. Either that is the end, or the next scene starts.
+    if (!playAll || scene >= DATA.scenes.length - 1) return stop();
+    const running = true;
+    setScene(scene + 1);
+    if (running) resume();
+  }
+
+  function resume() {
+    clearInterval(timer);
+    $('play').textContent = '❚❚';
+    timer = setInterval(tick, STEP_MS / speed);
+  }
+
   function play() {
     if (timer) return stop();
-    if (pass >= cur().records.length - 1) pass = -1;
-    $('play').textContent = '❚❚';
-    timer = setInterval(() => { if (pass >= cur().records.length - 1) return stop(); show(pass + 1); }, 900);
+    const last = cur().records.length - 1;
+    // Starting from the end replays: from the top of this scene, or of the film.
+    if (pass >= last) {
+      if (playAll && scene >= DATA.scenes.length - 1) setScene(0);
+      pass = -1;
+    }
+    resume();
   }
   function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶'; }
 
   $('play').onclick = play;
+  $('all').onclick = () => {
+    playAll = !playAll;
+    $('all').classList.toggle('on', playAll);
+    $('all').title = playAll ? 'stop at the end of each scene' : 'play every scene in order, without stopping';
+  };
+  $('speeds').innerHTML = SPEEDS.map(x =>
+    `<button data-speed="${x}"${x === speed ? ' class="on"' : ''}>${x}×</button>`).join('');
+  $('speeds').addEventListener('click', e => {
+    const button = e.target.closest('button[data-speed]');
+    if (!button) return;
+    speed = +button.dataset.speed;
+    [...$('speeds').children].forEach(b => b.classList.toggle('on', b === button));
+    if (timer) resume();          // change pace without restarting the run
+  });
   $('prev').onclick = () => { stop(); show(pass - 1); };
   $('next').onclick = () => { stop(); show(pass + 1); };
   $('scrub').oninput = e => { stop(); show(+e.target.value); };
