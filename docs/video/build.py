@@ -336,8 +336,9 @@ SEGMENTS = [
              "proves the integration, the simulator proves the scenario. The risk was the gap "
              "between them, so the gap is what we measure — every scene recorded and replayed "
              "through the same parsing functions the live gateway uses, and the evidence has to "
-             "come out identical, line for line. One check needs a live key. Until it runs it "
-             "reports pending, and it never reports pass.",
+             "come out identical, line for line. And the last check is no longer a promise: the "
+             "contract run happened, eighteen calls out of eighteen answered by the real "
+             "platform, and the same agent replays that recording with no credentials at all.",
     ),
     Segment(
         "14-close", card="c12-close", steps=3,
@@ -443,8 +444,9 @@ TURKISH = {
         "entegrasyonu kanıtlıyor, simülatör ise senaryoyu. Risk, bu iki yol arasındaki boşluktu; "
         "ölçtüğümüz de tam olarak o boşluk. Her sahne kaydediliyor ve canlı ağ geçidinin "
         "kullandığı aynı ayrıştırma fonksiyonlarından geri oynatılıyor, kanıtın da satır satır "
-        "aynı çıkması gerekiyor. Bir kontrol canlı anahtar istiyor ve o koşana kadar beklemede "
-        "yazıyor. Asla geçti yazmıyor.",
+        "aynı çıkması gerekiyor. Son kontrol de artık bir söz değil: sözleşme koşusu yapıldı, "
+        "on sekiz çağrının on sekizi gerçek platform tarafından cevaplandı ve aynı ajan o kaydı "
+        "hiçbir kimlik bilgisi olmadan geri oynatıyor.",
     "14-close":
         "Ağ açısından deprem de sel de fırtına da kitlesel kesinti de aynı şeydir: kararan bir "
         "alan. Türkiye'nin tamamını izlemek yedi bin sekiz yüz nöbetçi SIM istiyor, seksen beş "

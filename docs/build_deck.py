@@ -481,7 +481,7 @@ slides.append("""
   <div class="three cols">
     <div class="col"><div class="lbl">Live vs simulated — and the seam between them</div>
       <p>The sandbox cannot stage a disaster, so the two claims are separated: the <b>live platform proves the integration</b>; the <b>simulator proves the scenario</b>.</p>
-      <p>The risk is the seam between them, so <code>nabd.parity</code> measures it: no SDK in the agent stack, <b>one function</b> picks the network, every scene <b>replayed through the live parsers</b> identically. The live check reports <b>pending</b> until a key runs it — never pass.</p></div>
+      <p>The risk is the seam between them, so <code>nabd.parity</code> measures it: no SDK in the agent stack, <b>one function</b> picks the network, every scene <b>replayed through the live parsers</b> identically. The live contract run is <b>done</b>: 10 Sep 2026, <b>18 of 18 calls answered</b> by the real platform, and the transcript replays through the same agent with no credentials. <code>nabd.parity</code> reports <b>4/4</b>.</p></div>
     <div class="col"><div class="lbl">Privacy</div>
       <p>Detection reads only <b>sentinel devices the city or operator owns</b> — never the public.</p>
       <p>Its output is <b>area-level</b>: cells and a footprint, not people. No cameras, no message content, no tracking.</p></div>

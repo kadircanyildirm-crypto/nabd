@@ -104,6 +104,12 @@ NORMALISE = [
     # Turkish takes suffixes on its number words, which would end a run early:
     # "elli üç binden fazla" is fifty-three thousand, not fifty-three.
     (r"\bbin(?:den|e|i|in|le|lerce)\b", " bin "),
+    # Turkish declines its number words too: "on sekizi" is still eighteen.
+    # "on" and "bir" are left out on purpose — "onu" and "onun" are the ordinary
+    # pronoun for *it*, and reading them as a ten is how this suite accused the
+    # title card of saying 10.
+    (r"\b(iki|üç|beş|altı|yedi|sekiz|dokuz|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan)"
+     r"(?:i|ı|u|ü|si|sı|su|sü|nin|nın|nun|nün)\b", r"\1 "),
     # "yüz" is deliberately not treated this way: "bu yüzden" and "o yüzden"
     # mean *therefore*, and reading them as a hundred is how this suite first
     # accused the Turkish script of saying 102.
@@ -173,6 +179,20 @@ def spoken_numbers(text: str, words: dict[str, int]) -> set[int]:
     return {n for n in found if n}
 
 
+def live_facts() -> set[int]:
+    """What the recorded contract run against the real platform actually did.
+
+    The live transcript is evidence like any scene's, so a sentence about it —
+    "eighteen calls out of eighteen answered" — is checked against the file
+    rather than taken on trust.
+    """
+    path = EVIDENCE / "nabd-live-contract.jsonl"
+    if not path.exists():
+        return set()
+    rows = [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    return {len(rows), sum(1 for r in rows if r.get("ok")), len({r["name"] for r in rows})}
+
+
 def scene_facts(name: str) -> tuple[set[int], set[str]]:
     """(numbers, identifiers) that are true of one scene, from its evidence."""
     path = EVIDENCE / f"nabd-scene-{name}.jsonl"
@@ -229,7 +249,7 @@ def _check(sid: str, text: str, words: dict[str, int], scenes: list[str]) -> lis
     ids, rest = _ids(normalise(text), words)
     said = spoken_numbers(rest, words)
 
-    allowed: set[int] = set(DESIGN)
+    allowed: set[int] = set(DESIGN) | live_facts()
     known_ids: set[str] = set()
     for value in EXTERNAL:
         allowed |= spoken_numbers(str(value), words)

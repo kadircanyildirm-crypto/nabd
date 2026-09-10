@@ -58,13 +58,34 @@ def webhook_base() -> str:
     return os.environ.get("NAC_WEBHOOK_BASE", "").strip()
 
 
+#: Where the account actually answers. The SDK ships a single environment
+#: pointing at `network-as-code.p-eu.rapidapi.com`, and a console-issued
+#: developer account is served from apihub instead — the playground's own cURL
+#: snippet is the authority, and it names both of these. Every live call
+#: returned 404 against the SDK default while the identical request returned
+#: 200 against these, which is how they got here.
+DEFAULT_BASE_URL = "https://network-as-code.p-eu.apihub.nokia.io"
+DEFAULT_RAPIDAPI_HOST = "network-as-code.nokia.rapidapi.com"
+
+
+def base_url() -> str:
+    load_env()
+    return os.environ.get("NAC_BASE_URL", "").strip() or DEFAULT_BASE_URL
+
+
+def rapidapi_host() -> str:
+    load_env()
+    return os.environ.get("NAC_RAPIDAPI_HOST", "").strip() or DEFAULT_RAPIDAPI_HOST
+
+
 def build():
-    """Return a configured NetworkAsCodeApi client."""
-    from network_as_code import NetworkAsCodeApi, NetworkAsCodeApiEnvironment
+    """Return a configured NetworkAsCodeApi client, pointed at this account's host."""
+    from network_as_code import NetworkAsCodeApi
 
     return NetworkAsCodeApi(
         api_key=api_key(),
-        environment=NetworkAsCodeApiEnvironment.DEFAULT,
+        base_url=base_url(),
+        rapidapi_host=rapidapi_host(),
     )
 
 

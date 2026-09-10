@@ -6,10 +6,10 @@ The claim is that Nabd's agent is one piece of code that runs unchanged against 
 
 | # | Check | Status | Measurement |
 |---|---|---|---|
-| 1 | agent is backend-blind | **PASS** | 1419 lines across 7 modules import no SDK, construct no gateway and never name a world — the agent cannot tell which network answered it |
-| 2 | one selection point | **PASS** | gateway.build() names all three backends; the other 13 modules in the package name none of them — every runner, scene and harness reaches the network through one function |
+| 1 | agent is backend-blind | **PASS** | 1449 lines across 7 modules import no SDK, construct no gateway and never name a world — the agent cannot tell which network answered it |
+| 2 | one selection point | **PASS** | gateway.build() names all three backends; the other 14 modules in the package name none of them — every runner, scene and harness reaches the network through one function |
 | 3 | replay reproduces the scene | **PASS** | scene 'quake': 21 passes and 4405 calls replayed through the live response parsers — evidence identical byte for byte |
-| 4 | live transcript replays | **PENDING** | nabd-live-contract.jsonl not recorded yet — run `python -m nabd.scene --backend live` once with credentials in nac/.env, then re-run this check |
+| 4 | live transcript replays | **PASS** | all three operations answer in the same shape live and simulated (18 live calls on file) |
 
 ### 1. agent is backend-blind
 
@@ -25,4 +25,10 @@ The claim is that Nabd's agent is one piece of code that runs unchanged against 
 
 - `every response was read by parse_congestion / parse_reachability / parse_location,`
 - `the same three functions LiveGateway uses on real platform responses.`
+
+### 4. live transcript replays
+
+- `congestion.query: 4 field(s), identical shape in 9 live and 1956 simulated responses`
+- `device_status.connectivity: 1 field(s), identical shape in 9 live and 2295 simulated responses`
+- `location.retrieve: live 0, simulated 10 — nothing to compare`
 

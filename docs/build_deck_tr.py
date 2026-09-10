@@ -364,7 +364,7 @@ slides.append("""
   <div class="three cols">
     <div class="col"><div class="lbl">Canlı ve simüle — ve aradaki dikiş</div>
       <p>Kum havuzu bir afeti sahneleyemez; o yüzden iki iddia ayrıldı: <b>canlı platform entegrasyonu kanıtlar</b>, <b>simülatör senaryoyu</b>.</p>
-      <p>Risk aradaki dikiştir, o yüzden <code>nabd.parity</code> onu ölçer: ajan yığınında SDK yok, ağı <b>tek fonksiyon</b> seçer, her sahne <b>canlı ayrıştırıcılardan birebir geri oynatılır</b>. Canlı kontrol bir anahtar koşana kadar <b>beklemede</b> yazar — asla geçti değil.</p></div>
+      <p>Risk aradaki dikiştir, o yüzden <code>nabd.parity</code> onu ölçer: ajan yığınında SDK yok, ağı <b>tek fonksiyon</b> seçer, her sahne <b>canlı ayrıştırıcılardan birebir geri oynatılır</b>. Canlı sözleşme koşusu <b>yapıldı</b>: 10 Eyl 2026, gerçek platform <b>18 çağrının 18'ini</b> cevapladı ve döküm aynı ajandan kimlik bilgisi olmadan geri oynuyor. <code>nabd.parity</code> <b>4/4</b> diyor.</p></div>
     <div class="col"><div class="lbl">Gizlilik</div>
       <p>Tespit yalnızca <b>şehrin veya operatörün sahip olduğu nöbetçi cihazları</b> okur — asla halkı.</p>
       <p>Çıktısı <b>alan seviyesindedir</b>: hücreler ve bir etki alanı, insanlar değil. Kamera yok, mesaj içeriği yok, takip yok.</p></div>
