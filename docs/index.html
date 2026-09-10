@@ -569,11 +569,13 @@
   // is something you watch happen.
   let MAP = null;
   let detail = false;   // the measured-event overlay, off unless asked for
-  // Every scene goes to 8x. A region's 10 km cell fills the view there, so
-  // the base map carries every village for that zoom, and the dark of a
-  // silent cell lets the roads under it ghost through: what is under the
-  // cell stays readable, even if the reading itself is 10 km coarse.
-  const zooms = () => [1, 2, 4, 8];
+  // Every scene goes to 16x, in finer steps past 8x, where a wheel notch
+  // that doubles the map throws the reader off the spot they were looking
+  // at. A region's 10 km cell fills the view from 8x, so the base map
+  // carries every village for those zooms and the dark of a silent cell
+  // lets the roads under it ghost through: what is under the cell stays
+  // readable, even if the reading itself is 10 km coarse.
+  const zooms = () => [1, 2, 4, 8, 10, 12, 16];
   let zi = 0;           // index into zooms()
   let ZOOM = 1, TX = 0, TY = 0;   // scale, and where the scaled map sits
 
