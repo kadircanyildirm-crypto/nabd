@@ -223,28 +223,49 @@ TEMPLATE = r"""<!doctype html>
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { display: grid; grid-template-columns: auto 1fr auto auto; gap: 18px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header { display: grid; grid-template-columns: auto auto 1fr auto; gap: 6px 22px; align-items: center;
+           padding: 10px 20px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
   .brand { font-weight: 700; letter-spacing: .02em; font-size: 16px; white-space: nowrap; }
   .brand span { color: var(--muted); font-weight: 400; margin-left: 8px; }
-  nav { display: flex; gap: 5px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-  nav::-webkit-scrollbar { display: none; }
-  nav button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px;
-               padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; white-space: nowrap; }
-  nav button.on { color: var(--text); border-color: var(--high); background: #1a2330; }
-  .clock { font-family: var(--mono); font-size: 22px; font-variant-numeric: tabular-nums; text-align: right; line-height: 1.1; }
+  .clock { grid-column: 4; font-family: var(--mono); font-size: 22px; font-variant-numeric: tabular-nums; text-align: right; line-height: 1.1; }
   .clock small { display: block; font-size: 11px; color: var(--muted); font-family: inherit; }
   .controls { display: flex; align-items: center; gap: 8px; }
   .controls button { background: #1a2330; color: var(--text); border: 1px solid var(--line); border-radius: 6px; width: 34px; height: 32px; cursor: pointer; font-size: 14px; }
-  .controls input[type=range] { width: 220px; accent-color: var(--high); }
-  /* Run the six scenes as one, at a pace the room has time for. */
-  .controls #all { width: auto; padding: 0 11px; font-size: 12px; }
-  .controls #all.on { color: var(--text); border-color: var(--high); background: #1a2330; }
-  .speeds { display: flex; margin-left: 2px; }
-  .speeds button { width: auto; padding: 0 9px; font-size: 12px; font-family: var(--mono); border-radius: 0; }
+  /* The pace sits beside play: a room has minutes, and the buttons are what
+     the presenter reaches for while it runs. */
+  .speeds { display: flex; margin-left: 8px; }
+  .speeds button { width: auto; padding: 0 11px; font-size: 12px; font-family: var(--mono); border-radius: 0; color: var(--muted); }
   .speeds button:first-child { border-radius: 6px 0 0 6px; }
-  .speeds button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+  .speeds button:last-child { border-radius: 0 6px 6px 0; }
   .speeds button + button { border-left: 0; }
-  .speeds button.on { color: var(--text); border-color: var(--high); background: #1a2330; }
+  .speeds button.on { color: var(--text); background: #1a2330; box-shadow: inset 0 0 0 1px var(--high); }
+  /* The film's timeline. One strip, six chapters: each as wide as it is long,
+     filled as far as the run has got, the current one lit. There is nothing
+     to scroll and nothing off the end. */
+  #chapters { grid-column: 1 / -1; display: flex; gap: 6px; min-width: 0; }
+  #chapters button { flex: var(--len) 1 96px; min-width: 0; position: relative; background: transparent; color: var(--muted);
+                     border: 0; padding: 6px 6px 12px; cursor: pointer; font: inherit; font-size: 12.5px; text-align: left;
+                     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #chapters button .n { font-family: var(--mono); color: var(--dim); margin-right: 7px; }
+  #chapters button .real { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--high); margin-left: 8px; }
+  #chapters button::before, #chapters button::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 2px; }
+  #chapters button::before { right: 0; background: var(--line); }
+  #chapters button::after { width: calc(var(--done) * 100%); background: var(--dim); transition: width .25s linear; }
+  #chapters button:hover { color: var(--text); }
+  #chapters button.on { color: var(--text); }
+  #chapters button.on .n { color: var(--high); }
+  #chapters button.on::after { background: var(--high); }
+  /* The chapter card: over the map for a beat as the run moves into a
+     chapter, so the room is told what it is about to watch. */
+  #chapter { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; pointer-events: none; border-radius: 6px;
+             background: #0b1017f2; backdrop-filter: blur(3px); opacity: 0; transition: opacity .35s ease; }
+  #chapter.show { opacity: 1; }
+  #chapter .slate { text-align: center; max-width: 640px; padding: 24px 40px 28px; background: #111a24f2; border: 1px solid var(--line);
+                    border-radius: 12px; transform: translateY(8px); transition: transform .4s ease; }
+  #chapter.show .slate { transform: none; }
+  #chapter .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--high); }
+  #chapter h2 { margin: 10px 0 12px; font-size: 36px; font-weight: 700; letter-spacing: -.01em; line-height: 1.1; }
+  #chapter p { margin: 0; font-size: 15px; color: var(--muted); line-height: 1.5; }
   /* The whole console is one screen. Nothing that matters may sit below a fold
      nobody knows is there, so main fills the viewport and the only thing that
      ever scrolls is a panel that visibly can. */
@@ -521,21 +542,20 @@ TEMPLATE = r"""<!doctype html>
 <body>
 <header>
   <div class="brand">Nabd <span>نبض · command centre</span></div>
-  <nav id="scenes"></nav>
-  <div class="clock"><span id="clock">09:00:00</span><small id="since">&nbsp;</small></div>
   <div class="controls">
     <button id="prev" title="previous pass (←)">‹</button>
     <button id="play" title="play / pause (space)">▶</button>
     <button id="next" title="next pass (→)">›</button>
-    <input type="range" id="scrub" min="0" max="0" value="0">
-    <button id="all" title="play every scene in order, without stopping">All</button>
-    <span class="speeds" id="speeds"></span>
+    <span class="speeds" id="speeds" title="pace"></span>
   </div>
+  <div class="clock"><span id="clock">09:00:00</span><small id="since">&nbsp;</small></div>
+  <nav id="chapters" aria-label="chapters"></nav>
 </header>
 <main>
   <section class="map">
     <div id="beat" class="beat empty"></div>
     <div class="mapview">
+      <div id="chapter"><div class="slate"><div class="eyebrow"></div><h2></h2><p></p></div></div>
       <svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="mapctl">
         <button id="keybtn" title="what every colour and line on the map means">Map key</button>
@@ -587,7 +607,7 @@ TEMPLATE = r"""<!doctype html>
   <span>to date <b id="calls-total">0</b></span>
   <span>backend <b>offline simulator</b></span>
   <span>evidence <b id="evidence"></b></span>
-  <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd>–<kbd id="lastscene">5</kbd> scene</span>
+  <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd>–<kbd id="lastscene">6</kbd> chapter</span>
   <span class="credit">map © OpenStreetMap contributors (ODbL) · Natural Earth · GeoNames (CC BY)<span id="intensity"></span></span>
 </footer>
 <script id="data" type="application/json">__DATA__</script>
@@ -600,7 +620,10 @@ TEMPLATE = r"""<!doctype html>
   const CLASS = { '.': 'c-low', 'm': 'c-medium', 'H': 'c-high', 'D': 'c-dark', 'x': 'c-unmon' };
   const ACTIVE = new Set(['DECLARE', 'UPDATE', 'SUSTAIN']);
   const $ = id => document.getElementById(id);
-  let scene = 0, pass = 0, timer = null;
+  let scene = 0, pass = 0;
+  let playing = false;   // the run is on, whether stepping or holding on a card
+  let timer = null;      // the pass interval, while stepping
+  let hold = null;       // the chapter card's timeout, while one is up
 
   const clock = t => new Date(EPOCH + t * 1000).toISOString().slice(11, 19);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -608,25 +631,33 @@ TEMPLATE = r"""<!doctype html>
 
   function cur() { return DATA.scenes[scene]; }
 
-  // -- header -------------------------------------------------------------
-  const nav = $('scenes');
+  // -- header: the film's timeline ----------------------------------------
+  const nav = $('chapters');
   $('lastscene').textContent = DATA.scenes.length;
   DATA.scenes.forEach((sc, i) => {
     const b = document.createElement('button');
-    b.textContent = `${i + 1} · ${sc.title}`;
+    b.style.setProperty('--len', sc.records.length);   // as wide as it is long
+    b.style.setProperty('--done', 0);
+    b.innerHTML = `<span class="n">${i + 1}</span>${esc(sc.title)}` + (sc.geo ? '<span class="real">real event</span>' : '');
     b.title = sc.subtitle;
-    b.onclick = () => setScene(i);
+    b.onclick = () => goto(i);
     nav.appendChild(b);
   });
 
+  function drawStrip() {
+    [...nav.children].forEach((b, k) => {
+      b.classList.toggle('on', k === scene);
+      b.style.setProperty('--done', k < scene ? 1 : k > scene ? 0 : (pass + 1) / DATA.scenes[k].records.length);
+    });
+  }
+
+  // A person choosing a chapter. While the film runs that is a seek — the
+  // card comes up and the run carries on from there, so a presenter skipping
+  // ahead never has to reach for play again. Stopped, it is just a jump.
+  function goto(i) { if (playing) enter(i); else { stop(); setScene(i); } }
+
   function setScene(i) {
-    // Changing scene while it plays seeks rather than stops — that is the run
-    // moving on at the end of a scene, and it is also a presenter clicking a
-    // tab to skip ahead, who would otherwise have to reach for play again.
-    if (!timer) stop();
     scene = i; pass = 0; MAP = null; PICK = null;
-    [...nav.children].forEach((b, k) => b.classList.toggle('on', k === i));
-    $('scrub').max = cur().records.length - 1;
     $('evidence').textContent = `nabd-scene-${cur().name}.jsonl`;
     $('intensity').textContent = cur().geo ? ` · intensity USGS ShakeMap ${cur().geo.source.event}` : '';
     $('detail').classList.toggle('hidden', !cur().geo);
@@ -1241,7 +1272,7 @@ TEMPLATE = r"""<!doctype html>
     const recs = cur().records;
     pass = Math.max(0, Math.min(recs.length - 1, i));
     const rec = recs[pass];
-    $('scrub').value = pass;
+    drawStrip();
     $('clock').textContent = clock(rec.t);
     const sc = cur();
     $('since').textContent = sc.onset != null && rec.t >= sc.onset ? `+${Math.round(rec.t - sc.onset)}s since onset` : `pass ${pass + 1} / ${recs.length}`;
@@ -1255,46 +1286,73 @@ TEMPLATE = r"""<!doctype html>
     });
   }
 
-  // -- playback ---------------------------------------------------------------
-  // A pass every 900 ms at 1×; the divisor is what the speed buttons change.
+  // -- playback: one run through the film --------------------------------------
+  // A pass every 900 ms at 1× and a card held for 2.4 s; the speed buttons
+  // divide both, so 2× is the same film in half the time, cards included.
   const STEP_MS = 900;
+  const CARD_MS = 2400;
   const SPEEDS = [1, 1.5, 2];
   let speed = 1;
-  let playAll = false;   // run through every scene rather than stopping at the end
+  const LAST = DATA.scenes.length - 1;
+  const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 
+  function card(eyebrow, title, text) {
+    const el = $('chapter');
+    el.querySelector('.eyebrow').textContent = eyebrow;
+    el.querySelector('h2').textContent = title;
+    el.querySelector('p').textContent = text;
+    el.classList.add('show');
+  }
+  function uncard() { clearTimeout(hold); hold = null; $('chapter').classList.remove('show'); }
+
+  // Into a chapter: the card holds for a beat, then the passes run.
+  function enter(i) {
+    clearInterval(timer); timer = null;
+    setScene(i);
+    const sc = cur();
+    card(`Chapter ${i + 1} of ${DATA.scenes.length}${sc.geo ? ' · real event' : ''}`, sc.title, sc.subtitle);
+    hold = setTimeout(() => { hold = null; uncard(); step(); }, CARD_MS / speed);
+  }
+  function step() { clearInterval(timer); timer = setInterval(tick, STEP_MS / speed); }
   function tick() {
     if (pass < cur().records.length - 1) return show(pass + 1);
-    // End of a scene. Either that is the end, or the next scene starts.
-    if (!playAll || scene >= DATA.scenes.length - 1) return stop();
-    const running = true;
-    setScene(scene + 1);
-    if (running) resume();
+    if (scene >= LAST) return finish();
+    enter(scene + 1);
   }
-
-  function resume() {
-    clearInterval(timer);
-    $('play').textContent = '❚❚';
-    timer = setInterval(tick, STEP_MS / speed);
+  function finish() {
+    stop();
+    const real = DATA.scenes.filter(s => s.geo).length;
+    const cap = w => w[0].toUpperCase() + w.slice(1);
+    card('End of the run', `${cap(WORDS[DATA.scenes.length])} runs. ${cap(WORDS[real])} of them happened.`,
+         'Every verdict on this screen is in the evidence file named at the foot of the page. Play again to watch it from the top.');
   }
 
   function play() {
-    if (timer) return stop();
+    if (playing) return stop();
+    playing = true;
+    $('play').textContent = '❚❚';
     const last = cur().records.length - 1;
-    // Starting from the end replays: from the top of this scene, or of the film.
-    if (pass >= last) {
-      if (playAll && scene >= DATA.scenes.length - 1) setScene(0);
-      pass = -1;
-    }
-    resume();
+    if (pass >= last) return enter(scene >= LAST ? 0 : scene + 1);   // from an end: the next chapter, or the top of the film
+    if (pass === 0) return enter(scene);                            // from a chapter's start: announce it
+    step();
   }
-  function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶'; }
+  function stop() {
+    playing = false;
+    clearInterval(timer); timer = null;
+    uncard();
+    $('play').textContent = '▶';
+  }
+
+  // Stepping crosses chapter boundaries, because there is one thing to step through.
+  function stepBy(d) {
+    stop();
+    const last = cur().records.length - 1;
+    if (d > 0 && pass >= last) { if (scene < LAST) setScene(scene + 1); return; }
+    if (d < 0 && pass <= 0) { if (scene > 0) { setScene(scene - 1); show(cur().records.length - 1); } return; }
+    show(pass + d);
+  }
 
   $('play').onclick = play;
-  $('all').onclick = () => {
-    playAll = !playAll;
-    $('all').classList.toggle('on', playAll);
-    $('all').title = playAll ? 'stop at the end of each scene' : 'play every scene in order, without stopping';
-  };
   $('speeds').innerHTML = SPEEDS.map(x =>
     `<button data-speed="${x}"${x === speed ? ' class="on"' : ''}>${x}×</button>`).join('');
   $('speeds').addEventListener('click', e => {
@@ -1302,11 +1360,10 @@ TEMPLATE = r"""<!doctype html>
     if (!button) return;
     speed = +button.dataset.speed;
     [...$('speeds').children].forEach(b => b.classList.toggle('on', b === button));
-    if (timer) resume();          // change pace without restarting the run
+    if (timer) step();            // change pace without restarting the run
   });
-  $('prev').onclick = () => { stop(); show(pass - 1); };
-  $('next').onclick = () => { stop(); show(pass + 1); };
-  $('scrub').oninput = e => { stop(); show(+e.target.value); };
+  $('prev').onclick = () => stepBy(-1);
+  $('next').onclick = () => stepBy(1);
   // Tabs: one panel at a time, so the column never runs off the bottom.
   // -- what it costs to run ------------------------------------------------
   // Everything below is arithmetic over two numbers the console already has:
@@ -1557,15 +1614,16 @@ TEMPLATE = r"""<!doctype html>
     if (e.target.tagName === 'INPUT') return;
     if (e.key === 'Escape' && PICK) { PICK = null; const r = cur().records[pass]; drawInspect(r); drawZones(r); drawRegistry(r); return; }
     if (e.code === 'Space') { e.preventDefault(); play(); }
-    else if (e.key === 'ArrowRight') { stop(); show(pass + 1); }
-    else if (e.key === 'ArrowLeft') { stop(); show(pass - 1); }
-    else if (e.key >= '1' && e.key <= String(DATA.scenes.length)) setScene(+e.key - 1);
+    else if (e.key === 'ArrowRight') stepBy(1);
+    else if (e.key === 'ArrowLeft') stepBy(-1);
+    else if (e.key >= '1' && e.key <= String(DATA.scenes.length)) goto(+e.key - 1);
   });
 
   // Deep link: replay.html#quake/7 opens a scene at a pass — for screenshots and slides.
   function fromHash() {
     const m = location.hash.match(/^#([a-z]+)(?:\/(\d+))?$/);
     const idx = m ? DATA.scenes.findIndex(s => s.name === m[1]) : -1;
+    stop();
     setScene(idx >= 0 ? idx : Math.max(0, DATA.scenes.findIndex(s => s.name === 'quake')));
     if (m && m[2]) show(+m[2]);
   }
