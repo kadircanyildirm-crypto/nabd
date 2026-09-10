@@ -242,19 +242,29 @@ TEMPLATE = r"""<!doctype html>
   /* The film's timeline. One strip, six chapters: each as wide as it is long,
      filled as far as the run has got, the current one lit. There is nothing
      to scroll and nothing off the end. */
-  #chapters { grid-column: 1 / -1; display: flex; gap: 6px; min-width: 0; }
+  #chapters { grid-column: 1 / -1; position: relative; display: flex; gap: 6px; min-width: 0; touch-action: none; user-select: none; }
   #chapters button { flex: var(--len) 1 96px; min-width: 0; position: relative; background: transparent; color: var(--muted);
-                     border: 0; padding: 6px 6px 12px; cursor: pointer; font: inherit; font-size: 12.5px; text-align: left;
+                     border: 0; padding: 6px 6px 14px; cursor: pointer; font: inherit; font-size: 12.5px; text-align: left;
                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #chapters .ttl { display: inline-block; padding: 1px 6px 1px 0; border-radius: 4px; }
+  #chapters .ttl:hover { color: var(--text); text-decoration: underline; text-decoration-color: var(--dim); text-underline-offset: 3px; }
   #chapters button .n { font-family: var(--mono); color: var(--dim); margin-right: 7px; }
   #chapters button .real { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--high); margin-left: 8px; }
-  #chapters button::before, #chapters button::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 2px; }
+  /* The track: press or drag anywhere on it and time follows. */
+  #chapters button::before, #chapters button::after { content: ""; position: absolute; left: 0; bottom: 0; height: 4px; border-radius: 2px; }
   #chapters button::before { right: 0; background: var(--line); }
   #chapters button::after { width: calc(var(--done) * 100%); background: var(--dim); transition: width .25s linear; }
+  #chapters.scrubbing button::after { transition: none; }
   #chapters button:hover { color: var(--text); }
   #chapters button.on { color: var(--text); }
   #chapters button.on .n { color: var(--high); }
   #chapters button.on::after { background: var(--high); }
+  /* Where a press would land: a hairline across the strip, and the clock there. */
+  #mark { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--text); opacity: .8; pointer-events: none; }
+  #mark[hidden] { display: none; }
+  #mark span { position: absolute; top: 2px; left: 7px; font-family: var(--mono); font-size: 10.5px; color: var(--text); white-space: nowrap;
+               background: #0b1017; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; }
+  #mark.flip span { left: auto; right: 7px; }
   /* The chapter card: over the map for a beat as the run moves into a
      chapter, so the room is told what it is about to watch. */
   #chapter { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; pointer-events: none; border-radius: 6px;
@@ -366,7 +376,9 @@ TEMPLATE = r"""<!doctype html>
   .focus { fill: #05080d; opacity: .3; }
   .fplabel { fill: var(--alert); font-family: var(--mono); font-size: 11px; font-weight: 700; }
   .dot { fill: #fff; stroke: var(--alert); stroke-width: 1.5; }
-  .halo { fill: none; stroke: var(--alert); stroke-opacity: .28; stroke-width: .8; stroke-dasharray: 3 3; }
+  /* The uncertainty radius is a real distance and the reader has to be able to
+     see it: a clear dashed ring, and a breath of fill so it reads as an area. */
+  .halo { fill: var(--alert); fill-opacity: .045; stroke: var(--alert); stroke-opacity: .85; stroke-width: 1.4; stroke-dasharray: 5 3; }
   .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; color: var(--muted); font-size: 11.5px; }
   /* The key: a panel over the map, every symbol drawn as the map draws it. */
   #keybtn { background: transparent; color: var(--muted); font: inherit; font-size: 11.5px;
@@ -436,9 +448,9 @@ TEMPLATE = r"""<!doctype html>
   .legend i { display: inline-block; width: 13px; height: 13px; border-radius: 2px; vertical-align: -2px; margin-right: 6px;
               box-sizing: border-box; }
   .legend i.sw-low { border: 1px solid #2b3c4e; }
-  .legend i.sw-medium { background: repeating-linear-gradient(-45deg, #d9b24d 0 1px, transparent 1px 5px); border: 1px solid #2b3c4e; }
-  .legend i.sw-high { background: repeating-linear-gradient(-45deg, #f07a2a 0 1.2px, transparent 1.2px 4px),
-                                  repeating-linear-gradient(45deg, #f07a2a 0 1.2px, transparent 1.2px 4px); border: 1px solid #2b3c4e; }
+  .legend i.sw-medium { background: repeating-linear-gradient(-45deg, #a78bfa 0 1.2px, transparent 1.2px 5px); border: 1px solid #2b3c4e; }
+  .legend i.sw-high { background: repeating-linear-gradient(-45deg, #e879f9 0 1.2px, transparent 1.2px 4px),
+                                  repeating-linear-gradient(45deg, #e879f9 0 1.2px, transparent 1.2px 4px); border: 1px solid #2b3c4e; }
   .legend i.sw-dark { background: #04070d; border: 1px solid #3a1a1a; }
   /* The column is exactly as tall as the screen. The verdict and the brief are
      always visible; everything else lives behind a tab, so a reader is told what
@@ -549,7 +561,7 @@ TEMPLATE = r"""<!doctype html>
     <span class="speeds" id="speeds" title="pace"></span>
   </div>
   <div class="clock"><span id="clock">09:00:00</span><small id="since">&nbsp;</small></div>
-  <nav id="chapters" aria-label="chapters"></nav>
+  <nav id="chapters" aria-label="chapters"><div id="mark" hidden><span></span></div></nav>
 </header>
 <main>
   <section class="map">
@@ -607,7 +619,7 @@ TEMPLATE = r"""<!doctype html>
   <span>to date <b id="calls-total">0</b></span>
   <span>backend <b>offline simulator</b></span>
   <span>evidence <b id="evidence"></b></span>
-  <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd>–<kbd id="lastscene">6</kbd> chapter</span>
+  <span><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>1</kbd>–<kbd id="lastscene">6</kbd> chapter · drag the strip to scrub</span>
   <span class="credit">map © OpenStreetMap contributors (ODbL) · Natural Earth · GeoNames (CC BY)<span id="intensity"></span></span>
 </footer>
 <script id="data" type="application/json">__DATA__</script>
@@ -633,23 +645,76 @@ TEMPLATE = r"""<!doctype html>
 
   // -- header: the film's timeline ----------------------------------------
   const nav = $('chapters');
+  const mark = $('mark');
   $('lastscene').textContent = DATA.scenes.length;
   DATA.scenes.forEach((sc, i) => {
     const b = document.createElement('button');
     b.style.setProperty('--len', sc.records.length);   // as wide as it is long
     b.style.setProperty('--done', 0);
-    b.innerHTML = `<span class="n">${i + 1}</span>${esc(sc.title)}` + (sc.geo ? '<span class="real">real event</span>' : '');
+    b.innerHTML = `<span class="ttl"><span class="n">${i + 1}</span>${esc(sc.title)}` + (sc.geo ? '<span class="real">real event</span>' : '') + '</span>';
     b.title = sc.subtitle;
-    b.onclick = () => goto(i);
-    nav.appendChild(b);
+    nav.insertBefore(b, mark);
   });
+  const chapters = [...nav.querySelectorAll('button')];
 
   function drawStrip() {
-    [...nav.children].forEach((b, k) => {
+    chapters.forEach((b, k) => {
       b.classList.toggle('on', k === scene);
       b.style.setProperty('--done', k < scene ? 1 : k > scene ? 0 : (pass + 1) / DATA.scenes[k].records.length);
     });
   }
+
+  // -- scrubbing: the strip is where time is dragged ------------------------
+  // The chapter and pass under a point on the strip. A gap between chapters
+  // belongs to the one after it; past either end is the end.
+  function locate(clientX) {
+    const b = chapters.find(b => clientX < b.getBoundingClientRect().right) || chapters[chapters.length - 1];
+    const k = chapters.indexOf(b), r = b.getBoundingClientRect(), n = DATA.scenes[k].records.length;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((clientX - r.left) / r.width * n)));
+    return { k, i };
+  }
+  function seek(p) {
+    if (p.k !== scene) setScene(p.k);
+    if (p.i !== pass) show(p.i);
+  }
+  function showMark(e) {
+    const p = locate(e.clientX), r = nav.getBoundingClientRect();
+    const x = Math.max(0, Math.min(r.width - 1, e.clientX - r.left));
+    mark.style.left = `${x}px`;
+    mark.classList.toggle('flip', x > r.width - 90);
+    mark.firstElementChild.textContent = clock(DATA.scenes[p.k].records[p.i].t);
+    mark.hidden = false;
+  }
+  let drag = null;   // {x, onLabel, moved, wasPlaying} while a press is held
+  nav.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    // The chapter is fixed at the press: once the pointer is captured, the
+    // release reports the strip as its target, not the button under it.
+    drag = { x: e.clientX, k: locate(e.clientX).k, onLabel: !!e.target.closest('.ttl'), moved: false, wasPlaying: playing };
+    nav.setPointerCapture(e.pointerId);
+    if (!drag.onLabel) { stop(); nav.classList.add('scrubbing'); seek(locate(e.clientX)); }
+  });
+  nav.addEventListener('pointermove', e => {
+    showMark(e);
+    if (!drag) return;
+    if (!drag.moved && Math.abs(e.clientX - drag.x) < 4) return;
+    if (!drag.moved) { drag.moved = true; stop(); nav.classList.add('scrubbing'); }
+    seek(locate(e.clientX));
+  });
+  nav.addEventListener('pointerup', e => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    nav.classList.remove('scrubbing');
+    if (d.onLabel && !d.moved) {
+      // The title is a button to the chapter's start.
+      goto(d.k);
+      return;
+    }
+    // Released mid-film: if it was playing, it plays on from here, no card.
+    if (d.wasPlaying && !playing) { playing = true; $('play').textContent = '❚❚'; step(); }
+  });
+  nav.addEventListener('pointercancel', () => { drag = null; nav.classList.remove('scrubbing'); });
+  nav.addEventListener('pointerleave', () => { if (!drag) mark.hidden = true; });
 
   // A person choosing a chapter. While the film runs that is a seek — the
   // card comes up and the run carries on from there, so a presenter skipping
@@ -742,11 +807,14 @@ TEMPLATE = r"""<!doctype html>
       + `<clipPath id="winclip"><rect x="${x0.toFixed(1)}" y="${y0}" width="${w}" height="${h}"/></clipPath>`
       // Hatches in user units, so the texture stays the same weight at every zoom
       // while the cells under it grow.
-      + `<pattern id="hatch-medium" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(45)">`
-      + `<line x1="0" y1="0" x2="0" y2="9" stroke="#d9b24d" stroke-width="1" stroke-opacity=".5"/></pattern>`
+      // Load is drawn in a hue family nothing else on the map uses — violet
+      // for medium, magenta for high — so it never hides behind the red of a
+      // footprint, the yellow of a candidate or the amber of the interface.
+      + `<pattern id="hatch-medium" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">`
+      + `<line x1="0" y1="0" x2="0" y2="8" stroke="#a78bfa" stroke-width="1.2" stroke-opacity=".75"/></pattern>`
       + `<pattern id="hatch-high" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">`
-      + `<line x1="0" y1="0" x2="0" y2="6" stroke="#f07a2a" stroke-width="1" stroke-opacity=".62"/>`
-      + `<line x1="0" y1="3" x2="6" y2="3" stroke="#f07a2a" stroke-width="1" stroke-opacity=".62"/></pattern>`
+      + `<line x1="0" y1="0" x2="0" y2="6" stroke="#e879f9" stroke-width="1.2" stroke-opacity=".9"/>`
+      + `<line x1="0" y1="3" x2="6" y2="3" stroke="#e879f9" stroke-width="1.2" stroke-opacity=".9"/></pattern>`
       + `<filter id="glow" x="-30%" y="-30%" width="160%" height="160%">`
       + `<feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/>`
       + `<feMergeNode in="SourceGraphic"/></feMerge></filter>`
@@ -1564,8 +1632,8 @@ TEMPLATE = r"""<!doctype html>
     let html = `<button class="close" title="close">×</button>`;
     html += `<h4>The network<small>one reading per cell, every 30 s</small></h4>`;
     html += row(cell('c-low'), 'Normal', 'The sentinel answers and the load is ordinary. Nothing is drawn \u2014 the street map showing through is the sign that all is well.');
-    html += row(cell('c-medium'), 'Medium load', 'Sparse yellow hatch. Congestion Insights reports the cell at Medium.');
-    html += row(cell('c-high'), 'High congestion', 'Dense orange crosshatch. The cell is saturated: everyone in reach is calling at once. Around a silent block this is the \u201chot ring\u201d.');
+    html += row(cell('c-medium'), 'Medium load', 'Sparse violet hatch. Congestion Insights reports the cell at Medium.');
+    html += row(cell('c-high'), 'High congestion', 'Dense magenta crosshatch. The cell is saturated: everyone in reach is calling at once. Around a silent block this is the \u201chot ring\u201d.');
     html += row(cell('c-dark'), 'Sentinel unreachable', 'Solid black. Device Reachability says the cell\u2019s sentinel does not answer. The streets beneath are dimmed, not removed.');
     html += `<h4>The agent<small>what it claims, and what it refuses</small></h4>`;
     html += row(fp, 'Declared footprint', 'Solid red outline around a contiguous block of silent cells the agent has declared an impact. Its confidence and area are on the red label.');

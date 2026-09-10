@@ -52,7 +52,8 @@ ROWS = "ABCDEFGHIJ"
 
 # palette
 INK = "#17211D"; SOFT = "#41504a"; MUTED = "#6d7a74"; ACC = "#0E6E52"; RULE = "#d7ded9"; SURF = "#f2f6f4"
-ALERT = "#d1463a"; HIGH = "#e08a2e"; MED = "#f3d9a4"; LOW = "#e3ebe6"
+# Load is violet-to-magenta, as on the console, so it never reads as the red of a footprint.
+ALERT = "#d1463a"; HIGH = "#c026d3"; MED = "#ddd6fe"; LOW = "#e3ebe6"
 
 
 def grid_svg(grid: str, size: int, *, labels: bool = True, dark: bool = False, ring: bool = False,
@@ -62,7 +63,7 @@ def grid_svg(grid: str, size: int, *, labels: bool = True, dark: bool = False, r
     cell = (size - pad) / 10
     gap = max(2, cell * 0.08)
     bg_low = "#1e2a37" if dark else LOW
-    col = {".": bg_low, "m": ("#5b4a1a" if dark else MED), "H": ("#d9822b" if dark else HIGH), "D": ("#ff5a4e" if dark else ALERT)}
+    col = {".": bg_low, "m": ("#3f3470" if dark else MED), "H": ("#d946ef" if dark else HIGH), "D": ("#ff5a4e" if dark else ALERT)}
     lbl = "#8a9bab" if dark else MUTED
     out = [f'<svg viewBox="0 0 {size} {size}" width="{size}" height="{size}" xmlns="http://www.w3.org/2000/svg" font-family="Consolas, Segoe UI, monospace">']
     for i, ch in enumerate(grid):
@@ -138,8 +139,8 @@ def geo_overlay(size: int, labels: bool = True) -> str:
 
 def legend(dark=False):
     items = [(ALERT if not dark else "#ff5a4e", "silent — sentinel unreachable"),
-             (HIGH if not dark else "#d9822b", "High congestion"),
-             (MED if not dark else "#5b4a1a", "Medium"),
+             (HIGH if not dark else "#d946ef", "High congestion"),
+             (MED if not dark else "#3f3470", "Medium"),
              (LOW if not dark else "#1e2a37", "Low")]
     return '<div class="legend">' + "".join(f'<span><i style="background:{c}"></i>{t}</span>' for c, t in items) + "</div>"
 
