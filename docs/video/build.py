@@ -44,6 +44,8 @@ BUILD = HERE / "build"
 CONSOLE = ROOT / "nabd" / "replay.html"
 
 FPS = 30
+DISSOLVE = 0.5  # every join in the picture, so the map changes rather than jumps
+FADE_IN, FADE_OUT = 0.8, 1.6   # a film opens out of black and closes back into it
 TAIL_PAD = 0.6  # silence after each narration segment: a cut never clips a word, and
                 # the script is written in short sentences that want a beat to land
 
@@ -129,6 +131,7 @@ class Segment:
     frames: list[tuple[str, int]] = field(default_factory=list)  # (scene, pass)
     tab: str = "zones"  # which side panel the narration is describing
     min_s: float = 0.0
+    steps: int = 1      # a card shot in stages, so it builds under the voice
 
     @property
     def audio(self) -> Path:
@@ -139,19 +142,21 @@ class Segment:
         # frames are the product's own interface and are shared between cuts.
         home = outdir() if self.card else BUILD / "console"
         if self.card:
-            return [home / f"{self.id}.png"]
+            if self.steps == 1:
+                return [home / f"{self.id}.png"]
+            return [home / f"{self.id}-{i:02d}.png" for i in range(self.steps)]
         return [home / f"{self.id}-{i:02d}.png" for i in range(len(self.frames))]
 
 
 SEGMENTS = [
     Segment(
-        "01-title", card="c01-title",
+        "01-title", card="c01-title", steps=2,
         text="Nabd. In Arabic it means pulse, and that is close to what it does, because when a "
              "disaster hits, a whole neighbourhood of the mobile network stops answering in the "
              "same second. Nabd reads that silence, and turns it into a map of where the damage is.",
     ),
     Segment(
-        "02-problem", card="c02-problem",
+        "02-problem", card="c02-problem", steps=3,
         text="On the sixth of February, twenty twenty-three, at seventeen minutes past four in the "
              "morning, the seismometers knew. Within seconds they had the magnitude, the depth and "
              "the epicentre. What they could not say was which street. That answer took hours — and "
@@ -162,7 +167,7 @@ SEGMENTS = [
              "calls, at the exact moment the network was too overloaded to carry them.",
     ),
     Segment(
-        "03-insight", card="c03-insight",
+        "03-insight", card="c03-insight", steps=3,
         text="But there was something nobody was reading. When the ground moves, the network does "
              "something a disaster cannot hide: a connected block of cells stops answering in the "
              "same second, while the ring around it saturates, because everyone still standing is "
@@ -248,14 +253,14 @@ SEGMENTS = [
              "instruments are thinnest, the network is still talking.",
     ),
     Segment(
-        "12-hood", card="c10-hood",
+        "12-hood", card="c10-hood", steps=3,
         text="Under the hood the agent is a LangGraph graph, and the privacy claim lives in the "
              "topology rather than in a promise: the node that queries a personal device can only be "
              "reached from a verdict with an active footprint. Detection stays deterministic and "
              "replayable, and the language model writes the duty officer's brief and nothing else.",
     ),
     Segment(
-        "13-parity", card="c11-parity",
+        "13-parity", card="c11-parity", steps=3,
         text="The sandbox cannot stage a disaster, so we separated the two claims: the live platform "
              "proves the integration, the simulator proves the scenario. The risk was the gap "
              "between them, so the gap is what we measure — every scene recorded and replayed "
@@ -264,7 +269,7 @@ SEGMENTS = [
              "reports pending, and it never reports pass.",
     ),
     Segment(
-        "14-close", card="c12-close",
+        "14-close", card="c12-close", steps=3,
         text="To the network, an earthquake, a flood, a storm and a mass outage are the same thing: "
              "an area going dark. Watching the whole of Türkiye takes seven thousand eight hundred "
              "sentinel SIMs, not eighty-five million subscribers — the bill scales with land area, "
@@ -540,6 +545,24 @@ def duration(path: Path) -> float:
 # ------------------------------------------------------------------ frames
 
 
+#: Reveal the card's blocks up to `step` of `steps`. A block that is itself a
+#: row — panels, statistics, checks — hands its children over as the units, so
+#: a three-column card arrives a column at a time. Hidden units keep their
+#: space, so nothing on the card ever moves between steps.
+REVEAL = """({card, step, steps}) => {
+  const el = document.getElementById(card);
+  const rows = ['cols', 'big', 'checks', 'flow', 'chips', 'next', 'three'];
+  const units = [];
+  for (const child of el.children) {
+    const isRow = rows.some(c => child.classList.contains(c));
+    if (isRow && child.children.length > 1) units.push(...child.children);
+    else units.push(child);
+  }
+  const shown = steps <= 1 ? units.length : Math.ceil(units.length * step / steps);
+  units.forEach((u, i) => { u.style.opacity = i < shown ? '' : '0'; });
+}"""
+
+
 def shoot(segments: list[Segment]) -> None:
     from playwright.sync_api import sync_playwright
 
@@ -573,8 +596,11 @@ def shoot(segments: list[Segment]) -> None:
             page.goto((HERE / cfg("cards")).as_uri())
             page.wait_for_timeout(900)
             for seg in cards:
-                print(f"  card  {seg.id}")
-                page.locator(f"#{seg.card}").screenshot(path=str(seg.stills()[0]))
+                print(f"  card  {seg.id}" + (f"  ({seg.steps} steps)" if seg.steps > 1 else ""))
+                for i, still in enumerate(seg.stills()):
+                    page.evaluate(REVEAL, {"card": seg.card, "step": i + 1, "steps": seg.steps})
+                    page.locator(f"#{seg.card}").screenshot(path=str(still))
+                page.evaluate(REVEAL, {"card": seg.card, "step": 1, "steps": 1})
             page.close()
         browser.close()
 
@@ -587,7 +613,6 @@ def quantise(seconds: float) -> float:
 
 
 def assemble(segments: list[Segment]) -> None:
-    concat = outdir() / "frames.txt"
     out_file = ROOT / cfg("out")
     silence = BUILD / "pad.mp3"
     if not silence.exists():
@@ -596,7 +621,7 @@ def assemble(segments: list[Segment]) -> None:
              "-t", str(TAIL_PAD), "-q:a", "9", str(silence), "-y"], check=True,
         )
 
-    lines: list[str] = []
+    shots: list[tuple[Path, float]] = []      # (still, how long it is on screen)
     audio_parts: list[Path] = []
     timeline: list[tuple[str, float, float, list[str]]] = []
     total = 0.0
@@ -606,15 +631,12 @@ def assemble(segments: list[Segment]) -> None:
         each = quantise(span / len(stills))
         for i, still in enumerate(stills):
             hold = each if i < len(stills) - 1 else quantise(span - each * (len(stills) - 1))
-            lines.append(f"file '{still.as_posix()}'")
-            lines.append(f"duration {hold:.4f}")
+            shots.append((still, hold))
         audio_parts += [seg.audio, silence]
         shown = [seg.card] if seg.card else [f"{scene} - pass {i}" for scene, i in seg.frames]
         timeline.append((seg.id, total, span, shown))
         total += span
         print(f"  {seg.id:<14} {span:6.2f}s  {len(stills)} frame(s)")
-    lines.append(f"file '{segments[-1].stills()[-1].as_posix()}'")  # concat demuxer needs the last file twice
-    concat.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     alist = outdir() / "audio.txt"
     alist.write_text("\n".join(f"file '{p.as_posix()}'" for p in audio_parts) + "\n", encoding="utf-8")
@@ -624,16 +646,46 @@ def assemble(segments: list[Segment]) -> None:
          "-c:a", "aac", "-b:a", "160k", str(voice), "-y"], check=True,
     )
 
+    # The picture is cut to the narration by -shortest, so the closing fade is
+    # placed against the voice's own length rather than the sum of the spans.
+    film = duration(voice)
     write_timeline(timeline, total)
-    print(f"\n  muxing {total:.1f}s → {out_file.name}")
-    subprocess.run(
-        ["ffmpeg", "-v", "error",
-         "-f", "concat", "-safe", "0", "-i", str(concat),
-         "-i", str(voice),
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", str(FPS), "-crf", "20",
-         "-preset", "medium", "-movflags", "+faststart",
-         "-c:a", "copy", "-shortest", str(out_file), "-y"], check=True,
-    )
+    print(f"\n  dissolving {len(shots)} shots over {film:.1f}s → {out_file.name}")
+
+    # Each shot is cut a dissolve longer than it is on screen, because the chain
+    # gives that length back at the join. The last one is not, so the film ends
+    # exactly where the narration does.
+    cmd: list[str] = ["ffmpeg", "-v", "error"]
+    for i, (still, hold) in enumerate(shots):
+        clip = hold + (DISSOLVE if i < len(shots) - 1 else 0.0)
+        cmd += ["-loop", "1", "-t", f"{clip:.4f}", "-i", str(still)]
+    cmd += ["-i", str(voice)]
+
+    graph, offset = [], 0.0
+    for i in range(len(shots)):
+        graph.append(f"[{i}:v]format=yuv420p,fps={FPS},setsar=1[c{i}]")
+    prev = "c0"
+    for i in range(1, len(shots)):
+        offset += shots[i - 1][1]
+        label = f"x{i}" if i < len(shots) - 1 else "vout"
+        graph.append(f"[{prev}][c{i}]xfade=transition=fade:duration={DISSOLVE}:offset={offset:.4f}[{label}]")
+        prev = label
+    if len(shots) == 1:
+        graph.append("[c0]null[vout]")
+    # Out of black, and back into it.
+    graph[-1] = graph[-1].replace("[vout]", "[vfade]")
+    graph.append(f"[vfade]fade=t=in:st=0:d={FADE_IN},"
+                 f"fade=t=out:st={film - FADE_OUT:.3f}:d={FADE_OUT}[vout]")
+
+    script = outdir() / "dissolve.txt"
+    script.write_text(";\n".join(graph) + "\n", encoding="utf-8")
+    cmd += ["-filter_complex_script", str(script),
+            "-map", "[vout]", "-map", f"{len(shots)}:a",
+            "-af", f"afade=t=out:st={film - FADE_OUT:.3f}:d={FADE_OUT}",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", str(FPS), "-crf", "20",
+            "-preset", "medium", "-movflags", "+faststart",
+            "-c:a", "aac", "-b:a", "160k", "-shortest", str(out_file), "-y"]
+    subprocess.run(cmd, check=True)
 
 
 def write_timeline(rows: list[tuple[str, float, float, list[str]]], total: float) -> None:
