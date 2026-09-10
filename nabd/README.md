@@ -136,10 +136,11 @@ no network, the evidence inlined. Open it in a browser. It shows the monitored
 grid as a live map (congestion, silent sentinels, the declared footprint, the
 last-seen positions of the unreachable), the current verdict with its signals,
 the command-centre brief, priority zones ranked by registered people unreachable,
-the registry list, and the agent's log. Play a scene with <kbd>space</kbd>, step
-with the arrow keys, switch scenes with 1/2/3, or deep-link a pass for a slide:
-`replay.html#quake/6` is the declaration, `#quake/14` the update, `#noise/10` the
-stadium crowd being held.
+the registry list, and the agent's log. The six scenes run as one film:
+<kbd>space</kbd> plays through at 1×, 1.5× or 2×, each chapter opening with a
+card, the strip across the top as the timeline. The arrow keys step, 1–6 jump,
+or deep-link a pass for a slide: `replay.html#quake/6` is the declaration,
+`#quake/14` the update, `#noise/10` the stadium crowd being held.
 
 The console is a view over the records `log.py` writes — the map is redrawn from
 the per-pass grid string in each record, the lists from the triage summary, the
