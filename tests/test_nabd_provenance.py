@@ -232,7 +232,7 @@ def segments() -> list[tuple[str, str, str, list[str]]]:
         if not isinstance(node, ast.Assign):
             continue
         name = getattr(node.targets[0], "id", "")
-        if name == "SEGMENTS":
+        if name in ("SEGMENTS", "SHORT"):
             for call in node.value.elts:
                 sid = call.args[0].value
                 order.append(sid)

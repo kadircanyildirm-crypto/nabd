@@ -64,6 +64,19 @@ LANGS = {
         "kokoro_lang": "en-us",
         "kokoro_speed": 1.0,
     },
+    # The submission's virtual demo: the same film in under three minutes.
+    "short": {
+        "voice": "en-US-AndrewNeural",
+        "rate": "+10%",
+        "cards": "cards.html",
+        "out": "Nabd-Demo-3min.mp4",
+        "shots": "shot-list-3min.md",
+        "title": "Nabd \u2014 three-minute demo, shot list",
+        "language_id": "en",
+        "kokoro_voice": "am_onyx",
+        "kokoro_lang": "en-us",
+        "kokoro_speed": 1.0,
+    },
     "tr": {
         "voice": "tr-TR-AhmetNeural",
         "rate": "+8%",
@@ -185,7 +198,12 @@ def outdir() -> Path:
 
 
 def narration(seg: "Segment") -> str:
-    return seg.text if LANG == "en" else TURKISH[seg.id]
+    return TURKISH[seg.id] if LANG == "tr" else seg.text
+
+
+def cut() -> list["Segment"]:
+    """The segments of the cut being built."""
+    return SHORT if LANG == "short" else SEGMENTS
 
 # The console is built for a browser window, not a 16:9 frame. This makes the
 # map big enough to read at 1080p and lays the side panels out in two columns
@@ -360,6 +378,80 @@ SEGMENTS = [
 #: The Turkish cut. Not a translation of the English line by line — the same
 #: point, said the way it would be said in Turkish, at a length that fits the
 #: same frames.
+# The three-minute cut: nine segments, the same argument. Distinct ids, so its
+# console frames are shot on their own and never mistaken for the long cut's.
+SHORT = [
+    Segment(
+        "s1-title", card="c01-title", steps=2,
+        text="Nabd. In Arabic it means pulse. When a disaster hits, a whole neighbourhood of the "
+             "mobile network stops answering in the same second. Nabd reads that silence, and turns "
+             "it into a map of where the damage is.",
+    ),
+    Segment(
+        "s2-problem", card="c02-problem", steps=3,
+        text="On the sixth of February, twenty twenty-three, the seismometers knew within seconds. "
+             "What they could not say was which street, or who was cut off. That took hours, while "
+             "a seventy-two hour clock was already running under the rubble. The network already "
+             "knew. Nobody was reading it.",
+    ),
+    Segment(
+        "s3-insight", card="c03-insight", steps=3,
+        text="A connected block of cells goes silent in the same second, while the ring around it "
+             "saturates, because everyone still standing is calling at once. Nabd reads that shape "
+             "through three CAMARA APIs on Nokia Network-as-Code, in two layers: detection is "
+             "aggregate and never touches the public; triage is consented, and only ever inside a "
+             "declared footprint.",
+    ),
+    Segment(
+        "s4-quake", frames=[("quake", 4), ("quake", 6)],
+        text="The command centre. Every square is a cell with one sentinel device inside. Nine oh "
+             "two: nine cells go silent at once, and the agent does not declare, because one signal "
+             "never declares alone. One more pass. Fifty-five seconds after the shaking it declares "
+             "nine cells, about four square kilometres, at high confidence: two gates passed, two "
+             "corroborations agree, and the saturated ring is everyone who survived, calling at once.",
+    ),
+    Segment(
+        "s5-triage", frames=[("quake", 7), ("quake", 16)], tab="registry",
+        text="Only now does it touch a personal device. Thirteen people inside are on the opt-in "
+             "registry, and six are not answering: ranked by need, with a last-seen position. Four "
+             "minutes later two of them answer again, and the list corrects itself, six to four. "
+             "Every line of the evidence counts the personal calls it made.",
+    ),
+    Segment(
+        "s6-refusals", frames=[("noise", 10), ("degraded", 21)], tab="log",
+        text="The work is in what it refuses. One silent cell is a base-station fault. Four silent "
+             "inside a maintenance ticket is expected work. Nine saturated while every sentinel "
+             "answers is a football crowd. A block where silence is normal is measured against its "
+             "own history and refused, while a real impact in the same run is still declared. Every "
+             "refusal is written down.",
+    ),
+    Segment(
+        "s7-real", frames=[("maras", 6), ("maras", 23), ("atlas", 22)],
+        text="Then we stopped drawing the disaster. The shaking in every cell comes from the USGS "
+             "ShakeMap of the magnitude seven point eight Pazarc\u0131k earthquake; only the rule that "
+             "turns shaking into silence is ours. Fifty-five seconds after onset it declares, and the "
+             "footprint grows as the network keeps dying. Then Al Haouz, in Morocco, magnitude six "
+             "point eight, on the same thresholds untouched: the first verdict is a refusal, it "
+             "declares later at medium confidence, and it says why. Marrakesh, shaken, is never named.",
+    ),
+    Segment(
+        "s8-live", card="c11-parity", steps=3,
+        text="The sandbox cannot stage a disaster, so the two claims are separated. The live "
+             "platform proves the integration: eighteen of eighteen calls answered on "
+             "Network-as-Code, the raw exchanges on file. The simulator proves the scenario, and a "
+             "replay of every recorded response through the live parsers reproduces the evidence "
+             "line for line.",
+    ),
+    Segment(
+        "s9-close", card="c12-close", steps=3,
+        text="Under the hood, a LangGraph graph over a deterministic core, where the node that "
+             "queries a personal device can only be reached from a verdict with an active footprint. "
+             "Watching the whole of T\u00fcrkiye takes seven thousand eight hundred sentinel SIMs, not "
+             "eighty-five million people, sold through Open Gateway to the agency that carries the "
+             "duty of care. Nabd. Kadir's Team, T\u00fcrkiye.",
+    ),
+]
+
 TURKISH = {
     "01-title":
         "Nabd. Arapçada nabız demek, ki yaptığı işe de yakın; çünkü bir afet vurduğunda mobil "
@@ -787,7 +879,7 @@ def assemble(segments: list[Segment]) -> None:
 
 def write_timeline(rows: list[tuple[str, float, float, list[str]]], total: float) -> None:
     """The shot list, regenerated from the build so it cannot drift from the film."""
-    by_id = {s.id: s for s in SEGMENTS}
+    by_id = {s.id: s for s in cut()}
     out = [
         f"# {cfg('title')}",
         "",
@@ -865,7 +957,7 @@ def main(argv: list[str]) -> int:
     outdir().mkdir(parents=True, exist_ok=True)
     (BUILD / "console").mkdir(parents=True, exist_ok=True)
 
-    todo = [s for s in SEGMENTS if not args.only or s.id == args.only]
+    todo = [s for s in cut() if not args.only or s.id == args.only]
     if not todo:
         print(f"no segment matches {args.only}", file=sys.stderr)
         return 2
@@ -879,7 +971,7 @@ def main(argv: list[str]) -> int:
         print("\n  assets rebuilt; run without --only to assemble\n")
         return 0
     print("\n  timeline")
-    assemble(SEGMENTS)
+    assemble(cut())
     out_file = ROOT / cfg("out")
     print(f"\n  {out_file.name}: {out_file.stat().st_size // 1024} KB\n")
     return 0
