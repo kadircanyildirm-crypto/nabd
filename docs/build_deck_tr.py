@@ -63,7 +63,7 @@ slides.append("""
   <div class="stats3">
     <div><b>53.000+</b><span>Kahramanmaraş, Türkiye<br>depremler, Şubat 2023</span></div>
     <div><b>~3.000</b><span>El Haouz, Fas<br>deprem, Eylül 2023</span></div>
-    <div><b>11.000+</b><span>Derna, Libya<br>baraj çöküşü ve sel, Eylül 2023</span></div>
+    <div><b>4.000+</b><span>Derna, Libya<br>baraj çöküşü ve sel, Eylül 2023 — doğrulanan; binlerce kişi hâlâ kayıp</span></div>
   </div>
   <p class="lead" style="font-size:30px;max-width:1080px">Hepsinde sensörler <em>bir şey</em> olduğunu saniyeler
   içinde doğruladı. Hangi mahallelerin insanını kaybettiğini gösteren harita ise saatler sonra geldi.</p>

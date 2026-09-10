@@ -343,7 +343,7 @@ SEGMENTS = [
         "14-close", card="c12-close", steps=3,
         text="To the network, an earthquake, a flood, a storm and a mass outage are the same thing: "
              "an area going dark. Watching the whole of Türkiye takes seven thousand eight hundred "
-             "sentinel SIMs, not eighty-five million subscribers — the bill scales with land area, "
+             "sentinel SIMs, not eighty-five million people — the bill scales with land area, "
              "not population, and the operator sells it through Open Gateway to the agency that "
              "already carries the duty of care. Kadir's Team, Türkiye, for MENA Ignite twenty "
              "twenty-six. The network already knew where the damage was, the whole time. Nabd is "

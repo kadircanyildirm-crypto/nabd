@@ -180,7 +180,7 @@ slides.append("""
   <div class="stats3">
     <div><b>53,000+</b><span>Kahramanmaraş, Türkiye<br>earthquakes, February 2023</span></div>
     <div><b>~3,000</b><span>Al Haouz, Morocco<br>earthquake, September 2023</span></div>
-    <div><b>11,000+</b><span>Derna, Libya<br>dam collapse and flood, September 2023</span></div>
+    <div><b>4,000+</b><span>Derna, Libya<br>dam collapse and flood, September 2023 — confirmed; thousands still missing</span></div>
   </div>
   <p class="lead" style="font-size:30px;max-width:1080px">In each of them, sensors confirmed <em>something</em> had happened within seconds.
   Which neighbourhoods had lost their people — that map arrived hours late.</p>

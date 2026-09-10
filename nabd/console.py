@@ -1312,7 +1312,7 @@ TEMPLATE = r"""<!doctype html>
     html += `</table>`;
 
     html += `<p>One sentinel SIM per cell: <b>${human(Math.round(COUNTRIES[1].km2 / deployKm2))} SIMs to watch Türkiye</b>, `
-          + `not eighty-five million subscribers. The bill scales with land area and cadence, and the buyer `
+          + `not eighty-five million people. The bill scales with land area and cadence, and the buyer `
           + `chooses both — a national watch runs slow and tightens to ${cadence} s over one province the moment `
           + `a seismic alert or a first block of silence arrives.</p>`;
     html += `<p>The operator sells the impact feed as an Open Gateway product; the buyer is the civil-defence `
