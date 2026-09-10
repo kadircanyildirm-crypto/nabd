@@ -367,7 +367,7 @@ slides.append("""
 
 # ---------- 9 evidence: quake console
 sig = DECL["signals"]
-slides.append(f"""
+slides.append("""
 <section class="slide" id="slide-9">
   <div class="kicker">Evidence — the earthquake scene</div>
   <h2>Declared 55 seconds after onset. Six people to reach first.</h2>
@@ -409,7 +409,7 @@ slides.append(f"""
 </section>""")
 
 # ---------- 12 the real event
-slides.append(f"""
+slides.append("""
 <section class="slide" id="slide-12">
   <div class="kicker">Evidence — the event itself</div>
   <h2>Then we stopped drawing the disaster.</h2>

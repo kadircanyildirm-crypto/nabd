@@ -246,7 +246,7 @@ slides.append("""
 
 # ---------- 9 kanıt: deprem konsolu
 sig = DECL["signals"]
-slides.append(f"""
+slides.append("""
 <section class="slide" id="slide-9">
   <div class="kicker">Kanıt — deprem sahnesi</div>
   <h2>Sarsıntıdan 55 saniye sonra ilan. Önce ulaşılacak altı kişi.</h2>
@@ -290,7 +290,7 @@ slides.append(f"""
 </section>""")
 
 # ---------- 12 gerçek olay
-slides.append(f"""
+slides.append("""
 <section class="slide" id="slide-12">
   <div class="kicker">Kanıt — olayın kendisi</div>
   <h2>Sonra afeti çizmeyi bıraktık.</h2>

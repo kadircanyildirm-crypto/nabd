@@ -39,7 +39,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
-from typing import Any, Callable
+from typing import Any
 
 from nabd.brief import Composer, template
 
@@ -172,5 +172,11 @@ def from_env(report=sys.stderr) -> Composer | None:
     provider = os.environ.get("NABD_LLM", "").strip().lower()
     if not provider:
         return None
-    raw = chat(provider)
+    try:
+        raw = chat(provider)
+    except (ValueError, RuntimeError) as exc:
+        # An unknown provider or a missing key must not stop the demo: the
+        # template writes the brief, and the reason is said once.
+        _say(report, f"[{provider}] not used ({exc}); template used")
+        return None
     return guarded(raw, name=raw.__name__, report=report)

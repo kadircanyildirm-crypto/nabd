@@ -60,13 +60,16 @@ corroboration.
 | local baseline | **gate** — silence must be abnormal *here*, against these cells' own history | Device Reachability |
 | synchronised onset | corroboration — the block went dark inside one window | Device Reachability |
 | hot ring | corroboration — the surviving ring saturates as everyone calls at once | Congestion Insights |
+| blind pass | **guard** — more than half the sentinels returned *no reading*: the platform is silent, not the network | Device Reachability |
 
 A gate can veto a declaration but never cause one; a corroboration can raise
 confidence but never carry it alone. Two corroborations make a HIGH-confidence
 footprint, one makes MEDIUM, none is an abstention with the reason written down —
 and a candidate must survive a second pass before it is published. Anything the
 operator's maintenance calendar explains is removed before the geometry is
-computed.
+computed. A blind pass declares nothing, holds an open footprint without
+clearing it, and teaches the local baseline nothing: the agent says it cannot
+see, rather than reporting a quiet morning it did not observe.
 
 `CORROBORATIONS` in `detector.py` is a tuple of small named functions, and the
 verdict arithmetic counts it. Adding a network surface — a real aggregate API,

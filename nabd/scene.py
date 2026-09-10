@@ -26,7 +26,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 
-from nabd.gateway import EPOCH, build as build_gateway, write_calls
+from nabd.gateway import build as build_gateway, write_calls
 from nabd.log import clock
 from nabd.model import Maintenance, Reach
 from nabd.world import (
@@ -334,7 +334,6 @@ def run_replay(transcript=None, passes: int = 3, out=None):
     """
     from nabd.gateway import EVIDENCE_DIR
     from nabd.loop import NabdLoop
-    from nac import client as nac_client
 
     path = transcript or (EVIDENCE_DIR / "nabd-live-contract.jsonl")
     if not path.exists():
@@ -386,7 +385,9 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--scene", choices=[*BUILDERS, "all"], default="all")
-    parser.add_argument("--runner", choices=["graph", "loop"], default="graph")
+    parser.add_argument("--runner", choices=["auto", "graph", "loop"], default="auto",
+                        help="auto: the LangGraph runner when langgraph is installed, the plain loop when it is not; "
+                             "both write byte-identical evidence")
     parser.add_argument("--backend", choices=["offline", "live", "replay"], default="offline")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--calls", action="store_true", help="also write every raw CAMARA call to nac/evidence/")
@@ -396,6 +397,14 @@ def main(argv: list[str] | None = None) -> int:
                              "needs the provider's key in the environment, see nabd/llm.py")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.runner == "auto":
+        from nabd.graph import LANGGRAPH_AVAILABLE
+
+        args.runner = "graph" if LANGGRAPH_AVAILABLE else "loop"
+        if not LANGGRAPH_AVAILABLE:
+            print("  langgraph is not installed: running the plain loop (same core, same evidence). "
+                  "`pip install -r requirements.txt` for the graph runner.", file=sys.stderr)
 
     composer = None
     if args.llm:

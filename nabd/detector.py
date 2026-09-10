@@ -46,6 +46,10 @@ class Policy:
     # just started never suppresses a real impact for lack of history.
     baseline_min_passes: int = 10
     baseline_dark_rate: float = 0.20
+    # A pass is blind when this share of the monitored sentinels returned no
+    # reading at all — the platform, not the network, is silent. A blind pass
+    # declares nothing, clears nothing and teaches the baseline nothing.
+    blind_share: float = 0.5
 
 
 DEFAULT_POLICY = Policy()
@@ -96,6 +100,7 @@ class Correlation:
     unread: tuple[str, ...]  # Congestion Insights returned nothing
     dark_clusters: tuple[tuple[str, ...], ...]
     hot_clusters: tuple[tuple[str, ...], ...]
+    unknown: tuple[str, ...] = ()  # Device Status returned nothing: no reading, not silence
 
 
 @dataclass(frozen=True)
@@ -152,12 +157,14 @@ def correlate(snapshot: Snapshot, grid: Grid, t: float) -> Correlation:
     dark = tuple(c for c in monitored if snapshot[c].reach is Reach.UNREACHABLE)
     hot = tuple(c for c in monitored if snapshot[c].congestion is Level.HIGH)
     unread = tuple(c for c in monitored if snapshot[c].congestion is Level.UNKNOWN)
+    unknown = tuple(c for c in monitored if snapshot[c].reach is Reach.UNKNOWN)
     return Correlation(
         t=t,
         monitored=monitored,
         dark=dark,
         hot=hot,
         unread=unread,
+        unknown=unknown,
         dark_clusters=clusters(dark, grid),
         hot_clusters=clusters(hot, grid),
     )
@@ -178,6 +185,11 @@ def exclude(corr: Correlation, grid: Grid, calendar: tuple[Maintenance, ...], t:
     return Exclusion(maintenance=explained, clusters=clusters(remaining, grid), notes=tuple(notes))
 
 
+def blind(corr: Correlation, policy: Policy) -> bool:
+    """Too few sentinels answered for the pass to say anything about the network."""
+    return bool(corr.monitored) and len(corr.unknown) > policy.blind_share * len(corr.monitored)
+
+
 def declare(
     corr: Correlation,
     excl: Exclusion,
@@ -189,9 +201,26 @@ def declare(
     """The verdict for this pass. Pure: reads `state`, never writes it."""
     lead = excl.clusters[0] if excl.clusters else ()
 
+    # -- a blind pass: the platform is silent, which says nothing about the network
+    if blind(corr, policy):
+        n, m = len(corr.unknown), len(corr.monitored)
+        signal = (f"Device Status: no reading from {n}/{m} sentinels",)
+        if state.footprint:
+            return Verdict(
+                Kind.SUSTAIN, t, state.footprint, state.confidence,
+                reason=f"footprint held: no reading from {n}/{m} sentinels this pass — the platform is not answering; nothing confirmed, nothing cleared",
+                signals=signal,
+            )
+        return Verdict(
+            Kind.ABSTAIN, t, (),
+            reason=f"blind: no reading from {n} of {m} sentinels — the platform is not answering, and that is not the network going silent; nothing declared",
+            signals=signal,
+        )
+
     # -- an active footprint: sustain, update or clear -------------------------
     if state.footprint and len(lead) < policy.min_cells:
-        back = [c for c in state.footprint if c not in corr.dark]
+        # Unknown is not back. Only a cell that answered counts towards clearing.
+        back = [c for c in state.footprint if c not in corr.dark and c not in corr.unknown]
         if len(back) == len(state.footprint):
             since = state.clear_since if state.clear_since is not None else t
             if t - since >= policy.clear_after_s:
@@ -326,8 +355,9 @@ def apply(verdict: Verdict, corr: Correlation, state: State, policy: Policy, t: 
 
     # The local baseline learns only from ordinary time. While a footprint is
     # published the grid is not ordinary, so the history pauses rather than
-    # teaching the detector that the disaster it is watching is normal.
-    if not state.footprint:
+    # teaching the detector that the disaster it is watching is normal. A blind
+    # pass saw nothing, so it teaches nothing either.
+    if not state.footprint and not blind(corr, policy):
         state.passes_observed += 1
         for cell in list(state.dark_run):
             if cell not in dark:
@@ -346,7 +376,8 @@ def apply(verdict: Verdict, corr: Correlation, state: State, policy: Policy, t: 
         state.candidate_passes = 0
 
     if verdict.kind is Kind.ABSTAIN:
-        state.explained.add(verdict.key)
+        if verdict.key:
+            state.explained.add(verdict.key)
     elif verdict.kind is Kind.DECLARE:
         state.footprint = verdict.cells
         state.declared_at = t
@@ -357,7 +388,8 @@ def apply(verdict: Verdict, corr: Correlation, state: State, policy: Policy, t: 
         state.confidence = verdict.confidence
         state.clear_since = None
     elif verdict.kind is Kind.SUSTAIN:
-        if all(c not in dark for c in state.footprint):
+        unknown = set(corr.unknown)
+        if all(c not in dark and c not in unknown for c in state.footprint):
             if state.clear_since is None:
                 state.clear_since = t
         else:

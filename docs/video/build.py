@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 import shutil
 import subprocess
@@ -874,12 +873,12 @@ def main(argv: list[str]) -> int:
     print(f"\n  {LANG} cut \u2014 narration via {ENGINE} ({len(todo)} segment(s))")
     narrate(todo, skip=args.no_tts)
     if not args.no_shoot:
-        print(f"\n  frames")
+        print("\n  frames")
         shoot(todo)
     if args.only:
         print("\n  assets rebuilt; run without --only to assemble\n")
         return 0
-    print(f"\n  timeline")
+    print("\n  timeline")
     assemble(SEGMENTS)
     out_file = ROOT / cfg("out")
     print(f"\n  {out_file.name}: {out_file.stat().st_size // 1024} KB\n")

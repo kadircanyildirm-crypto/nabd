@@ -47,7 +47,7 @@ def api_key() -> str:
 
 
 def msisdns() -> list[str]:
-    """Simulator numbers, in declaration order. First is the airframe."""
+    """Simulator numbers, in declaration order; each becomes one sentinel."""
     load_env()
     raw = os.environ.get("NAC_MSISDNS", "")
     return [n.strip() for n in raw.split(",") if n.strip()]
@@ -78,6 +78,25 @@ def rapidapi_host() -> str:
     return os.environ.get("NAC_RAPIDAPI_HOST", "").strip() or DEFAULT_RAPIDAPI_HOST
 
 
+DEFAULT_TIMEOUT_S = 10.0
+
+
+def timeout_s() -> float:
+    """Seconds to wait on one call. The SDK's own default is sixty, and a pass
+    is two hundred calls: one hung platform would stall it for hours. Ten
+    seconds is generous for an API answer; a sentinel that has not answered
+    by then is recorded as no reading, and the pass moves on."""
+    load_env()
+    raw = os.environ.get("NAC_TIMEOUT_S", "").strip()
+    try:
+        value = float(raw) if raw else DEFAULT_TIMEOUT_S
+    except ValueError as exc:
+        raise ValueError(f"NAC_TIMEOUT_S must be a number of seconds, not {raw!r}") from exc
+    if value <= 0:
+        raise ValueError(f"NAC_TIMEOUT_S must be positive, not {value}")
+    return value
+
+
 def build():
     """Return a configured NetworkAsCodeApi client, pointed at this account's host."""
     from network_as_code import NetworkAsCodeApi
@@ -86,6 +105,7 @@ def build():
         api_key=api_key(),
         base_url=base_url(),
         rapidapi_host=rapidapi_host(),
+        timeout=timeout_s(),
     )
 
 

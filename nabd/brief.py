@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from nabd.model import Grid, Kind, Reach, Verdict
+from nabd.model import Grid, Kind, Verdict
 from nabd.triage import TriageResult
 
 Composer = Callable[[dict[str, Any]], str]
