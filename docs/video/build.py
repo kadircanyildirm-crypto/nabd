@@ -73,6 +73,11 @@ LANGS = {
         "shots": "shot-list-tr.md",
         "title": "Nabd \u2014 demo videosu \u00e7ekim listesi (T\u00fcrk\u00e7e)",
         "language_id": "tr",
+        # Kokoro has no Turkish voice. Reading Turkish phonemes with an English
+        # one gave a narrator who could not say Kahramanmaraş, so the Turkish
+        # cut uses edge's own Turkish voice: not as warm as the English one,
+        # but it pronounces the language it is speaking.
+        "engine": "edge",
         "kokoro_voice": "am_onyx",
         "kokoro_lang": "tr",
         "kokoro_speed": 1.0,
@@ -466,9 +471,25 @@ class QuotaSpent(RuntimeError):
 
 
 async def _edge(text: str, out: Path) -> None:
+    """One segment through edge-tts — and checked, like the other two engines.
+
+    It occasionally returns a second of audio for a whole paragraph and reports
+    no error at all, which is how a title card once went out with a heartbeat
+    of narration under it. Anything far short of the words it was given is a
+    failed render, and a failed render raises.
+    """
     import edge_tts
 
-    await edge_tts.Communicate(text, cfg("voice"), rate=cfg("rate")).save(str(out))
+    for attempt in range(3):
+        await edge_tts.Communicate(text, cfg("voice"), rate=cfg("rate")).save(str(out))
+        spoken, expected = duration(out), len(text.split()) / 3.2
+        if spoken >= expected * 0.7:
+            return
+        print(f"        {spoken:.1f}s for {len(text.split())} words — retrying")
+    raise RuntimeError(
+        f"edge-tts kept returning {duration(out):.1f}s for {len(text.split())} words "
+        f"(expected about {len(text.split()) / 3.2:.1f}s)"
+    )
 
 
 #: The Space returns about fifteen seconds of speech and truncates the rest
@@ -826,7 +847,9 @@ def main(argv: list[str]) -> int:
 
     global LANG, ENGINE
     LANG = args.lang
-    ENGINE = args.engine
+    # A cut may pin its own engine — the Turkish one does, because Kokoro has no
+    # Turkish voice. An explicit --engine still wins.
+    ENGINE = args.engine if "--engine" in argv else LANGS[LANG].get("engine", args.engine)
 
     if args.fetch_tts:
         fetch_tts()
