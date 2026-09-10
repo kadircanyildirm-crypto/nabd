@@ -141,9 +141,9 @@ def main(argv: list[str]) -> int:
     # from the ones already chosen — so the labels cover the window evenly.
     places.sort(key=lambda p: (p["rank"], p["name"]))
     seen: set[str] = set()
-    places = [p for p in places if not (p["name"] in seen or seen.add(p["name"]))]
-    named = [p for p in places if p["rank"] <= 2]
-    rest = [p for p in places if p["rank"] > 2]
+    unique = [p for p in places if not (p["name"] in seen or seen.add(p["name"]))]
+    named = [p for p in unique if p["rank"] <= 2]
+    rest = [p for p in unique if p["rank"] > 2]
     spread: list[dict] = []
     while rest and len(spread) < 22:
         anchors = named + spread
@@ -153,7 +153,22 @@ def main(argv: list[str]) -> int:
         far = max(rest, key=lambda p: min((p["lon"] - a["lon"]) ** 2 + (p["lat"] - a["lat"]) ** 2 for a in anchors))
         rest.remove(far)
         spread.append(far)
-    places = named + spread
+    chosen = named + spread
+
+    # Every other village is kept as a last tier, ranked 5, which the console
+    # draws only when zoomed right in — where a 10 km cell fills the view and
+    # the reader wants a name for what is under it. Same-named villages a
+    # valley apart are different places, so here the key is name and position.
+    taken = {(p["name"], p["lon"], p["lat"]) for p in chosen}
+    near: set[tuple] = set()
+    tail: list[dict] = []
+    for p in places:
+        key = (p["name"], round(p["lon"], 2), round(p["lat"], 2))
+        if p["rank"] != 3 or (p["name"], p["lon"], p["lat"]) in taken or key in near:
+            continue
+        near.add(key)
+        tail.append({**p, "rank": 5})
+    places = chosen + tail
 
     payload = {
         "_": "Street-level base map for the city-scale scenes. Coordinates are delta-encoded "

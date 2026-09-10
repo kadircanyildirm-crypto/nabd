@@ -335,6 +335,10 @@ TEMPLATE = r"""<!doctype html>
   .c-dark { fill: #04070de6; }
   /* Zoomed in, a reader is asking where: the streets ghost through the dark. */
   #grid.zoomed .c-dark { fill: #04070dc4; }
+  #grid.far .c-dark { fill: #04070da6; }
+  /* Right in, the minor roads are what there is to read; they come up a step. */
+  #grid.far .rd-local { stroke: #5b7188; stroke-width: 1.1; }
+  #grid.far .rd-minor { stroke: #7d93a8; stroke-width: 1.4; }
   .c-clear { fill: none; }
   /* With the measured event on, the shaking is the subject and the load steps back. */
   #grid.detail #cells { opacity: .3; }
@@ -774,10 +778,11 @@ TEMPLATE = r"""<!doctype html>
   // is something you watch happen.
   let MAP = null;
   let detail = false;   // the measured-event overlay, off unless asked for
-  // How far in a scene can go. A city scene has streets under a 1 km cell
-  // and goes to 8x; a region watches 10 km cells over a between-towns road
-  // net, and past 4x a single cell fills the view with nothing new in it.
-  const zooms = () => cur().city ? [1, 2, 4, 8] : [1, 2, 4];
+  // Every scene goes to 8x. A region's 10 km cell fills the view there, so
+  // the base map carries every village for that zoom, and the dark of a
+  // silent cell lets the roads under it ghost through: what is under the
+  // cell stays readable, even if the reading itself is 10 km coarse.
+  const zooms = () => [1, 2, 4, 8];
   let zi = 0;           // index into zooms()
   let ZOOM = 1, TX = 0, TY = 0;   // scale, and where the scaled map sits
 
@@ -949,7 +954,7 @@ TEMPLATE = r"""<!doctype html>
       const placed = [];
       // Cities and towns are always named. Villages and neighbourhoods wait for
       // the zoom: at 1x they were most of what made the map hard to look at.
-      const rankCap = ZOOM >= 4 ? 9 : ZOOM >= 2 ? 3 : 2;
+      const rankCap = ZOOM >= 8 || (ZOOM >= 4 && isCity) ? 9 : ZOOM >= 4 ? 4 : ZOOM >= 2 ? 3 : 2;
       places.places.forEach(t => {
         if (t.rank > rankCap) return;
         const [bx, by] = project(t.lat, t.lon, g);
@@ -1545,12 +1550,11 @@ TEMPLATE = r"""<!doctype html>
     TY = ay - (ay - TY) * (z1 / z0);
     zi = next; ZOOM = z1;
     $('grid').classList.toggle('zoomed', ZOOM >= 2);
+    $('grid').classList.toggle('far', ZOOM >= 8);
     if (zi === 0) { TX = 0; TY = 0; }        // 1× is always the whole picture
     clampPan();
     $('zlvl').textContent = ZOOMS[zi] + '×';
     $('zin').disabled = zi === ZOOMS.length - 1;
-    $('zin').title = $('zin').disabled && !cur().city ? `${ZOOMS[zi]}× is as close as a region goes — its cells are ${cur().grid.spacing_m / 1000} km, and nothing finer was read`
-                                                       : 'zoom in — drag the map to move, or roll the wheel over the spot you want';
     $('zout').disabled = zi === 0;
     // No rebuild: the scene is transformed, the unscaled layers are re-laid
     // out, and the per-pass marks are refreshed at the new scale.
