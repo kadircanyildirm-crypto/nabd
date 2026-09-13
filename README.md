@@ -14,7 +14,7 @@ agent layer on **LangGraph** (from the Resource & Tooling Guide).
 | | |
 |---|---|
 | **Live demo** (command-centre console) | https://kadircanyildirm-crypto.github.io/nabd/ |
-| **Demo video** | *(link in the HackerEarth submission)* |
+| **Demo films** | [3-minute demo and the full 5:57 cut](https://github.com/kadircanyildirm-crypto/nabd/releases/tag/films) |
 | **Pitch deck** | [`Nabd-Pitch-Deck.pdf`](Nabd-Pitch-Deck.pdf) · [`Nabd-Project-Brief.pdf`](Nabd-Project-Brief.pdf) |
 | **Team** | Kadir's Team — Kadir Can Yıldırım (solo), Türkiye |
 
@@ -92,15 +92,19 @@ evidence byte for byte — the framework wraps the core rather than containing i
 
 ## What the prototype does today
 
-Three scenes over a 10×10 grid of cells covering Kahramanmaraş, a 48-person
-pseudonymous opt-in registry, and an operator maintenance calendar. Every CAMARA call
-is recorded as evidence in `nac/evidence/`.
+Six scenes — four drawn over a 10×10 grid of 1 km cells covering Kahramanmaraş, with
+a 48-person pseudonymous opt-in registry and an operator maintenance calendar, and two
+driven by the measured ground motion of earthquakes that happened, over 10 km cells.
+Every CAMARA call is recorded as evidence in `nac/evidence/`.
 
 | Scene | What happens | What the agent does |
 |---|---|---|
-| **Quiet** | an ordinary morning | holds — 21 passes, nothing declared |
+| **Quiet** | an ordinary morning | holds — 11 passes, nothing declared |
 | **Earthquake** | nine cells fall silent at once; the ring goes hot | declares a **9-cell footprint 55 s after onset, HIGH** (synchronised onset + 16/16 ring cells High); 13 registered people inside, **6 unreachable**, ranked by zone with last-seen positions; the list updates 6 → 4 as people answer |
 | **Look-alikes** | a single-cell fault · a maintenance window (ticket MNT-2214) · a stadium crowd | **abstains three times**, each with its own written reason; declares nothing |
+| **Chronic degradation** | a block on a failing backhaul flaps all morning, then a real earthquake hits the centre in the same run | refuses the block on its own history — *dark in 3 of the last 11 passes* — and **declares the earthquake 30 s after onset** while the block stays held |
+| **Kahramanmaraş, 6 Feb 2023** | the USGS ShakeMap `us6000jllz` decides which cells go silent, and when | **21 cells 55 s after onset, HIGH**, every one above the collapse threshold; grows to 63 over 12 updates as batteries fail; 22 registered people unreachable at peak |
+| **Al Haouz, 8 Sep 2023** | ShakeMap `us7000kufc`, on the same thresholds untouched | the first verdict is a **refusal** — two cells, below the floor; declares at **+235 s, MEDIUM**, and says why; 39 cells at the end; **Marrakesh, shaken, is never named** |
 
 The **command-centre console** (`nabd/replay.html`, served as the live demo) is one
 self-contained file: the monitored grid as a live map, the verdict and its signals, the
@@ -131,9 +135,10 @@ them. CAMARA is the one standard, operator-independent door.
 
 The Network-as-Code sandbox cannot stage a disaster, so the split is explicit:
 
-- `nabd/gateway.py` exposes one surface with two backends. `OfflineGateway` answers
+- `nabd/gateway.py` exposes one surface with three backends. `OfflineGateway` answers
   from a `World` in the platform's own vocabulary and response shapes; `LiveGateway`
-  makes the same three calls through the Nokia SDK.
+  makes the same three calls through the Nokia SDK; `ReplayGateway` answers a recorded
+  transcript back through the live parsers, so a live run can be re-run with no key.
 - The agent code is identical on both, and both record every call in the same `Call`
   shape. `--backend live` proves the contract on real simulator devices and writes the
   raw exchanges to `nac/evidence/nabd-live-contract.jsonl`, next to the offline scenes.
@@ -166,7 +171,7 @@ Network-as-Code.
 ```
 nabd/       model      the vocabulary: cells, readings, verdicts, the registry
             world      the offline world: grid, opt-in registry, events, maintenance calendar
-            gateway    one CAMARA surface, two backends (offline | live)
+            gateway    one CAMARA surface, three backends (offline | live | replay)
             detector   the deterministic core: correlate → exclude → declare — no framework import
             triage     per-person reachability and last-seen, inside the footprint only
             brief      the command-centre sentence (the only place an LLM belongs)
@@ -179,9 +184,9 @@ nabd/       model      the vocabulary: cells, readings, verdicts, the registry
             console    the command-centre console → nabd/replay.html and docs/index.html
 nabd/data/  the committed ShakeMap extracts (two events) and the scripts that produced them
 nac/        client.py (Nokia SDK wiring), evidence/ (every recorded call), .env.example
-tests/      run.py + test_nabd_{detector,scenes,parity,real,live_wiring}.py
-docs/       index.html (live demo), nabd-deck.html (the deck), snapshots/,
-            video/ (cards.html, build.py and the generated shot-list.md)
+tests/      run.py + test_nabd_{detector,scenes,parity,real,live_wiring,llm,false_alarm,provenance,blind,cli}.py
+docs/       index.html (live demo), nabd-deck.html (the deck), PROVENANCE.md, snapshots/,
+            video/ (cards.html, build.py and the generated shot lists)
 ```
 
 Tests, in the order a reviewer should read them: `test_nabd_detector.py` (the core,
@@ -195,9 +200,12 @@ provenance assertions so the data cannot drift from the claims made about it —
 held-out test rather than a second calibration) and
 `test_nabd_live_wiring.py` (the live path resolved against the installed Nokia SDK
 without spending a call), `test_nabd_llm.py` (the model's guard: a sentence with an invented
-number is thrown away) and `test_nabd_false_alarm.py` (0 of 90 ordinary mornings declared under
-1–3% random sentinel dropout, and the edge near 5% written down). `python -m tests.run` → 79/79
-across 7 suites.
+number is thrown away), `test_nabd_false_alarm.py` (0 of 90 ordinary mornings declared under
+1–3% random sentinel dropout, and the edge near 5% written down), `test_nabd_provenance.py`
+(every figure the films speak traced to its scene or a cited source), `test_nabd_blind.py` (a
+dead platform is an abstention, never a quiet morning, and cannot clear a footprint) and
+`test_nabd_cli.py` (the first command a juror types, its evidence byte-identical, its failures
+as sentences). `python -m tests.run` → 79/79 across 10 suites.
 
 ## Where the data comes from
 
