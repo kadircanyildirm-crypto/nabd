@@ -181,7 +181,9 @@ which is the mechanism the whole claim rests on.
 4. **The live transcript replays with no account.** `--backend live` writes the
    raw exchanges to `nac/evidence/nabd-live-contract.jsonl`; `--backend replay`
    runs the same agent back over them offline. Until that file exists the check
-   reports PENDING — never PASS.
+   reports PENDING — never PASS. It exists: recorded on 10 September 2026 against
+   the platform's simulator devices, 18 of 18 calls answered, and the check
+   passes — `python -m nabd.parity` prints 4/4.
 
 ## The privacy boundary is a number, not a paragraph
 

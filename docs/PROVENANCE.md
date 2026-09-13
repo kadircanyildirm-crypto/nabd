@@ -41,13 +41,17 @@ date it was taken, and a test fails if any of them does not.
 | Last-seen positions and their radii | Simulated, inside the cell the person belongs to. |
 | The maintenance calendar (ticket `MNT-2214`) | Invented, to give the detector something legitimate to refuse. |
 | Scenes 1–4 (quiet, earthquake, look-alikes, chronic degradation) | **Entirely drawn worlds.** They are the unit tests of the idea, not observations. |
-| Every CAMARA call | Made against the offline gateway. The call *shapes* are the real SDK's — `tests/test_nabd_live_wiring.py` resolves all three endpoints against the installed `network_as_code` package — but no call has left this machine. |
+| Every CAMARA call in the six scenes | Made against the offline gateway. The call *shapes* are the real SDK's — `tests/test_nabd_live_wiring.py` resolves all three endpoints against the installed `network_as_code` package. |
+| The live contract run | **Real calls to Nokia Network-as-Code**, 10 September 2026, simulator devices: 18 of 18 answered. The raw exchanges are `nac/evidence/nabd-live-contract.jsonl`; `python -m nabd.scene --backend replay` re-runs the agent over them with no credentials, and `python -m nabd.parity` reports 4/4. What the platform's simulator devices *return* is the platform's choice, not ours — it cannot stage a disaster, so the run proves the integration, not the scenario. |
 
-## Not done yet, and never claimed as done
+## Not done, and never claimed as done
 
-- **The live Network-as-Code run.** It needs an API key. Until it happens,
-  `python -m nabd.parity` reports check 4 as **PENDING**, never as PASS, and
-  the deck's honest-boundaries slide says so in as many words.
+- **A disaster observed live.** The sandbox cannot stage one; the six scenes'
+  network readings are simulated, and in the two real events the *silence* is
+  modelled from real ground motion (the rule is in `nabd/shakemap.py`), not
+  recorded from an operator's logs of the day.
+- **Real, non-simulator devices.** The contract run used the platform's
+  simulator numbers; no sentinel SIM has been deployed anywhere.
 
 ---
 
