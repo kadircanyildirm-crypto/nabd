@@ -1,16 +1,15 @@
-# Everything the prototype needs, in two groups.
+# Everything Nabd needs, in two groups.
 #
-# The decision core, the arbiter, the surge estimator, the A/B harness, the
-# operator console and all five test suites need NOTHING from this file. That is
-# deliberate: `python -m tests.run` and `python -m demo.scene` are the two
-# commands a jury will actually watch, and neither may depend on a wheel that
-# fails to install on the machine in the room.
+# The scenes, the five test suites, the parity harness and the command-centre
+# console need NOTHING from this file. That is deliberate: `python -m tests.run`
+# and `python -m nabd.scene` are the two commands a jury will actually watch, and
+# neither may depend on a wheel that fails to install on the machine in the room.
 
 # -- the agent layer (mandatory tooling, per the Resource & Tooling Guide) ----
-# LangGraph orchestrates sense → forecast → verify → arbitrate → decide → act.
-# It wraps agent/policy.py; it does not contain it. tests/test_agent_layer.py
-# proves that by flying the same mission through both runners and diffing the
-# evidence byte for byte.
+# LangGraph orchestrates sense → correlate → exclude → declare → triage/hold →
+# brief → log. It wraps nabd/detector.py; it does not contain it.
+# tests/test_nabd_scenes.py proves that by running the same scenes through both
+# runners and diffing the evidence byte for byte.
 langgraph>=1.0
 
 # -- the live CAMARA backend (only for --backend live) ------------------------
