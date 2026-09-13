@@ -108,8 +108,9 @@ buildings, and the buildings came down, so above intensity VIII a cell is dark
 from the first second. Below that, sites survived the shaking and then lost
 mains power; they ran on battery and went dark later, sooner where the shaking
 was worse. The thresholds are calibrated so the share of the window that
-eventually goes dark lands on Turkcell's reported *more than half of local base
-stations inoperative*, and a test holds them there.
+eventually goes dark is of the order Turkcell reported — *half of its 3,300 base
+stations in the region out of service, from power outages and destruction*
+(statement of March 2023) — and a test holds them there.
 
 What the agent does with it, from `tests/test_nabd_real.py`:
 

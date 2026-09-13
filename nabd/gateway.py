@@ -64,7 +64,7 @@ class Gateway(Protocol):
 
 
 def write_calls(calls: list[Call], name: str) -> Path:
-    """Raw request/response lines — the same file `nac/probe.py` writes."""
+    """Raw request/response lines — the same shape the live run writes."""
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
     path = EVIDENCE_DIR / f"{name}.jsonl"
     with path.open("w", encoding="utf-8") as fh:
@@ -241,8 +241,8 @@ def parse_location(response: Any, now: datetime) -> Location | None:
 class LiveGateway:
     """The same three calls against Nokia Network-as-Code.
 
-    Written to the SDK's shape before an account exists, mirroring the calls in
-    `nac/probe.py`, so the swap under time pressure is one flag rather than a
+    Written to the SDK's shape before an account exists, mirroring the calls the
+    live client makes, so the swap under time pressure is one flag rather than a
     new file. A platform 'no' is recorded as a result, never raised.
     """
 

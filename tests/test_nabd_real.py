@@ -94,7 +94,7 @@ def test_the_intensity_window_is_sane_and_varied():
 
 
 def test_the_outage_model_is_calibrated_to_the_reported_figure():
-    """Turkcell reported more than half of local base stations inoperative."""
+    """Turkcell reported half of its 3,300 base stations in the region out of service."""
     sm = shakemap.load()
     r = Rupture(0.0, sm.mmi)
     eventually_dark = [c for c in sm.mmi if r.dark_from(c) is not None]

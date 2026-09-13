@@ -27,6 +27,7 @@ live one.
 | Fault rupture (surface projection) | the same product's `rupture.json` | same file |
 | Shaking, contours and rupture, second event | **USGS ShakeMap** `us7000kufc` v14 — M6.8 Al Haouz, 8 Sep 2023, 3 seismic stations, 822 intensity observations | `nabd/data/shakemap-us7000kufc*.json` |
 | The grid's own coordinates | computed from the ShakeMap window, at the real latitude and longitude of every cell | `nabd/shakemap.py` |
+| The calibration target for the dark share | **Turkcell's statement** of March 2023: half of its 3,300 base stations in the region out of service after the earthquakes, from power outages and destruction; ~250 portable base stations and 1,400 generators deployed (reported by SDxCentral and Data Center Dynamics) | the thresholds in `nabd/shakemap.py`, held by `tests/test_nabd_real.py` |
 
 Every one of those files carries a `source` block with the product URL and the
 date it was taken, and a test fails if any of them does not.

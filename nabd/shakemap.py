@@ -30,14 +30,15 @@ than invented:
   "most of the base stations for mobile phones were destroyed along with the"
   structures that carried them. Above `collapse_mmi` a cell is dark from the
   first second.
-* *Power.* Turkcell reported sending some 250 portable base stations because
-  "more than half of the local base stations were rendered inoperative", with
-  the survivors unable to run "due to power outages". Between `power_mmi` and
+* *Power.* Turkcell reported half of its 3,300 base stations in the region out
+  of service after the earthquakes, "due to power outages and destruction", and
+  sent some 250 portable ones (statement of March 2023, as reported by SDxCentral
+  and Data Center Dynamics). Between `power_mmi` and
   `collapse_mmi` a site survives the shaking, runs on battery, and goes dark
   later — sooner where the shaking was worse.
 
 The thresholds are calibrated so that the fraction of the Kahramanmaraş window
-that eventually goes dark lands on that reported "more than half", and
+that eventually goes dark is of the order of that reported half, and
 `tests/test_nabd_real.py` asserts it still does. They remain an assumption; the
 scenes say so on their face, and changing them changes one line.
 

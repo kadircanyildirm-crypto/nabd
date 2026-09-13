@@ -240,7 +240,7 @@ def _maras(seed: int) -> Scenario:
         Beat(0, f"{clock(0)} — {len(grid.monitored())} cells of {sm.window['spacing_km']:.0f} km monitored across {sm.window['where']}. {len(registry)} people on the opt-in registry. Intensity per cell: {sm.citation}."),
         Beat(onset, f"{clock(onset)} — the earthquake. In the real event this is 06 Feb 2023, 01:17:34 UTC. {len(collapse)} cells sit above intensity {rupture.collapse_mmi:.0f}, where masts come down with the buildings they are mounted on; another {len(battery)} are shaken hard enough to lose mains power and are now running on battery."),
         Beat(onset + 180, f"{clock(onset + 180)} — the batteries begin to fail, worst-shaken first. The footprint is not a fixed shape; it grows as the network dies, which is what the field reports describe and what the map has to be allowed to do."),
-        Beat(onset + 600, f"{clock(onset + 600)} — {eventual:.0%} of the monitored window is dark. Turkcell reported that more than half of local base stations were inoperative and sent ~250 portable ones; that is the figure these thresholds are calibrated against."),
+        Beat(onset + 600, f"{clock(onset + 600)} — {eventual:.0%} of the monitored window is dark. Turkcell reported half of its 3,300 base stations in the region out of service, from power outages and destruction, and sent ~250 portable ones; that is the figure these thresholds are calibrated against."),
     ]
     return _real_scenario("maras", sm, world, beats, onset, collapse, battery, eventual)
 

@@ -1,6 +1,6 @@
 # Nokia Network-as-Code Python SDK (Apache-2.0, generated from the CAMARA OpenAPI specs).
 # Pinned: the SDK is regenerated from upstream specs and method names have moved between
-# releases. Bump deliberately, then re-run `python nac/probe.py --check`.
+# releases. Bump deliberately, then re-run `python -m tests.test_nabd_live_wiring`.
 network_as_code==10.0.0
 
 # .env loading for NAC_API_KEY / NAC_MSISDNS
