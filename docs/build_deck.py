@@ -220,7 +220,7 @@ slides.append("""
   <div class="steps">
     <div><i>1</i><p>An area goes <b>dark</b>: its cells stop answering.</p></div>
     <div><i>2</i><p>The ring around it goes <b>hot</b>: everyone calls at once.</p></div>
-    <div><i>3</i><p>That pair, at the same instant, is a signature <b>no other event produces</b>.</p></div>
+    <div><i>3</i><p>That pair, at the same instant, is the signature of <b>an area failing</b> — not of a cell fault, a maintenance window or a crowd.</p></div>
   </div>
   <p class="note">Disaster-agnostic: earthquake, flood, storm, mass power outage — to the network they are the same thing, an area going silent.</p>
 </section>""")
@@ -360,7 +360,7 @@ slides.append("""
       <div><b>Same agent, live</b><span><code>--backend live</code> makes the identical three calls through the Nokia SDK and records the raw exchanges</span></div>
       <div><b>One agent, proven</b><span><code>python -m nabd.parity</code> — the agent stack imports no SDK, one function picks the network, every scene replays through the live parsers identically</span></div>
       <div><b>Checked against two real events</b><span>Kahramanmaraş drives one scene, Al Haouz another on the same thresholds untouched; nothing named that the measured shaking spared</span></div>
-      <div><b>102 / 102 tests, 13 suites</b><span>incl. fuzzed invariants, the model's guard, and 0 of 90 ordinary mornings declared under up to 3% random sentinel dropout</span></div>
+      <div><b>79 / 79 tests, 10 suites</b><span>incl. fuzzed invariants, the model's guard, and 0 of 90 ordinary mornings declared under up to 3% random sentinel dropout</span></div>
     </div>
   </div>
 </section>""")
