@@ -469,7 +469,7 @@ slides.append("""
       <div class="lbl">Why CAMARA, not a control room</div>
       <p>An operator's NOC sees its own cells go down — from inside one operator.</p>
       <p>Responders — civil defence, the Red Crescent, municipalities, hospitals — sit <b>outside</b>, and cannot log into three operators in the middle of a disaster.</p>
-      <p>Open Gateway is the <b>one standard door</b>: operator-independent, and it unifies every national operator behind a single interface. Stable since 2025, available on Network-as-Code today.</p>
+      <p>Open Gateway is the <b>one standard door</b>: operator-independent, and it unifies every national operator behind a single interface. Launched by the GSMA in 2023; available on Network-as-Code today.</p>
     </div>
   </div>
 </section>""")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Doğrulama probe — measures the open questions in internal/dogrulama.md.
+"""Platform probe — measures the open questions about what the platform actually grants.
 
 Each probe answers one row of that table against the live platform and writes its
 raw request/response to nac/evidence/ as committed proof. A 4xx is frequently the
@@ -162,7 +162,7 @@ def probe_p02(client, devices: list[str]) -> dict[str, Any]:
 # ----------------------------------------------------------------------------
 
 # The SDK's own example uses DOWNLINK_M_UPLINK_L, so the two directions are separate
-# axes. Mirqab reserves uplink, so which uplink tiers exist is a design input, not
+# axes. A caller reserving uplink needs to know which uplink tiers exist, so it is a design input, not
 # trivia. There is no list-profiles endpoint — the catalogue is found by trying.
 CANDIDATE_PROFILES = [
     "QOS_E",

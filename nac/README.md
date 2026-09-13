@@ -23,11 +23,11 @@ Each probe writes its raw request and response to `nac/evidence/` as committed
 proof. Failures are recorded rather than raised — a rejected radius *is* the
 measurement of the radius floor.
 
-| Probe | Question | dogrulama.md |
+| Probe | Question | Note |
 |---|---|---|
 | `--p00` | Is a QoD reservation actually granted; which QoS profiles exist; can the same flow be reserved twice | 00, 05 |
 | `--p02` | How far ahead does the congestion forecast reach, and how wide are its buckets | 02 |
-| `--p03` | Which allocated MSISDNs answer — the ceiling on forward-scout coverage | 03 |
+| `--p03` | Which allocated MSISDNs answer — the ceiling on sentinel coverage | 03 |
 | `--p04` | Smallest verifiable circle, and the network's own location uncertainty | 04 |
 
 `--p00 --profiles` sweeps the full QoS profile catalogue. It creates and deletes real

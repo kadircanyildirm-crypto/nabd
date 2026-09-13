@@ -259,12 +259,6 @@ honoured by the operator, the model that needs the fewest parties to coordinate.
   tooling. Python 3.12 standard library elsewhere.
 - **Original code**, written during the hackathon window. Theme 6.
 
-## Sister entry
-
-[Mirqab](MIRQAB.md) (Theme 2) was this team's Idea Phase entry alongside Nabd and
-lives in `agent/`, `demo/` and `console/`. It shares only `nac/client.py` with Nabd and
-is not part of this submission.
-
 ## License
 
 Intellectual property belongs to the team, per hackathon rules. Not licensed for reuse.

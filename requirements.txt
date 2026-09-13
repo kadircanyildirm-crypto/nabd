@@ -1,6 +1,6 @@
 # Everything Nabd needs, in two groups.
 #
-# The scenes, the five test suites, the parity harness and the command-centre
+# The scenes, the test suites, the parity harness and the command-centre
 # console need NOTHING from this file. That is deliberate: `python -m tests.run`
 # and `python -m nabd.scene` are the two commands a jury will actually watch, and
 # neither may depend on a wheel that fails to install on the machine in the room.

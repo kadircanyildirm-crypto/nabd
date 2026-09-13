@@ -7,7 +7,7 @@ of vulnerable people, run only inside a declared footprint.
 
     python -m nabd.scene            # the three scenes, offline, no account needed
     python -m nabd.scene --console  # ...and rebuild replay.html, the command-centre console
-    python -m tests.run             # every suite, Mirqab's and Nabd's
+    python -m tests.run             # every suite
 
 Modules, in the order a reviewer should read them:
 

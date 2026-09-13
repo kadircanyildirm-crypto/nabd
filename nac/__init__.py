@@ -1,1 +1,1 @@
-"""CAMARA client and platform measurement probes for Mirqab."""
+"""CAMARA client and platform measurement probes for Nabd."""

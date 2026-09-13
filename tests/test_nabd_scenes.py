@@ -118,7 +118,7 @@ def test_privacy_gate_is_stated_on_every_pass_and_matches_the_calls():
         actual = sum(1 for c in gateway.calls if c.request["device"]["phoneNumber"] in registry)
         assert counted == actual, (name, counted, actual)
         total_personal += actual
-    print(f"        {total_personal:,} personal-device calls across four scenes, every one of them declared in the record")
+    print(f"        {total_personal:,} personal-device calls across the drawn scenes, every one of them declared in the record")
 
 
 def test_runners_agree_byte_for_byte():

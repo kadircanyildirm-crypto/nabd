@@ -7,7 +7,7 @@ machine in the room cannot install. Each suite is also runnable on its own —
 `python -m tests.test_nabd_detector` — so a failing invariant can be isolated.
 
     test_nabd_detector     the core: correlate → exclude → declare, plus two fuzzed invariants
-    test_nabd_scenes       the five scenes end to end, and the two runners diffed byte for byte
+    test_nabd_scenes       the six scenes end to end, and the two runners diffed byte for byte
     test_nabd_parity       one agent, every backend, proven by replay
     test_nabd_real         the agent against two earthquakes that happened, the second untouched
     test_nabd_live_wiring  the live path resolved against the installed Nokia SDK, no calls spent

@@ -12,7 +12,7 @@ Environmental Monitoring · on the **Nokia Network-as-Code** platform · agent l
 **LangGraph**.
 
 ```bash
-python -m nabd.scene                     # the five scenes, offline, no account needed
+python -m nabd.scene                     # the six scenes, offline, no account needed
 python -m nabd.scene --scene maras       # the real one: measured ground motion, 6 Feb 2023
 python -m nabd.scene --scene quake -v    # every pass, including routine ones
 python -m nabd.scene --runner loop       # the same scenes without LangGraph
@@ -93,7 +93,7 @@ of the 13 registered people inside it as unreachable, with last-seen positions.
 
 ## The scene that is not ours: 6 February 2023
 
-Four of the five scenes are worlds we drew. The `maras` scene is not. The
+Four of the six scenes are worlds we drew. The `maras` and `atlas` scenes are not. The
 geometry and the intensity of shaking in every cell come from the **USGS
 ShakeMap for us6000jllz** — the M7.8 Pazarcık earthquake, 01:17:34 UTC on
 6 February 2023, an intensity field constrained by 262 seismic stations and
@@ -223,13 +223,13 @@ emergency legal powers was deliberately avoided.
 | `graph.py` | the LangGraph runner; `python -m nabd.graph` prints the topology |
 | `shakemap.py` | the real intensity field, and what the outage model assumes |
 | `data/` | the committed ShakeMap extract and the script that produced it |
-| `scene.py` | the five scenes |
+| `scene.py` | the six scenes |
 | `parity.py` | the backend-parity harness: one agent, three backends, four checks |
 | `console.py` | the command-centre console, generated from the evidence into `replay.html` |
 
 Tests: `tests/test_nabd_detector.py` (the core, plus two fuzzed invariants: no
 footprint without a contiguous block; no personal-device call outside a
-footprint), `tests/test_nabd_scenes.py` (the four scenes end to end; both runners
+footprint), `tests/test_nabd_scenes.py` (the drawn scenes end to end; both runners
 diffed byte for byte; the privacy count reconciled against the raw calls) and
 `tests/test_nabd_parity.py` (the parity checks as assertions, so a second code
 path fails the build rather than degrading a paragraph in a report) and

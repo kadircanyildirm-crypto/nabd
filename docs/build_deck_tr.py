@@ -351,7 +351,7 @@ slides.append("""
       <div class="lbl">Neden CAMARA, neden kontrol odası değil</div>
       <p>Bir operatörün NOC'u kendi hücrelerinin düştüğünü görür — tek bir operatörün içinden.</p>
       <p>Müdahale edenler — sivil savunma, Kızılay, belediyeler, hastaneler — <b>dışarıdadır</b> ve bir afetin ortasında üç ayrı operatöre giriş yapamazlar.</p>
-      <p>Open Gateway <b>tek standart kapıdır</b>: operatörden bağımsızdır ve bütün ulusal operatörleri tek bir arayüz arkasında birleştirir. 2025'ten beri kararlı, bugün Network-as-Code üzerinde kullanılabilir.</p>
+      <p>Open Gateway <b>tek standart kapıdır</b>: operatörden bağımsızdır ve bütün ulusal operatörleri tek bir arayüz arkasında birleştirir. GSMA 2023'te başlattı; bugün Network-as-Code üzerinde kullanılabilir.</p>
     </div>
   </div>
 </section>""")
