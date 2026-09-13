@@ -177,6 +177,8 @@ def _kokoro(text: str, out: Path) -> None:
 # again when the window resets and it picks up where it stopped.
 CHATTERBOX = {
     "space": "https://resembleai-chatterbox-multilingual-tts.hf.space/",
+    # A reference clip is not in the repository; the submitted films were narrated
+    # by Kokoro, which needs none. Supply your own here to use this engine.
     "reference": "voice-reference.wav",
     "seed": 42,
     # Softer emotion, slower delivery, less variance between words. Lower cfg is
