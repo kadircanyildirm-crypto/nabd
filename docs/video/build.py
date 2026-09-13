@@ -75,7 +75,9 @@ LANGS = {
         "language_id": "en",
         "kokoro_voice": "am_onyx",
         "kokoro_lang": "en-us",
-        "kokoro_speed": 1.0,
+        # Six percent faster than the long cut: inaudible, and it keeps the
+        # film a clear ten seconds inside the three-minute limit.
+        "kokoro_speed": 1.06,
     },
     "tr": {
         "voice": "tr-TR-AhmetNeural",
